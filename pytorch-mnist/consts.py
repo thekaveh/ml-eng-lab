@@ -5,6 +5,6 @@ class Consts:
     OPTIMIZER_ALG = "sgd"
     DROPOUT_P: float = 0.25
     FEATURES_SIZE_OUT: int = 10
-    MINI_BATCH_SIZE: int = 60000
+    MINI_BATCH_SIZE: int = 30000
     FEATURES_SIZE_IN: int = 28 * 28
     DATASET_SAMPLING_RATIO: float = 1.0

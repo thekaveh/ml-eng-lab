@@ -16,7 +16,7 @@ class Utils:
         ax.set_title(title, fontsize=14)
         ax.set_ylabel(y_axis_label, fontsize=14)
         ax.set_xlabel(x_axis_label, fontsize=14)
-        ax.set_xticks(range(0, len(x), 8))
+        ax.set_xticks(range(0, len(x), 10))
 
         plt.legend(fontsize='x-large')
         plt.tight_layout() 
