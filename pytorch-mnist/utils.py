@@ -19,7 +19,7 @@ class Utils:
         ax.set_xticks(range(0, len(x), 10))
 
         plt.legend(fontsize='x-large')
-        plt.tight_layout() 
+        plt.tight_layout()
         plt.show();
 
     def get_device_name():
