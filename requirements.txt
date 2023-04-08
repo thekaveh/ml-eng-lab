@@ -1,4 +1,5 @@
 nltk
+spacy
 tweepy
 torch
 torchvision
