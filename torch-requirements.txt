@@ -1,3 +1,4 @@
+pytorch-lightning
 torchvision
 torchaudio
 torchtext
@@ -8,5 +9,4 @@ torch-sparse
 torch-cluster
 torch-spline-conv
 torch_geometric
-pytorch-lightning
 transformers

@@ -17,3 +17,8 @@ streamlit
 uvicorn
 gunicorn
 fastapi
+langchain
+openapi
+wikipedia
+chromadb
+tiktoken

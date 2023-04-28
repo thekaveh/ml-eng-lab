@@ -26,6 +26,6 @@ Assuming:
 Steps:
 1. `$ git clone https://github.com/thekaveh/ml [local-repo-path] && cd [local-repo-path]`
 2. `$ docker build -t [container-image-name]`
-3. `$ docker run --shm-size=4g --rm -d -t --name=[container-instance-name] -p 8888:8888 --mount src="$(pwd)",target=/usr/src/app,type=bind [container-image-name]`
+3. `$ docker run --rm -d -t --name=[container-instance-name] --shm-size=4g -p 8888:8888 --mount src="$(pwd)",target=/usr/src/app,type=bind [container-image-name]`
 4. `$ code .` > Remote Explorer > Dev Containers > [container-image-name] > Right CLick > Attach to Container
 5. (optional)`$ docker exec -ti [container-image-name] bash`
