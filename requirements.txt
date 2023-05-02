@@ -4,6 +4,7 @@ opencv-python
 glob2
 nltk
 spacy
+python-louvain
 gensim
 pyldavis
 tweepy
