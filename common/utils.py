@@ -40,3 +40,48 @@ class Utils:
             else "gpu" if torch.cuda.is_available()
             else "cpu"
         )
+        
+    @staticmethod
+    def scatter_plot(vm, figsize=(15, 15)):
+        f, sub_plt = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+
+        for t_idx, _ in enumerate(vm["ts"]["uni_vals"]):
+            sub_plt.scatter(
+                s=10
+                , x=vm["xs-ts"][t_idx]
+                , y=vm["ys-ts"][t_idx]
+                , color=vm["ts"]["colors"][t_idx]
+                , label=vm["ts"]["labels"][t_idx]
+            )
+
+        sub_plt.set_xticks([])
+        sub_plt.set_yticks([])
+        sub_plt.set_xlabel(vm["xs"]["label"])
+        sub_plt.set_ylabel(vm["ys"]["label"])
+        sub_plt.set_title(vm["title"])
+        sub_plt.legend();
+
+    @staticmethod
+    def get_scatter_plot_vm(data, title, col_xs, label_xs, col_ys, label_ys, col_ts, labels_ts, colors_ts, uni_ts):
+        vm = {
+            "title": title,
+            "xs": {
+                "vals": data[col_xs],
+                "label": label_xs
+            },
+            "ys": {
+                "vals": data[col_ys],
+                "label": label_ys
+            },
+            "ts": {
+                "vals": data[col_ts],
+                "uni_vals": uni_ts,
+                "colors": colors_ts,
+                "labels": labels_ts
+            }
+        }
+
+        vm["xs-ts"] = [vm["xs"]["vals"][vm["ts"]["vals"] == t_val] for t_val in vm["ts"]["uni_vals"]]
+        vm["ys-ts"] = [vm["ys"]["vals"][vm["ts"]["vals"] == t_val] for t_val in vm["ts"]["uni_vals"]]
+
+        return vm

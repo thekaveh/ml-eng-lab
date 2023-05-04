@@ -4,7 +4,7 @@ import torch_geometric as pyg
 
 from tqdm import tqdm
 from torch import nn, optim
-from typing import List, Union
+from typing import List, Optional
 from dataclasses import dataclass
 from torch.utils.data import DataLoader
 
@@ -15,7 +15,8 @@ class NNTrainParams:
     weight_decay    : float
     learning_rate   : float
     train_loader    : DataLoader
-    val_loader      : Union[DataLoader, None] = None
+    val_cadence     : Optional[int] = None
+    val_loader      : Optional[DataLoader] = None
     
     def __str__(self):
         return f"Train=[epochs={self.n_epochs}, optim={self.optim}, lr={self.learning_rate:1.0e}, weight_decay={self.weight_decay:1.0e}]"
@@ -27,8 +28,9 @@ class NNIterationDataPoint:
     batch_idx   : int  
     train_loss  : float
     train_error : float
-    val_loss    : Union[float, None] = None
-    val_error   : Union[float, None] = None
+    val_loss    : Optional[float] = None
+    val_error   : Optional[float] = None
+    val_y_hat   : Optional[np.ndarray] = None
 
 class NNModel():
     def __init__(self, net: nn.Module, device: str = "cpu"):
@@ -62,39 +64,45 @@ class NNModel():
             , total=int(params.n_epochs * len(params.train_loader))
         )
 
-        for epoch_idx in range(params.n_epochs):
-            for batch_idx, batch in enumerate(params.train_loader):
-                self.net.train()
-                self.net.zero_grad()
+        with torch.set_grad_enabled(True):
+            for epoch_idx in range(params.n_epochs):
+                for batch_idx, batch in enumerate(params.train_loader):
+                    self.net.train()
+                    self.net.zero_grad()
+                        
+                    X, Y, Y_hat = self._iter_fwd(batch)
                     
-                X, Y, Y_hat = self.iterate(batch)
-                
-                train_loss = self.loss(Y_hat, Y)          
-                train_error = 1 - (Y_hat.max(dim=1)[1] == Y).sum().item() / Y.size(0)
+                    train_loss = self.loss(Y_hat, Y)          
+                    train_error = 1 - (Y_hat.max(dim=1)[1] == Y).sum().item() / Y.size(0)
 
-                train_loss.backward()
-                optimizer.step()
+                    train_loss.backward()
+                    optimizer.step()
 
-                if validate:
-                    val_loss, val_error = self.evaluate(loader=params.val_loader)
-                else:
-                    val_loss, val_error = None, None
+                    if validate and (
+                        (params.val_cadence is None) or (
+                            (params.val_cadence is not None) and (iter_idx % params.val_cadence == 0)
+                        )
+                    ):
+                        val_y_hat, val_loss, val_error = self.evaluate(loader=params.val_loader)
+                    else:
+                        val_y_hat, val_loss, val_error = None, None, None
 
-                idp = NNIterationDataPoint(
-                    epoch_idx=epoch_idx
-                    , iter_idx=iter_idx
-                    , val_loss=val_loss
-                    , batch_idx=batch_idx
-                    , val_error=val_error
-                    , train_error=train_error
-                    , train_loss=float(train_loss)
-                )
+                    idp = NNIterationDataPoint(
+                        epoch_idx=epoch_idx
+                        , iter_idx=iter_idx
+                        , val_loss=val_loss
+                        , batch_idx=batch_idx
+                        , val_error=val_error
+                        , val_y_hat=val_y_hat
+                        , train_error=train_error
+                        , train_loss=float(train_loss)
+                    )
 
-                idps.append(idp)
+                    idps.append(idp)
 
-                iter_idx += 1
-                tqdm_bar.update(1)
-                tqdm_bar.set_postfix_str(f"error: {val_error if val_error is not None else train_error:.4f}")
+                    iter_idx += 1
+                    tqdm_bar.update(1)
+                    tqdm_bar.set_postfix_str(f"error: {val_error if val_error is not None else train_error:.4f}")
         
         return train_str, np.array(idps)
 
@@ -104,7 +112,7 @@ class NNModel():
 
         with torch.no_grad():
             for _, batch in enumerate(loader):
-                X, Y, Y_hat = self.iterate(batch)
+                X, Y, Y_hat = self._iter_fwd(batch)
                 
                 loss = self.loss(Y_hat, Y)              
                 loss_vals.append(float(loss))
@@ -113,11 +121,13 @@ class NNModel():
                 err_vals.append(float(error))
 
         return (
-            np.mean(loss_vals)
+            # Y_hat.detach().cpu().numpy()
+            None
+            , np.mean(loss_vals)
             , np.mean(err_vals)
         )
         
-    def iterate(self, batch):
+    def _iter_fwd(self, batch):
         X, Y = self.net.unpack_batch(batch)
         
         X = tuple(x.to(self.device) for x in X)
@@ -126,3 +136,14 @@ class NNModel():
         Y_hat = self.net(*X)
         
         return X, Y, Y_hat
+    
+    def predict(self, X):
+        if not isinstance(X, tuple):
+            X = (X,)
+        
+        X = tuple(x.to(self.device) for x in X)
+        
+        with torch.no_grad():
+            Y_hat = self.net(*X)
+            
+            return Y_hat, Y_hat.argmax(dim=1)
