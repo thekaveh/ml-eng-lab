@@ -4,33 +4,34 @@ import torch_geometric as pyg
 
 from tqdm import tqdm
 from torch import nn, optim
-from typing import List, Optional
 from dataclasses import dataclass
 from torch.utils.data import DataLoader
+from typing import List, Optional, Tuple
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class NNTrainParams:
-    optim           : str
-    n_epochs        : int
-    weight_decay    : float
-    learning_rate   : float
-    train_loader    : DataLoader
-    val_cadence     : Optional[int] = None
-    val_loader      : Optional[DataLoader] = None
+    optim               : str
+    n_epochs            : int
+    weight_decay        : float
+    learning_rate       : float
+    train_loader        : DataLoader
+    snapshot_interval   : Optional[int]                 = None
+    val_loader          : Optional[DataLoader]          = None
+    snapshot_x          : Optional[Tuple[np.ndarray]]   = None
     
     def __str__(self):
         return f"Train=[epochs={self.n_epochs}, optim={self.optim}, lr={self.learning_rate:1.0e}, weight_decay={self.weight_decay:1.0e}]"
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class NNIterationDataPoint:
-    iter_idx    : int
-    epoch_idx   : int
-    batch_idx   : int  
-    train_loss  : float
-    train_error : float
-    val_loss    : Optional[float] = None
-    val_error   : Optional[float] = None
-    val_y_hat   : Optional[np.ndarray] = None
+    iter_idx        : int
+    epoch_idx       : int
+    batch_idx       : int  
+    train_loss      : float
+    train_error     : float
+    val_loss        : Optional[float]                           = None
+    val_error       : Optional[float]                           = None
+    snapshot_y_hat  : Optional[Tuple[np.ndarray, np.ndarray]]   = None
 
 class NNModel():
     def __init__(self, net: nn.Module, device: str = "cpu"):
@@ -42,6 +43,7 @@ class NNModel():
     def train(self, params: NNTrainParams):
         train_str = f"{self.net} x {params}"
         validate = params.val_loader is not None
+        snapshot = params.snapshot_x is not None
 
         if params.optim == "sgd":
             optimizer = optim.SGD(
@@ -78,14 +80,19 @@ class NNModel():
                     train_loss.backward()
                     optimizer.step()
 
-                    if validate and (
-                        (params.val_cadence is None) or (
-                            (params.val_cadence is not None) and (iter_idx % params.val_cadence == 0)
+                    if validate:
+                        val_loss, val_error = self.evaluate(loader=params.val_loader)
+                    else:
+                        val_loss, val_error = None, None, None
+                        
+                    if snapshot and (
+                        params.snapshot_interval is None or (
+                            (params.snapshot_interval is not None) and (iter_idx % params.snapshot_interval == 0)
                         )
                     ):
-                        val_y_hat, val_loss, val_error = self.evaluate(loader=params.val_loader)
+                        snapshot_y_hat = self.predict(X=params.snapshot_x)
                     else:
-                        val_y_hat, val_loss, val_error = None, None, None
+                        snapshot_y_hat = None
 
                     idp = NNIterationDataPoint(
                         epoch_idx=epoch_idx
@@ -93,9 +100,9 @@ class NNModel():
                         , val_loss=val_loss
                         , batch_idx=batch_idx
                         , val_error=val_error
-                        , val_y_hat=val_y_hat
                         , train_error=train_error
                         , train_loss=float(train_loss)
+                        , snapshot_y_hat=snapshot_y_hat
                     )
 
                     idps.append(idp)
@@ -121,9 +128,7 @@ class NNModel():
                 err_vals.append(float(error))
 
         return (
-            # Y_hat.detach().cpu().numpy()
-            None
-            , np.mean(loss_vals)
+            np.mean(loss_vals)
             , np.mean(err_vals)
         )
         
@@ -137,13 +142,14 @@ class NNModel():
         
         return X, Y, Y_hat
     
-    def predict(self, X):
+    def predict(self, X: np.ndarray):
         if not isinstance(X, tuple):
             X = (X,)
         
-        X = tuple(x.to(self.device) for x in X)
+        X = tuple(torch.from_numpy(x).to(self.device) for x in X)
         
+        self.net.eval()
         with torch.no_grad():
-            Y_hat = self.net(*X)
+            Y_hat = self.net(*X).detach().numpy()
             
-            return Y_hat, Y_hat.argmax(dim=1)
+            return Y_hat, Y_hat.argmax(axis=1)
