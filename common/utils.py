@@ -7,7 +7,7 @@ sns.set()
 
 class Utils:
     @staticmethod
-    def multi_line_plot(fig_size, title, x_axis_label, x, y_axis_label, yss_legend, yss, x_ticks_inc=20):
+    def multi_line_plot(fig_size, title, x_axis_label, x, y_axis_label, yss_legend, yss, x_ticks_inc=20, title_size=15, label_size=12):
         _ = plt.figure(figsize = fig_size)
         
         ls = ["-", "--", "-.", ":"]
@@ -24,9 +24,9 @@ class Utils:
                 )
 
         ax.set_xlim(0, len(x))
-        ax.set_title(title, fontsize=14)
-        ax.set_ylabel(y_axis_label, fontsize=14)
-        ax.set_xlabel(x_axis_label, fontsize=14)
+        ax.set_title(title, fontsize=title_size)
+        ax.set_ylabel(y_axis_label, fontsize=label_size)
+        ax.set_xlabel(x_axis_label, fontsize=label_size)
         ax.set_xticks(range(0, len(x), x_ticks_inc))
         
         plt.legend(fontsize='large')
@@ -42,7 +42,7 @@ class Utils:
         )
         
     @staticmethod
-    def scatter_plot(vm, figsize=(15, 15), title_size = 15, label_size = 10):
+    def scatter_plot(vm, figsize=(15, 15), title_size=15, label_size=12):
         f, sub_plt = plt.subplots(nrows=1, ncols=1, figsize=figsize)
 
         for t_idx, _ in enumerate(vm["ts"]["uni_vals"]):
