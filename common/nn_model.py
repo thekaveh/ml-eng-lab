@@ -58,12 +58,13 @@ class NNModel():
                 , weight_decay=params.weight_decay
             )
         
-        iter_idx: int = 0
-        idps    : List[IterationDataPoint] = []
+        iter_idx: int                       = 0
+        idps    : List[IterationDataPoint]  = []
+        n_iter  : int                       = int(params.n_epochs * len(params.train_loader))
 
         tqdm_bar = tqdm(
             desc=train_str
-            , total=int(params.n_epochs * len(params.train_loader))
+            , total=n_iter
         )
 
         with torch.set_grad_enabled(True):
@@ -87,7 +88,9 @@ class NNModel():
                         
                     if snapshot and (
                         params.snapshot_interval is None or (
-                            (params.snapshot_interval is not None) and (iter_idx % params.snapshot_interval == 0)
+                            (params.snapshot_interval is not None) and (
+                                (iter_idx % params.snapshot_interval == 0) or (iter_idx == n_iter - 1)
+                            )
                         )
                     ):
                         snapshot_y_hat = self.predict(X=params.snapshot_x)
