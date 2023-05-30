@@ -157,8 +157,8 @@ class NNEvaluationDataPoint:
     recall      : float
     accuracy    : float
     precision   : float
-    loss        : Optional[float]               = None
-    error       : Optional[float]               = None
+    loss        : Optional[float]   = None
+    error       : Optional[float]   = None
     
     def with_loss(self, value: float):
         return replace(self, loss=value)
