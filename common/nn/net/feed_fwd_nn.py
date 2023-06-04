@@ -3,8 +3,7 @@ import torch_geometric as pyg
 import torch.nn.functional as F
 
 from torch import nn
-from .nn_params import NNParams
-from .nn_activation_fn import NNActivationFn
+from ..params.nn_params import NNParams
 
 class FeedFwdNN(nn.Module):
     def __init__(self, params: NNParams):

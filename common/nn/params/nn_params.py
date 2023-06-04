@@ -1,6 +1,7 @@
 from typing import List, Optional
 from dataclasses import dataclass, field
-from .nn_activation_fn import NNActivationFn
+
+from ..enum.activation_fn import ActivationFn
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class NNParams:
@@ -8,7 +9,7 @@ class NNParams:
     input_dim       : int                       = field(repr=False)
     output_dim      : int                       = field(repr=False)
     hidden_dims     : Optional[List[int]]       = field(repr=False, default=None)
-    activation_fn   : Optional[NNActivationFn]  = field(repr=False, default=NNActivationFn.LEAKY_RELU)
+    activation_fn   : Optional[ActivationFn]    = field(repr=False, default=ActivationFn.LEAKY_RELU)
     
     _dims           : Optional[List[int]]       = field(repr=False, init=False, default=None)
     

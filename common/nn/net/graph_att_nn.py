@@ -5,8 +5,8 @@ import torch.nn.functional as F
 from dataclasses import dataclass, field
 
 from torch import nn
-from .nn_params import NNParams
-from .nn_activation_fn import NNActivationFn
+from ..params.nn_params import NNParams
+from ..enum.activation_fn import ActivationFn
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class GraphAttNNParams(NNParams):
