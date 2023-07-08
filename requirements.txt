@@ -24,3 +24,4 @@ openapi
 wikipedia
 chromadb
 tiktoken
+pyyaml

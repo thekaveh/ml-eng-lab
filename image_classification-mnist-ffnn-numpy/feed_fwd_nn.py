@@ -95,10 +95,10 @@ class FeedFwdNN:
 
                 idp = IterationDataPoint(
                     epoch_idx=epoch_idx
-                    , batch_idx=mb_idx
                     , iter_idx=iter_idx
                     , training_loss=L_train
                     , validation_loss=L_val
+                    , mini_batch_idx=mb_idx
                 )
 
                 iteration_data.append(idp)

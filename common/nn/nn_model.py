@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 
 from .enum.loss import Loss
 from .enum.device import Device
+from .enum.checkpoint_type import CheckpointType
 
 from .params.nn_checkpoint import NNCheckpoint
 from .params.nn_train_params import NNTrainParams
@@ -64,7 +65,7 @@ class NNModel():
         idx_iter        : int                           = 0
         idps            : List[NNIterationDataPoint]    = []
         n_iter          : int                           = int(params.n_epochs * len(params.train_loader))
-        best_checkpoint : Optional[NNCheckpoint]        = NNCheckpoint.from_best_checkpoint()
+        best_checkpoint : Optional[NNCheckpoint]        = NNCheckpoint.from_type(type=CheckpointType.BEST)
         
         # print(train_str)
         print(run)
@@ -116,19 +117,19 @@ class NNModel():
                 )
                 
                 if idx_epoch == 0:
-                    checkpoint.to_first_checkpoint()       
+                    checkpoint.to_type(type=CheckpointType.FIRST)     
                 elif idx_epoch == int(params.n_epochs / 4) - 1:
-                    checkpoint.to_1st_quartile_checkpoint()       
+                    checkpoint.to_type(type=CheckpointType.Q1)     
                 elif idx_epoch == int(params.n_epochs / 2) - 1:
-                    checkpoint.to_2nd_quartile_checkpoint()   
+                    checkpoint.to_type(type=CheckpointType.Q2)  
                 elif idx_epoch == int(3 * params.n_epochs / 4) - 1:
-                    checkpoint.to_3rd_quartile_checkpoint()
+                    checkpoint.to_type(type=CheckpointType.Q3)
                     
-                checkpoint.to_last_checkpoint()
+                checkpoint.to_type(type=CheckpointType.LAST)
                 
                 if best_checkpoint is None or checkpoint.idp.val_edp.error < best_checkpoint.idp.val_edp.error:
                     best_checkpoint = checkpoint
-                    checkpoint.to_best_checkpoint()
+                    checkpoint.to_type(type=CheckpointType.BEST)
                 
                 scheduler.step(val_edp.error if val_edp is not None else train_edp)
                 
