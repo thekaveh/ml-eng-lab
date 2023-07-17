@@ -32,7 +32,7 @@ class NNParams:
     
     def to_dict(self):
         return dict(
-            dims            = self.dims
+            dims            = str(self.dims)
             , dropout_prob  = self.dropout_prob
-            , activation_fn = self.activation_fn
+            , activation_fn = str(self.activation_fn)
         )

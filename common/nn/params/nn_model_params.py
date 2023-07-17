@@ -21,6 +21,6 @@ class NNModelParams:
         
     def to_dict(self):
         return dict(
-            loss        = self.loss
-            , device    = self.device
+            loss        = str(self.loss)
+            , device    = str(self.device)
         )

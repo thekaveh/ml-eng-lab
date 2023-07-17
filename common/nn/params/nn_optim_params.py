@@ -15,9 +15,9 @@ class NNOptimParams:
     
     def to_dict(self):
         return dict(
-            optim           = self.optim
-            , lr_start      = self.lr_start
-            , momentum      = self.momentum
+            lr_start        = self.lr_start
+            , momentum      = str(self.momentum)
+            , optim         = str(self.optim)
             , weight_decay  = self.weight_decay
         )
     

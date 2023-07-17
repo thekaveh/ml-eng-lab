@@ -13,7 +13,7 @@ class NNSchedulerParams:
     
     def to_dict(self):
         return dict(
-            factor    = self.factor
-            , patience    = self.patience
+            factor      = self.factor
+            , patience  = self.patience
             , threshold = self.threshold
         )

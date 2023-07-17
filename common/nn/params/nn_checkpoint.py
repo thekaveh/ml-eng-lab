@@ -24,8 +24,10 @@ class NNCheckpoint:
         
         torch.save(self, path)
         
-    def to_type(self, type: CheckpointType) -> None:
-        self.to_file(path=f"./checkpoint/{str(type)}.pt")
+    def save(self, run: str, type: CheckpointType) -> None:
+        self.to_file(
+            path=os.path.join(".", "runs", run, "checkpoints", str(type) + ".pt")
+        )
         
     @staticmethod
     def from_file(path: str) -> Optional[NNCheckpoint]:
@@ -40,5 +42,7 @@ class NNCheckpoint:
         return ret
     
     @staticmethod
-    def from_type(type: CheckpointType) -> Optional[NNCheckpoint]:
-        return NNCheckpoint.from_file(path=f"./checkpoint/{str(type)}.pt")
+    def load(run: str, type: CheckpointType) -> Optional[NNCheckpoint]:
+        return NNCheckpoint.from_file(
+            path=os.path.join(".", "runs", run, "checkpoints", str(type) + ".pt")
+        )
