@@ -52,6 +52,15 @@ class NNRun:
     
     def with_idps(self, value: List[NNIterationDataPoint]) -> NNRun:
         return replace(self, idps=value)
+    
+    def checkpoints(self) -> List[NNCheckpoint]:
+        return [
+            NNCheckpoint.load(run=self.id, type=CheckpointType.FIRST)
+            , NNCheckpoint.load(run=self.id, type=CheckpointType.Q1)
+            , NNCheckpoint.load(run=self.id, type=CheckpointType.Q2)
+            , NNCheckpoint.load(run=self.id, type=CheckpointType.Q3)
+            , NNCheckpoint.load(run=self.id, type=CheckpointType.LAST)
+        ]
         
     def save(self) -> NNRun:
         run_path = os.path.join(os.getcwd(), "runs", self.id)
@@ -65,9 +74,9 @@ class NNRun:
         
         with open(yaml_path, 'w') as f:
             yaml.dump(self.rep, f)
-            
+        
         pd.json_normalize(
-            data=[asdict(idp) for idp in self.idps]
+            data=[idp.to_dict() for idp in self.idps]
         ).to_csv(csv_path)
             
         if not os.path.exists(best_run_path):
@@ -81,3 +90,21 @@ class NNRun:
                 os.symlink(src=run_path, dst=best_run_path)
         
         return self
+    
+    @staticmethod
+    def load(id: str) -> NNRun:
+        run_path = os.path.join(os.getcwd(), "runs", id)
+        yaml_path = os.path.join(run_path, "run.yaml")
+        csv_path = os.path.join(run_path, "idps.csv")
+        
+        with open(yaml_path, 'r') as f:
+            rep = yaml.load(f, Loader=yaml.FullLoader)
+            
+        idps = pd.read_csv(csv_path).to_dict(orient='records')
+        
+        return NNRun(
+            net_params=NNParams.from_dict(rep['net_params'])
+            , train_params=NNTrainParams.from_dict(rep['train_params'])
+            , model_params=NNModelParams.from_dict(rep['model_params'])
+            , idps=[NNIterationDataPoint.from_dict(idp) for idp in idps]
+        )

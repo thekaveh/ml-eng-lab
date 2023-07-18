@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import ast
+
 from typing import List, Optional
 from dataclasses import dataclass, field
 
@@ -30,9 +34,21 @@ class NNParams:
     def __str__(self):
         return self.__repr__()
     
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return dict(
-            dims            = str(self.dims)
+            input_dim       = self.input_dim
+            , output_dim    = self.output_dim
             , dropout_prob  = self.dropout_prob
+            , hidden_dims   = str(self.hidden_dims)
             , activation_fn = str(self.activation_fn)
+        )
+    
+    @staticmethod
+    def from_dict(rep: dict) -> NNParams:
+        return NNParams(
+            input_dim=rep['input_dim']
+            , output_dim=rep['output_dim']
+            , dropout_prob=rep['dropout_prob']
+            , hidden_dims=ast.literal_eval(rep['hidden_dims'])
+            , activation_fn=ActivationFn(rep['activation_fn'])
         )

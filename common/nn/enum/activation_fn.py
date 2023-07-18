@@ -19,7 +19,7 @@ class ActivationFn(Enum):
     
     def __repr__(self):
         return str(self)
-
+        
     def __call__(self):
         match self:
             case ActivationFn.ELU           : return F.elu

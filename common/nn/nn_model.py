@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import torch
 import numpy as np
 
@@ -40,8 +42,7 @@ class NNModel():
             and params.optim_params is not None
             and params.optim_params.is_valid()
         )
-        
-        train_str   : str   = f"{self.params} x {self.net} x {params}"
+
         validate    : bool  = params.val_loader is not None
         run         : NNRun = NNRun(
             train_params=params

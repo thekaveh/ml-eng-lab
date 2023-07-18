@@ -19,8 +19,15 @@ class NNModelParams:
             and self.loss is not None
         )
         
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return dict(
             loss        = str(self.loss)
             , device    = str(self.device)
+        )
+        
+    @staticmethod
+    def from_dict(rep: dict) -> NNModelParams:
+        return NNModelParams(
+            loss        = Loss(rep['loss'])
+            , device    = Device(rep['device'])
         )

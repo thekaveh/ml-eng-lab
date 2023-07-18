@@ -47,3 +47,24 @@ class NNEvaluationDataPoint:
             ret = ret.with_error(np.mean([edp.error for edp in edps if edp.error is not None]))
 
         return ret
+    
+    def to_dict(self) -> dict:
+        return dict(
+            f1          = self.f1
+            , recall    = self.recall
+            , accuracy  = self.accuracy
+            , precision = self.precision
+            , loss      = self.loss
+            , error     = self.error
+        )
+    
+    @staticmethod
+    def from_dict(rep: dict) -> NNEvaluationDataPoint:
+        return NNEvaluationDataPoint(
+            f1          = rep['f1']
+            , recall    = rep['recall']
+            , accuracy  = rep['accuracy']
+            , precision = rep['precision']
+            , loss      = rep['loss'] if rep['loss'] is not None else None
+            , error     = rep['error'] if rep['error'] is not None else None
+        )

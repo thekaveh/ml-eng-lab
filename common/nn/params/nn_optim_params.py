@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import ast
+
 from typing import Tuple, Union
 from dataclasses import dataclass
 
@@ -19,6 +23,15 @@ class NNOptimParams:
             , momentum      = str(self.momentum)
             , optim         = str(self.optim)
             , weight_decay  = self.weight_decay
+        )
+    
+    @staticmethod
+    def from_dict(rep: dict) -> NNOptimParams:
+        return NNOptimParams(
+            lr_start        = rep['lr_start']
+            , optim         = Optim(rep['optim'])
+            , weight_decay  = rep['weight_decay']
+            , momentum      = ast.literal_eval(rep['momentum'])
         )
     
     def is_valid(self):
