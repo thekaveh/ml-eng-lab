@@ -21,6 +21,12 @@ class NNGraphDataset(NNDatasetBase):
         
         object.__setattr__(
             self
+            , 'name'
+            , self.ds_class.__name__
+        )
+        
+        object.__setattr__(
+            self
             , 'train_loader'
             , NeighborLoader(
                 shuffle=True
@@ -69,3 +75,15 @@ class NNGraphDataset(NNDatasetBase):
             , 'output_dim'
             , dataset.num_classes
         )
+        
+        rep = dict(
+            name            = self.name
+            , input_dim     = self.input_dim
+            , output_dim    = self.output_dim
+            , train_len     = f"{len(self.train_loader.dataset):,}"
+            , val_len       = f"{len(self.val_loader.dataset):,}"
+            , test_len      = f"{len(self.test_loader.dataset):,}"
+        )
+        
+        object.__setattr__(self, '_rep', rep)
+        

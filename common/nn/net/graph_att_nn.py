@@ -2,21 +2,8 @@ import torch
 import torch_geometric as pyg
 import torch.nn.functional as F
 
-from dataclasses import dataclass, field
-
 from torch import nn
-from ..params.nn_params import NNParams
-from ..enum.activations import Activations
-
-@dataclass(frozen=True, kw_only=True, slots=True)
-class GraphAttNNParams(NNParams):
-    n_heads: int = field(repr=True, init=True, default=1)
-    
-    def __repr__(self):
-        return f"{{dims={self.dims}, dropout={self.dropout_prob:0.2f}, heads={self.n_heads}}}"
-    
-    def __str__(self):
-        return self.__repr__()
+from ..params.nn_params import GraphAttNNParams
 
 class GraphAttNN(nn.Module):
     def __init__(self, params: GraphAttNNParams):

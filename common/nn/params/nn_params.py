@@ -52,3 +52,34 @@ class NNParams:
             , hidden_dims   = ast.literal_eval(rep['hidden_dims'])
             , activation    = Activations(rep['activation'])
         )
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class GraphAttNNParams(NNParams):
+    n_heads: int = field(repr=True, init=True, default=4)
+    
+    def __repr__(self):
+        return f"{{dims={self.dims}, dropout={self.dropout_prob:0.2f}, heads={self.n_heads}}}"
+    
+    def __str__(self):
+        return self.__repr__()
+    
+    def to_dict(self) -> dict:
+        return dict(
+            input_dim       = self.input_dim
+            , output_dim    = self.output_dim
+            , dropout_prob  = self.dropout_prob
+            , hidden_dims   = str(self.hidden_dims)
+            , activation    = str(self.activation)
+            , n_heads         = self.n_heads
+        )
+    
+    @staticmethod
+    def from_dict(rep: dict) -> GraphAttNNParams:
+        return GraphAttNNParams(
+            input_dim       = rep['input_dim']
+            , output_dim    = rep['output_dim']
+            , dropout_prob  = rep['dropout_prob']
+            , hidden_dims   = ast.literal_eval(rep['hidden_dims'])
+            , activation    = Activations(rep['activation'])
+            , n_heads       = rep['n_heads']
+        )

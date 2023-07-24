@@ -25,3 +25,8 @@ wikipedia
 chromadb
 tiktoken
 pyyaml
+plotly
+notebook
+ipywidgets
+kaleido
+prettytable

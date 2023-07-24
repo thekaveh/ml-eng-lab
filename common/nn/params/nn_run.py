@@ -20,13 +20,13 @@ from ..params.nn_iteration_data_point import NNIterationDataPoint
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class NNRun:
-    net_params  : NNParams
-    train_params: NNTrainParams
-    model_params: NNModelParams 
+    net     : NNParams
+    train   : NNTrainParams
+    model   : NNModelParams 
     
-    _id         : Optional[str]                         = field(repr=False, default=None)
-    _rep        : Optional[dict]                        = field(repr=False, default=None)
-    idps        : Optional[List[NNIterationDataPoint]]  = field(repr=False, default=None)
+    _id     : Optional[str]                         = field(repr=False, default=None)
+    _rep    : Optional[dict]                        = field(repr=False, default=None)
+    idps    : Optional[List[NNIterationDataPoint]]  = field(repr=False, default=None)
     
     @property
     def id(self) -> str:
@@ -38,9 +38,9 @@ class NNRun:
     
     def __post_init__(self):
         rep = dict(
-            model_params    = self.model_params.to_dict()
-            , net_params    = self.net_params.to_dict()
-            , train_params  = self.train_params.to_dict()
+            model   = self.model.to_dict()
+            , net   = self.net.to_dict()
+            , train = self.train.to_dict()
         )
         
         id = hashlib.md5(
@@ -103,8 +103,8 @@ class NNRun:
         idps = pd.read_csv(csv_path).to_dict(orient='records')
         
         return NNRun(
-            net_params=NNParams.from_dict(rep['net_params'])
-            , train_params=NNTrainParams.from_dict(rep['train_params'])
-            , model_params=NNModelParams.from_dict(rep['model_params'])
-            , idps=[NNIterationDataPoint.from_dict(idp) for idp in idps]
+            net     = NNParams.from_dict(rep['net'])
+            , train = NNTrainParams.from_dict(rep['train'])
+            , model = NNModelParams.from_dict(rep['model'])
+            , idps  = [NNIterationDataPoint.from_dict(idp) for idp in idps]
         )

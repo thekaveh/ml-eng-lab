@@ -4,16 +4,20 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class NNSchedulerParams:
-    patience    : int
+    min_lr      : float
     factor      : float
+    patience    : int
+    cooldown    : int
     threshold   : float
     
     def __str__(self) -> str:
-        return f"[patience={self.patience}, factor={self.factor:1.0e}, threshold={self.threshold:1.0e}]"
+        return f"[patience={self.patience}, cooldown={self.cooldown}, factor={self.factor:1.0e}, threshold={self.threshold:1.0e}, min_lr={self.min_lr:1.0e}]"
     
     def to_dict(self) -> dict:
         return dict(
-            factor      = self.factor
+            min_lr      = self.min_lr
+            , factor    = self.factor
+            , cooldown  = self.cooldown
             , patience  = self.patience
             , threshold = self.threshold
         )
@@ -21,7 +25,9 @@ class NNSchedulerParams:
     @staticmethod
     def from_dict(rep: dict) -> NNSchedulerParams:
         return NNSchedulerParams(
-            factor      = rep['factor']
+            min_lr      = rep['min_lr']
+            , factor    = rep['factor']
             , patience  = rep['patience']
+            , cooldown  = rep['cooldown']
             , threshold = rep['threshold']
         )

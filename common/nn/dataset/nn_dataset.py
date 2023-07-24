@@ -1,7 +1,8 @@
 from functools import reduce
 from dataclasses import dataclass
-from torchvision.datasets import VisionDataset
 from typing import Callable, Type, Tuple, Optional
+
+from torchvision.datasets import VisionDataset
 from torch.utils.data import DataLoader, random_split
 
 from .nn_dataset_base import NNDatasetBase
@@ -27,6 +28,12 @@ class NNDataset(NNDatasetBase):
                 int(len(non_train_dataset) * self.val_proportion)
                 , int(len(non_train_dataset) * (1 - self.val_proportion))
             ]
+        )
+        
+        object.__setattr__(
+            self
+            , 'name'
+            , self.ds_class.__name__
         )
 
         object.__setattr__(
@@ -70,3 +77,14 @@ class NNDataset(NNDatasetBase):
             , 'output_dim'
             , len(self.train_loader.dataset.classes)
         )
+        
+        rep = dict(
+            name            = self.name
+            , input_dim     = self.input_dim
+            , output_dim    = self.output_dim
+            , train_len     = f"{len(self.train_loader.dataset):,}"
+            , val_len       = f"{len(self.val_loader.dataset):,}"
+            , test_len      = f"{len(self.test_loader.dataset):,}"
+        )
+        
+        object.__setattr__(self, '_rep', rep)

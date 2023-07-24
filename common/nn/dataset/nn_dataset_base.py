@@ -17,9 +17,17 @@ DatasetType = TypeVar('DatasetType', bound=DatasetProtocol)
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class NNDatasetBase(ABC):
+    name        : str           = field(init=False)
+    
     input_dim   : int           = field(init=False)
     output_dim  : int           = field(init=False)
     
     train_loader: DatasetType   = field(init=False)
     val_loader  : DatasetType   = field(init=False)
     test_loader : DatasetType   = field(init=False)
+    
+    _rep        : dict          = field(repr=False, init=False)
+    
+    @property
+    def rep(self) -> dict:
+        return self._rep

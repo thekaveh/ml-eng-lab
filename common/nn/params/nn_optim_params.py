@@ -9,35 +9,35 @@ from ..enum.optims import Optims
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class NNOptimParams:
-    optim       : Optims
-    lr_start    : float
-    weight_decay: float
-    momentum    : Union[float, Tuple[float, float]]
+    name            : Optims
+    max_lr          : float
+    weight_decay    : float
+    momentum        : Union[float, Tuple[float, float]]
     
     def __str__(self):
-        return f"[optim={self.optim}, lr_start={self.lr_start:1.0e}, weight_decay={self.weight_decay:1.0e}, momentum={self.momentum}]"
+        return f"[name={self.name}, max_lr={self.max_lr:1.0e}, weight_decay={self.weight_decay:1.0e}, momentum={self.momentum}]"
     
     def to_dict(self):
         return dict(
-            lr_start        = self.lr_start
+            max_lr          = self.max_lr
             , momentum      = str(self.momentum)
-            , optim         = str(self.optim)
+            , name          = str(self.name)
             , weight_decay  = self.weight_decay
         )
     
     @staticmethod
     def from_dict(rep: dict) -> NNOptimParams:
         return NNOptimParams(
-            lr_start        = rep['lr_start']
-            , optim         = Optims(rep['optim'])
+            max_lr          = rep['max_lr']
+            , name          = Optims(rep['name'])
             , weight_decay  = rep['weight_decay']
             , momentum      = ast.literal_eval(rep['momentum'])
         )
     
     def is_valid(self):
-        if self.optim == Optims.SGD or self.optim == Optims.SGD_NESTEROV:
+        if self.name == Optims.SGD or self.name == Optims.SGD_NESTEROV:
             return isinstance(self.momentum, float)
-        elif self.optim == Optims.ADAM or self.optim == Optims.ADAM_AMSGRAD:
+        elif self.name == Optims.ADAM or self.name == Optims.ADAM_AMSGRAD:
             return (
                 isinstance(self.momentum, tuple)
                 and len(self.momentum) == 2

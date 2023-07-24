@@ -52,30 +52,32 @@ class NNModel():
     def train(self, params: NNTrainParams) -> NNRun:
         assert (
             params is not None
-            and params.optim_params is not None
-            and params.optim_params.is_valid()
+            and params.optim is not None
+            and params.optim.is_valid()
         )
 
         validate    : bool  = params.val_loader is not None
         run         : NNRun = NNRun(
-            train_params    = params
-            , model_params  = self.params
-            , net_params    = self.net.params
+            train   = params
+            , model = self.params
+            , net   = self.net.params
         )
             
-        optimizer   = params.optim_params.optim(
+        optimizer   = params.optim.name(
             net=self.net
-            , lr_start=params.optim_params.lr_start
-            , momentum=params.optim_params.momentum
-            , weight_decay=params.optim_params.weight_decay
+            , lr_start=params.optim.max_lr
+            , momentum=params.optim.momentum
+            , weight_decay=params.optim.weight_decay
         )
 
         scheduler   = lr_scheduler.ReduceLROnPlateau(
             optimizer
             , mode='min'
-            , factor=params.scheduler_params.factor
-            , patience=params.scheduler_params.patience
-            , threshold=params.scheduler_params.threshold
+            , min_lr=params.scheduler.min_lr
+            , factor=params.scheduler.factor
+            , cooldown=params.scheduler.cooldown
+            , patience=params.scheduler.patience
+            , threshold=params.scheduler.threshold
         )
         
         idx_iter        : int                           = 0
@@ -83,14 +85,20 @@ class NNModel():
         n_iter          : int                           = int(params.n_epochs * len(params.train_loader))
         best_checkpoint : Optional[NNCheckpoint]        = NNCheckpoint.load(run=run.id, type=Checkpoints.BEST)
         
-        Utils.print_tree(run.rep)
+        Utils.print_table(
+            header=False
+            , title="Run Details..."
+            , data=Utils.flatten_dict(
+                data=run.rep
+            )
+        )
 
         with (
             torch.set_grad_enabled(True)
             , tqdm(
                 colour="blue"
                 , total=n_iter
-                , desc="[+] Training"
+                , desc="Training"
             ) as tqdm_bar
         ):
             for idx_epoch in range(params.n_epochs):
@@ -156,7 +164,7 @@ class NNModel():
                             , error = f"{val_edp.error if val_edp is not None else train_edp.error:.4f}"
                         )
                 )
-      
+
         print()
         return run.with_idps(idps).save()
 
