@@ -1,71 +1,99 @@
-import torch
-import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from sklearn.manifold import TSNE
-
-from torch.utils.data import DataLoader
 
 from common.nn.nn_model import NNModel
 from common.nn.dataset.nn_dataset import NNDataset
 from common.nn.params.nn_checkpoint import NNCheckpoint
 
-sns.set()
-
 class VisUtils:
-    DEFAULT_VAL_FIG_SIZE = (25, 20)
-    DEFAULT_VAL_TITLE_SIZE = 15
+    DEFAULT_VAL_TITLE_SIZE = 14
     DEFAULT_VAL_LABEL_SIZE = 12
+    DEFAULT_VAL_FIG_SIZE = (1000, 600)
 
     @staticmethod
-    def multi_line_plot(fig_size, title, x_axis_label, x, y_axis_label, yss_legend, yss, x_ticks_inc=20, title_size=15, label_size=12):
-        _ = plt.figure(figsize = fig_size)
-        
-        ls = ["-", "--", "-.", ":"]
-        cs = sns.color_palette(n_colors=len(yss))
+    def multi_line_plot(
+        x
+        , yss
+        , title
+        , yss_legend
+        , x_axis_label
+        , y_axis_label
+        , x_ticks_inc       = 20
+        , label_size        = DEFAULT_VAL_LABEL_SIZE
+        , title_size        = DEFAULT_VAL_TITLE_SIZE
+        , fig_size : tuple  = DEFAULT_VAL_FIG_SIZE
+    ):
+        fig = make_subplots()
 
+        ls  = ["solid", "dash", "dot", "dashdot"]
+        cs  = px.colors.qualitative.Plotly[:len(yss)]
+        
         for ys_idx, (ys, ys_legend) in enumerate(zip(yss, yss_legend)):
             for y_idx, y in enumerate(ys):
-                ax = sns.lineplot(
-                    x=x
-                    , y=y
-                    , color=cs[ys_idx]
-                    , linestyle=ls[y_idx]
-                    , label=ys_legend[y_idx]
+                fig.add_trace(
+                    go.Scatter(
+                        x=x
+                        , y=y
+                        , mode='lines'
+                        , name=ys_legend[y_idx]
+                        , line=dict(
+                            color=cs[ys_idx]
+                            , dash=ls[y_idx]
+                        )
+                    )
                 )
+        
+        fig.update_layout(
+            width       = fig_size[0]
+            , height    = fig_size[1]
+            , margin    = dict(l=15, r=15, t=30, b=15, pad=0)
+            , title     = dict(text=title, x=0.5, font=dict(size=title_size))
+            , yaxis     = dict(title=dict(text=y_axis_label, font=dict(size=label_size)))
+            , legend    = dict(orientation="v", yanchor="top", y=0.99, xanchor="right", x=0.99)
+            , xaxis     = dict(title=dict(text=x_axis_label, font=dict(size=label_size)), tickmode='array', tickvals=list(range(0, len(x), x_ticks_inc)))
+        )
+        
+        fig.show()
 
-        ax.set_xlim(0, len(x))
-        ax.set_title(title, fontsize=title_size)
-        ax.set_ylabel(y_axis_label, fontsize=label_size)
-        ax.set_xlabel(x_axis_label, fontsize=label_size)
-        ax.set_xticks(range(0, len(x), x_ticks_inc))
-        
-        plt.legend(fontsize='large')
-        plt.tight_layout()
-        plt.show();
-        
     @staticmethod
-    def scatter_plot(vm, figsize=(15, 15), title_size=15, label_size=12):
-        f, sub_plt = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    def scatter_plot(
+        vm
+        , fig_size  : tuple = DEFAULT_VAL_FIG_SIZE
+        , label_size: str   = DEFAULT_VAL_LABEL_SIZE
+        , title_size: str   = DEFAULT_VAL_TITLE_SIZE
+    ):
+        fig = go.Figure()
 
         for t_idx, _ in enumerate(vm["ts"]["uni_vals"]):
-            sub_plt.scatter(
-                s=10
-                , x=vm["xs-ts"][t_idx]
-                , y=vm["ys-ts"][t_idx]
-                , color=vm["ts"]["colors"][t_idx]
-                , label=vm["ts"]["labels"][t_idx]
+            fig.add_trace(
+                go.Scatter(
+                    mode    = 'markers'
+                    , x     = vm["xs-ts"][t_idx]
+                    , y     = vm["ys-ts"][t_idx]
+                    , name  = vm["ts"]["labels"][t_idx]
+                    , marker= dict(
+                        size    = 3
+                        , color = vm["ts"]["colors"][t_idx]
+                    )
+                )
             )
-
-        sub_plt.set_xticks([])
-        sub_plt.set_yticks([])
-        sub_plt.set_xlabel(vm["xs"]["label"], fontsize=label_size)
-        sub_plt.set_ylabel(vm["ys"]["label"], fontsize=label_size)
-        sub_plt.set_title(vm["title"], fontsize=title_size)
-        sub_plt.legend(fontsize='large')
-        plt.tight_layout();
+        
+        fig.update_layout(
+            width       = fig_size[0]
+            , height    = fig_size[1]
+            , margin    = dict(l=15, r=15, t=30, b=15, pad=0)
+            , title     = dict(text=vm["title"], x=0.5, font=dict(size=title_size))
+            , legend    = dict(orientation="v", yanchor="top", y=0.99, xanchor="right", x=0.99)
+            , yaxis     = dict(title=dict(text=vm["ys"]["label"], font=dict(size=label_size)))
+            , xaxis     = dict(title=dict(text=vm["xs"]["label"], font=dict(size=label_size)))
+        )
+        
+        fig.show()
 
     @staticmethod
     def get_scatter_plot_vm(data, title, col_xs, label_xs, col_ys, label_ys, col_ts, labels_ts, colors_ts, uni_ts):
@@ -93,7 +121,7 @@ class VisUtils:
         return vm
             
     @staticmethod
-    def visualize_checkpoint_logits_2d_tsne(
+    def two_dim_tsne_checkpoint_logits(
         checkpoint  : NNCheckpoint
         , ds        : NNDataset
         , n_samples : int
@@ -104,7 +132,7 @@ class VisUtils:
         model = NNModel.from_checkpoint(checkpoint=checkpoint)
         
         ts = [t for t in range(ds.output_dim)]
-        cs = sns.color_palette(n_colors=ds.output_dim)
+        cs = px.colors.qualitative.Plotly[:ds.output_dim]
         
         test_batch = next(iter(ds.test_loader))
         test_X, test_Y = model.net.unpack_batch(test_batch)
@@ -115,10 +143,10 @@ class VisUtils:
         test_Y_hat = model.predict(X=test_X)
         
         VisUtils.scatter_plot(
-            figsize=fig_size
-            , title_size=title_size
-            , label_size=label_size
-            , vm=VisUtils.get_scatter_plot_vm(
+            title_size  = title_size
+            , label_size= label_size
+            , fig_size  = fig_size
+            , vm        = VisUtils.get_scatter_plot_vm(
                 data=pd.concat(
                     axis=1
                     , objs=[
@@ -135,14 +163,14 @@ class VisUtils:
                         , df_test_Y.iloc[:n_samples, :]
                     ]
                 )
-                , uni_ts=ts
-                , colors_ts=cs
-                , labels_ts=ts
-                , col_xs="tsne_1"
-                , col_ys="tsne_2"
-                , label_xs="tsne_1"
-                , label_ys="tsne_2"
-                , col_ts="target"
-                , title=f"t-SNE projected 2D visualization of predicted output logits of test data snapshot @ epoch_idx={checkpoint.idp.epoch_idx}"
+                , uni_ts    = ts
+                , colors_ts = cs
+                , labels_ts = ts
+                , col_xs    = "tsne_1"
+                , col_ys    = "tsne_2"
+                , col_ts    = "target"
+                , label_xs  = "tsne_1"
+                , label_ys  = "tsne_2"
+                , title     = f"2D t-SNE of output logits of best checkpoint @ epoch={checkpoint.idp.epoch_idx}"
             )
         )
