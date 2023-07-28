@@ -59,7 +59,7 @@ class VisUtils:
             , xaxis     = dict(title=dict(text=x_axis_label, font=dict(size=label_size)), tickmode='array', tickvals=list(range(0, len(x), x_ticks_inc)))
         )
         
-        fig.show("svg")
+        fig.show("png")
 
     @staticmethod
     def scatter_plot(
@@ -94,7 +94,7 @@ class VisUtils:
             , xaxis     = dict(title=dict(text=vm["xs"]["label"], font=dict(size=label_size)))
         )
         
-        fig.show("svg")
+        fig.show("png")
 
     @staticmethod
     def get_scatter_plot_vm(data, title, col_xs, label_xs, col_ys, label_ys, col_ts, labels_ts, colors_ts, uni_ts):
