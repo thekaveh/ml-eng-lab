@@ -25,6 +25,17 @@ class NNGraphDataset(NNDatasetBase):
             , self.ds_class.__name__
         )
         
+        train_batch_size    = self.batch_sizes[0] or int(dataset._data.train_mask.sum())
+        val_batch_size      = self.batch_sizes[1] or int(dataset._data.val_mask.sum())
+        test_batch_size     = self.batch_sizes[2] or int(dataset._data.test_mask.sum())
+        batch_sizes         = (train_batch_size, val_batch_size, test_batch_size)
+        
+        object.__setattr__(
+            self
+            , 'batch_sizes'
+            , batch_sizes
+        )
+        
         object.__setattr__(
             self
             , 'train_loader'
@@ -33,8 +44,8 @@ class NNGraphDataset(NNDatasetBase):
                 , data=dataset._data
                 , num_workers=self.n_workers
                 , num_neighbors=self.n_neighbors
+                , batch_size=self.batch_sizes[0]
                 , input_nodes=dataset._data.train_mask
-                , batch_size=self.batch_sizes[0] or int(dataset._data.train_mask.sum())
             )
         )
         
@@ -46,8 +57,8 @@ class NNGraphDataset(NNDatasetBase):
                 , data=dataset._data
                 , num_workers=self.n_workers
                 , num_neighbors=self.n_neighbors
+                , batch_size=self.batch_sizes[1]
                 , input_nodes=dataset._data.val_mask
-                , batch_size=self.batch_sizes[1] or int(dataset._data.val_mask.sum())
             )
         )
         
@@ -59,8 +70,8 @@ class NNGraphDataset(NNDatasetBase):
                 , data=dataset._data
                 , num_workers=self.n_workers
                 , num_neighbors=self.n_neighbors
+                , batch_size=self.batch_sizes[2]
                 , input_nodes=dataset._data.test_mask
-                , batch_size=self.batch_sizes[2] or int(dataset._data.test_mask.sum())
             )
         )
         
@@ -77,13 +88,14 @@ class NNGraphDataset(NNDatasetBase):
         )
         
         state = dict(
-            name            = self.name
-            , input_dim     = self.input_dim
-            , output_dim    = self.output_dim
-            , train_len     = f"{len(self.train_loader.dataset):,}"
-            , val_len       = f"{len(self.val_loader.dataset):,}"
-            , test_len      = f"{len(self.test_loader.dataset):,}"
+            name                = self.name
+            , input_dim         = self.input_dim
+            , output_dim        = self.output_dim
+            , train_batch_size  = f"{self.batch_sizes[0]:,}"
+            , val_batch_size    = f"{self.batch_sizes[1]:,}"
+            , test_batch_size   = f"{self.batch_sizes[2]:,}"
+            , n_workers         = self.n_workers
+            , n_neighbors       = self.n_neighbors
         )
         
         object.__setattr__(self, '_state', state)
-        

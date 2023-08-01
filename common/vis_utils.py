@@ -11,9 +11,11 @@ from common.nn.dataset.nn_dataset import NNDataset
 from common.nn.params.nn_checkpoint import NNCheckpoint
 
 class VisUtils:
-    DEFAULT_VAL_TITLE_SIZE = 14
-    DEFAULT_VAL_LABEL_SIZE = 12
-    DEFAULT_VAL_FIG_SIZE = (1000, 600)
+    DEFAULT_VAL_TITLE_SIZE  = 14
+    DEFAULT_VAL_LABEL_SIZE  = 12
+    DEFAULT_VAL_RENDERER    = None
+    DEFAULT_VAL_FIG_SIZE    = (1000, 600)
+    DEFAULT_VAL_MARGIN_SIZE = dict(l=15, r=15, t=30, b=15, pad=0)
 
     @staticmethod
     def multi_line_plot(
@@ -27,19 +29,22 @@ class VisUtils:
         , label_size        = DEFAULT_VAL_LABEL_SIZE
         , title_size        = DEFAULT_VAL_TITLE_SIZE
         , fig_size : tuple  = DEFAULT_VAL_FIG_SIZE
+        , margin_size       = DEFAULT_VAL_MARGIN_SIZE
+        , renderer          = DEFAULT_VAL_RENDERER
     ):
         fig = make_subplots()
 
         ls  = ["solid", "dash", "dot", "dashdot"]
         cs  = px.colors.qualitative.Plotly[:len(yss)]
         
-        for ys_idx, (ys, ys_legend) in enumerate(zip(yss, yss_legend)):
+        for ys_idx, (ys, ys_legend) in enumerate(zip(yss, yss_legend[1])):
             for y_idx, y in enumerate(ys):
                 fig.add_trace(
                     go.Scatter(
                         x=x
                         , y=y
                         , mode='lines'
+                        , showlegend=False
                         , name=ys_legend[y_idx]
                         , line=dict(
                             width=2
@@ -48,25 +53,53 @@ class VisUtils:
                         )
                     )
                 )
+
+        for idx, linestyle in enumerate(ls[:len(ys)]):
+            fig.add_trace(
+                go.Scatter(
+                    x       = [None]
+                    , y     = [None]
+                    , mode  = 'lines'
+                    , name  = yss_legend[0][idx]
+                    , line  = dict(
+                        width   = 2
+                        , dash  = linestyle
+                        , color = 'black'
+                    )
+                )
+            )
+
+        for idx, color in enumerate(cs[:len(yss)]):
+            fig.add_trace(
+                go.Scatter(
+                    x       = [None]
+                    , y     = [None]
+                    , mode  = 'lines'
+                    , line  = dict(width=2, color=color)
+                    , name  = yss_legend[1][idx]
+                )
+            )
         
         fig.update_layout(
             width       = fig_size[0]
             , height    = fig_size[1]
-            , margin    = dict(l=15, r=15, t=30, b=15, pad=0)
+            , margin    = margin_size
             , title     = dict(text=title, x=0.5, font=dict(size=title_size))
             , yaxis     = dict(title=dict(text=y_axis_label, font=dict(size=label_size)))
             , legend    = dict(orientation="v", yanchor="top", y=0.99, xanchor="right", x=0.99)
             , xaxis     = dict(title=dict(text=x_axis_label, font=dict(size=label_size)), tickmode='array', tickvals=list(range(0, len(x), x_ticks_inc)))
         )
         
-        fig.show("png")
+        fig.show(renderer)
 
     @staticmethod
     def scatter_plot(
         vm
+        , renderer          = DEFAULT_VAL_RENDERER
         , fig_size  : tuple = DEFAULT_VAL_FIG_SIZE
         , label_size: str   = DEFAULT_VAL_LABEL_SIZE
         , title_size: str   = DEFAULT_VAL_TITLE_SIZE
+        , margin_size       = DEFAULT_VAL_MARGIN_SIZE
     ):
         fig = go.Figure()
 
@@ -87,14 +120,14 @@ class VisUtils:
         fig.update_layout(
             width       = fig_size[0]
             , height    = fig_size[1]
-            , margin    = dict(l=15, r=15, t=30, b=15, pad=0)
+            , margin    = margin_size
             , title     = dict(text=vm["title"], x=0.5, font=dict(size=title_size))
             , legend    = dict(orientation="v", yanchor="top", y=0.99, xanchor="right", x=0.99)
             , yaxis     = dict(title=dict(text=vm["ys"]["label"], font=dict(size=label_size)))
             , xaxis     = dict(title=dict(text=vm["xs"]["label"], font=dict(size=label_size)))
         )
         
-        fig.show("png")
+        fig.show(renderer)
 
     @staticmethod
     def get_scatter_plot_vm(data, title, col_xs, label_xs, col_ys, label_ys, col_ts, labels_ts, colors_ts, uni_ts):
@@ -126,9 +159,11 @@ class VisUtils:
         checkpoint  : NNCheckpoint
         , ds        : NNDataset
         , n_samples : int
+        , renderer  : str           = DEFAULT_VAL_RENDERER
         , fig_size  : tuple         = DEFAULT_VAL_FIG_SIZE
         , title_size: int           = DEFAULT_VAL_TITLE_SIZE
         , label_size: int           = DEFAULT_VAL_LABEL_SIZE
+        , margin_size               = DEFAULT_VAL_MARGIN_SIZE
     ) -> None:
         model = NNModel.from_checkpoint(checkpoint=checkpoint)
         
@@ -144,10 +179,12 @@ class VisUtils:
         test_Y_hat = model.predict(X=test_X)
         
         VisUtils.scatter_plot(
-            title_size  = title_size
-            , label_size= label_size
-            , fig_size  = fig_size
-            , vm        = VisUtils.get_scatter_plot_vm(
+            renderer        = renderer
+            , title_size    = title_size
+            , label_size    = label_size
+            , fig_size      = fig_size
+            , margin_size   = margin_size
+            , vm            = VisUtils.get_scatter_plot_vm(
                 data=pd.concat(
                     axis=1
                     , objs=[

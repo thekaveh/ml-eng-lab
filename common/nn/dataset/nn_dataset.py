@@ -35,6 +35,17 @@ class NNDataset(NNDatasetBase):
             , 'name'
             , self.ds_class.__name__
         )
+        
+        train_batch_size    = self.batch_sizes[0] or len(train_dataset)
+        val_batch_size      = self.batch_sizes[1] or len(val_dataset)
+        test_batch_size     = self.batch_sizes[2] or len(test_dataset)
+        batch_sizes         = (train_batch_size, val_batch_size, test_batch_size)
+        
+        object.__setattr__(
+            self
+            , 'batch_sizes'
+            , batch_sizes
+        )
 
         object.__setattr__(
             self
@@ -42,7 +53,7 @@ class NNDataset(NNDatasetBase):
             , DataLoader(
                 shuffle=True
                 , dataset=train_dataset
-                , batch_size=self.batch_sizes[0] or len(train_dataset)
+                , batch_size=self.batch_sizes[0]
             )
         )
 
@@ -52,7 +63,7 @@ class NNDataset(NNDatasetBase):
             , DataLoader(
                 shuffle=False
                 , dataset=val_dataset
-                , batch_size=self.batch_sizes[1] or len(val_dataset)
+                , batch_size=self.batch_sizes[1]
             )
         )
 
@@ -62,7 +73,7 @@ class NNDataset(NNDatasetBase):
             , DataLoader(
                 shuffle=False
                 , dataset=test_dataset
-                , batch_size=self.batch_sizes[2] or len(test_dataset)
+                , batch_size=self.batch_sizes[2]
             )
         )
         
@@ -79,12 +90,12 @@ class NNDataset(NNDatasetBase):
         )
         
         state = dict(
-            name            = self.name
-            , input_dim     = self.input_dim
-            , output_dim    = self.output_dim
-            , train_len     = f"{len(self.train_loader.dataset):,}"
-            , val_len       = f"{len(self.val_loader.dataset):,}"
-            , test_len      = f"{len(self.test_loader.dataset):,}"
+            name                = self.name
+            , input_dim         = self.input_dim
+            , output_dim        = self.output_dim
+            , train_batch_size  = f"{self.batch_sizes[0]:,}"
+            , val_batch_size    = f"{self.batch_sizes[1]:,}"
+            , test_batch_size   = f"{self.batch_sizes[2]:,}"
         )
         
         object.__setattr__(self, '_state', state)

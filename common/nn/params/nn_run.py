@@ -28,6 +28,32 @@ class NNRun:
     _state  : Optional[dict]                        = field(repr=False, default=None)
     idps    : Optional[List[NNIterationDataPoint]]  = field(repr=False, default=None)
     
+    def __str__(self):
+        return (
+            "{"
+            f"loss={self.model.loss}"
+            f", device={self.model.device}"
+            f", net={self.model.net}"
+            
+            f", dims={self.net.dims}"
+            f", dropout={self.net.dropout_prob}"
+            f", activation={self.net.activation}"
+            f", n_heads={self.net.n_heads}"
+            
+            f", n_epochs={self.train.n_epochs}"
+            
+            f", max_lr={self.train.optim.max_lr}"
+            f", momentum={self.train.optim.momentum}"
+            f", decay={self.train.optim.weight_decay}"
+            
+            f", factor={self.train.scheduler.factor}"
+            f", patience={self.train.scheduler.patience}"
+            f", cooldown={self.train.scheduler.cooldown}"
+            f", threshold={self.train.scheduler.threshold}"
+            f", min_lr={self.train.scheduler.min_lr}"
+            "}"
+        )
+    
     @property
     def id(self) -> str:
         return self._id
@@ -108,4 +134,4 @@ class NNRun:
         
     @staticmethod
     def all() -> List[NNRun]:
-        return [NNRun.load(id=id) for id in os.listdir(os.path.join(os.getcwd(), "runs"))]
+        return [NNRun.load(id=id) for id in os.listdir(os.path.join(os.getcwd(), "runs")) if id != "best"]

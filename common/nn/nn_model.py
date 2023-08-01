@@ -6,9 +6,10 @@ import numpy as np
 from torch import nn
 from tqdm import tqdm
 from dataclasses import asdict
-from typing import List, Optional
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
+from IPython.display import clear_output
+from typing import Callable, List, Optional
 
 from .enum.losses import Losses
 from .enum.devices import Devices
@@ -49,7 +50,7 @@ class NNModel():
         
         return model
 
-    def train(self, params: NNTrainParams) -> NNRun:
+    def train(self, params: NNTrainParams, callbacks: Optional[List[Callable[[List[NNIterationDataPoint]], None]]] = None) -> NNRun:
         assert (
             params is not None
             and params.optim is not None
@@ -165,6 +166,12 @@ class NNModel():
                             , error = f"{val_edp.error if val_edp is not None else train_edp.error:.4f}"
                         )
                 )
+                
+                if callbacks is not None:
+                    clear_output(wait=True)
+                    
+                    for callback in callbacks:
+                        callback(idps)
 
         print()
         return run.with_idps(idps).save()
