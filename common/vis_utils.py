@@ -2,20 +2,21 @@ import pandas as pd
 
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
+from scipy import stats
 from sklearn.manifold import TSNE
+from plotly.subplots import make_subplots
 
 from common.nn.nn_model import NNModel
 from common.nn.dataset.nn_dataset import NNDataset
 from common.nn.params.nn_checkpoint import NNCheckpoint
 
 class VisUtils:
-    DEFAULT_VAL_TITLE_SIZE  = 14
-    DEFAULT_VAL_LABEL_SIZE  = 12
-    DEFAULT_VAL_RENDERER    = None
-    DEFAULT_VAL_FIG_SIZE    = (1000, 600)
-    DEFAULT_VAL_MARGIN_SIZE = dict(l=15, r=15, t=30, b=15, pad=0)
+    TITLE_SIZE  = 14
+    LABEL_SIZE  = 12
+    RENDERER    = None
+    FIG_SIZE    = (1000, 600)
+    MARGIN_SIZE = dict(l=15, r=15, t=30, b=15, pad=0)
 
     @staticmethod
     def multi_line_plot(
@@ -26,11 +27,11 @@ class VisUtils:
         , x_axis_label
         , y_axis_label
         , x_ticks_inc       = 20
-        , label_size        = DEFAULT_VAL_LABEL_SIZE
-        , title_size        = DEFAULT_VAL_TITLE_SIZE
-        , fig_size : tuple  = DEFAULT_VAL_FIG_SIZE
-        , margin_size       = DEFAULT_VAL_MARGIN_SIZE
-        , renderer          = DEFAULT_VAL_RENDERER
+        , label_size        = LABEL_SIZE
+        , title_size        = TITLE_SIZE
+        , fig_size : tuple  = FIG_SIZE
+        , margin_size       = MARGIN_SIZE
+        , renderer          = RENDERER
     ):
         fig = make_subplots()
 
@@ -95,11 +96,11 @@ class VisUtils:
     @staticmethod
     def scatter_plot(
         vm
-        , renderer          = DEFAULT_VAL_RENDERER
-        , fig_size  : tuple = DEFAULT_VAL_FIG_SIZE
-        , label_size: str   = DEFAULT_VAL_LABEL_SIZE
-        , title_size: str   = DEFAULT_VAL_TITLE_SIZE
-        , margin_size       = DEFAULT_VAL_MARGIN_SIZE
+        , renderer          = RENDERER
+        , fig_size  : tuple = FIG_SIZE
+        , label_size: str   = LABEL_SIZE
+        , title_size: str   = TITLE_SIZE
+        , margin_size       = MARGIN_SIZE
     ):
         fig = go.Figure()
 
@@ -159,11 +160,11 @@ class VisUtils:
         checkpoint  : NNCheckpoint
         , ds        : NNDataset
         , n_samples : int
-        , renderer  : str           = DEFAULT_VAL_RENDERER
-        , fig_size  : tuple         = DEFAULT_VAL_FIG_SIZE
-        , title_size: int           = DEFAULT_VAL_TITLE_SIZE
-        , label_size: int           = DEFAULT_VAL_LABEL_SIZE
-        , margin_size               = DEFAULT_VAL_MARGIN_SIZE
+        , renderer  : str           = RENDERER
+        , fig_size  : tuple         = FIG_SIZE
+        , title_size: int           = TITLE_SIZE
+        , label_size: int           = LABEL_SIZE
+        , margin_size               = MARGIN_SIZE
     ) -> None:
         model = NNModel.from_checkpoint(checkpoint=checkpoint)
         
