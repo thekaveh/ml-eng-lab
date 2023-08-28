@@ -1,4 +1,8 @@
+import colorsys
+
+import numpy as np
 import pandas as pd
+
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -17,6 +21,14 @@ class VisUtils:
     RENDERER    = None
     FIG_SIZE    = (1000, 600)
     MARGIN_SIZE = dict(l=15, r=15, t=30, b=15, pad=0)
+    
+    @staticmethod
+    def generate_colors(n):
+        hues = np.linspace(0, 1, n)
+        rgb_colors = [colorsys.hsv_to_rgb(h, 1, 1) for h in hues]
+        hex_colors = ['#%02x%02x%02x' % (int(r*255), int(g*255), int(b*255)) for r, g, b in rgb_colors]
+        
+        return hex_colors
 
     @staticmethod
     def multi_line_plot(
@@ -37,6 +49,7 @@ class VisUtils:
 
         ls  = ["solid", "dash", "dot", "dashdot"]
         cs  = px.colors.qualitative.Plotly[:len(yss)]
+        cs  = VisUtils.generate_colors(n=len(yss))
         
         for ys_idx, (ys, ys_legend) in enumerate(zip(yss, yss_legend[1])):
             for y_idx, y in enumerate(ys):
@@ -154,7 +167,7 @@ class VisUtils:
         vm["ys-ts"] = [vm["ys"]["vals"][vm["ts"]["vals"] == t_val] for t_val in vm["ts"]["uni_vals"]]
 
         return vm
-            
+
     @staticmethod
     def two_dim_tsne_checkpoint_logits(
         checkpoint  : NNCheckpoint
@@ -169,7 +182,7 @@ class VisUtils:
         model = NNModel.from_checkpoint(checkpoint=checkpoint)
         
         ts = [t for t in range(ds.output_dim)]
-        cs = px.colors.qualitative.Plotly[:ds.output_dim]
+        cs = VisUtils.generate_colors(n=ds.output_dim)
         
         test_batch = next(iter(ds.test_loader))
         test_X, test_Y = model.net.unpack_batch(test_batch)
