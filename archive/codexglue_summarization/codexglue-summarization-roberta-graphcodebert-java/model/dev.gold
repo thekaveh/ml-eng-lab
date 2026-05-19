@@ -1,0 +1,1000 @@
+912	Gets a read preference that forces reads to a secondary that is less stale than the given maximum .
+204	Generates the query for the callable statement with all parameter placeholders replaced with the actual parameter values
+2253	Asynchronously watch the directories .
+2006	Converts from a json string using componentClassKey and componentClassValue as a guide to a Map .
+1828	Finds a library file in either the primary or alternate lib directory .
+1143	Returns a Decimal128 value representing the given String .
+839	Creates a new task that wraps the given task . If the given task finishes before the timeout occurs then this task takes on the value of the task . If the task does not complete in the given time then this task will have a TimeoutException . The wrapped task may be cancelled when a timeout occurs .
+4467	Put all of the values into the existing set .
+712	Returns the ParsedNode defined by the given namespace and name .
+4837	decode an encoded map
+3456	Inserts an instruction list at the beginning of a method .
+260	Merges the values from each rail in a round - robin or same - order fashion and exposes it as a regular Publisher sequence running with a give prefetch value for the rails .
+244	Join the termination signals from this mono and another source into the returned void mono
+767	Fetches an array of Strings with the schema names in the database .
+1791	Undeploys an apk specified by package name from a connected emulator or usb device . Also deletes the application s data and cache directories on the device .
+1905	Updates the FAB based on the selected page
+4139	Returns a bitmap icon showing a screenshot of the view passed in .
+4931	Gets the currently checked - out branch of the working directory .
+217	Must be called in synchronized block
+4597	Create a copy of the namespaces which includes a mapping between a given prefix and namespace URI .
+1628	Gets the against proposal list .
+4464	Adds a new segment .
+3436	Print the contents of the StackMapTable to the debug_instrument . log .
+1805	Resolves the android . jar from this SDK .
+3679	Return the MBean server connection to the child process .
+4827	Stop the service
+2278	Load the GTFS data in the specified file into the given JDBC DataSource .
+53	Enters this monitor when the guard is satisfied . Blocks indefinitely but may be interrupted .
+1307	Parses out the properties of a selector s body .
+3462	We need data to be written and flushed at once .
+2787	Closes this input stream and releases any system resources associated with the stream .
+2276	Store an error that affects a single line of a single table . Add a bad value to it .
+1273	Opens the URL on a Custom Tab if possible . Otherwise fallsback to opening it on a WebView .
+1763	Adds the chart .
+2757	Writes the given CORS properties to the XMLStreamWriter .
+837	create list of summaries one per each connection
+759	Throws exception if passed object is null
+3112	Reads whole content of input stream to String
+792	Do an initial poll from the source and apply the result to the configuration .
+2940	Creates a HttpURLConnection used to retrieve the Analytics service properties from the storage service .
+2817	Opens an output stream object to write data to the file using specified request options and operation context . The file must already exist and any existing data may be overwritten .
+4945	Add the information about a newly added file in the repository for a given commit .
+2166	Sets a new pattern for this StreamSearcher to use .
+355	Sets the current wall time .
+3763	Render combined requir scripts .
+4392	Gets the value of the any property .
+1022	Non blocking check for tailable cursors to see if another object is available .
+3100	Computes identifier string for an artifact . If the download path is valid for a package - type specific artifact it creates the identifier accordingly .
+645	Checks whether a result set has a column matching the specified column name . The column name is first changed to match the database format . E . g . an unquoted columnName in h2 will be converted to uppercase so the column name that is being checked for is really the uppercase version of the column name
+4522	Reduce the number of edits by eliminating operationally trivial equalities .
+2401	Calculates the mean of a set of values
+5149	Runs into the REPL mode .
+5066	Deletes all receipts with a given ID
+2962	Reserved for internal use . Generates the request identity string for the specified table . The request identity string combines the table name with the PartitionKey and RowKey from the operation to identify specific table entities . This request identity is already UrlEncoded .
+4729	Stores paginated query pages and general info .
+1575	Gets the max size view riksdagen vote data ballot party summary daily .
+569	Adds a new type to the list of types on which a constructor is invoked in the basic block .
+375	Makes sure that given activity exists .
+1866	clear the memory cache
+2370	This method will verify a collection of parameters
+653	Convert a string value to its Object value .
+1907	Animates the FAB as if the FAB is morphing into a sheet .
+827	Overriding this method allows providing custom name for a batch . Name will appear in the ParSeq trace as a description of the task that executes the batch .
+3113	Starts milestone release process
+2277	Export a feed ID from the database to a zipped GTFS file in the specified export directory .
+3714	Gets a list of elements in your request that match this watchlist hit .
+2988	Illustrates how to form and execute an entity delete operation .
+1332	Marshaled name for compatibility with repository .
+3032	Get the query binding with the specified name
+2910	Logs the HttpURLConnection response . If an exception is encountered logs nothing .
+1716	Check same date .
+2187	Parse JSON received from reddit into a list of submissions and comments . This parser expects the JSON to be of a listing of submissions and comments .
+584	Puts a byte into this byte vector . The byte vector is automatically enlarged if necessary .
+4990	Return number of added files .
+1401	Waits for the value from the future . If the future is failed the exception is thrown directly if it is an instance of the specified exception type or unchecked or it is wrapped in a RuntimeException . If the thread is interrupted the thread interruption flag is set and the original InterruptedException is wrapped in a RuntimeException and thrown .
+4375	Delete all file of a directory and then delete this directory
+2005	Converts from Object into JSON string .
+1338	Closes the current window .
+3786	Recursive method to add the children classification forms .
+3108	Get the build task which contains the given audited build configuration
+2211	Pretty print the JSON response in the logs
+4562	Verifies that the number of values in the actual group is equal to the given one .
+1799	Figure out the full path to the current java executable .
+2656	Get an instance of JAX - RS client .
+458	Internal API to support built - in SPIs that check a system property first . Returns an instance specified by a property with the class binary name or null if no such property is set .
+1876	Completes the request and receives response from the server .
+262	Generates and concatenates Publishers on each rail optionally delaying errors and using the given prefetch amount for generating Publishers upfront .
+2584	Encode integer according to Section 5 . 1 .
+3286	Returns the value of the member with the specified name in this object . If this object contains multiple members with the given name this method will return the last one .
+2193	Safely converts an object into an integer
+542	Adds a name and type to the constant pool of the class being build . Does nothing if the constant pool already contains a similar item .
+1728	Gets the vote data list .
+4646	Sleeps for the provided amount of milliseconds ignoring thread interrupts .
+2577	create a map of header name to index value to allow quick lookup
+1741	Gets the ballot document data .
+4089	Add query parameter to query string .
+3241	Stop the OpenDJ in - memory directory server .
+3758	On the tag the class is set .
+1170	Register the given directory with the WatchService
+2169	Returns a ProtobufWritable for a given Protobuf class .
+2020	Remove registration of a particular service .
+4598	Create a copy of the namespaces without the prefixes .
+4415	Get a regular cow face optionally formatted with custom eyes and tongue from the command line .
+2152	Builds a Message that contains the key value pair of a Map entry
+4788	Looks for the existing pool with name poolFactory . If there is no such pool creates new one .
+3509	As list from domain .
+4780	Prints debug information if debug is enabled .
+3271	Write a Curve Polygon
+2965	Post - Stream Retrieval function .
+1796	Display a list of attached devices .
+1133	Merge the two provided transaction options with the first taking precedence over the second .
+4174	Called when the profile picture has been changed by the user .
+4042	Refreshes the values of displayed fields .
+744	Return the change sets that will execute
+385	Removes content provider from the package manager .
+898	Gets the combined errors as an exception
+1252	Faz o cancelamento da nota
+5140	Process user specified command
+1310	Sets the menu button s color .
+3458	Convenience function to build an instruction list .
+4885	if the dry run option was selected then set the flag in response .
+520	Generates the instruction to store the top stack value in the given local variable .
+3152	Get build task for given build configuration from the queue .
+3126	Check if the given build set task is empty and update the status message appropriately
+4881	Implementations of &lt ; git - add&gt ; with options and one file to be added to index .
+3834	On component tag .
+4334	Match a given set of characters as a string literal
+2059	Gets called before a method gets invoked on a service . This adds request URI remote address and request headers of the HttpRequest if found .
+4532	Checks whether the passsed method has a non void return value .
+94	Returns a builder that creates immutable sorted multisets whose elements are ordered by the reverse of their natural ordering .
+938	Executes the command against the database with the given read preference .
+4398	Start Timer when result set is created
+2185	Validate that it is indeed the starting of a listing of reddit things .
+2786	Constructs a HttpURLConnection to set the file s properties Sign with zero length specified .
+913	Gets a read preference that forces reads to a secondary that is less stale than the given maximumm if one is available otherwise to the primary .
+2404	Multiplies the components of this quaternion by a double scalar .
+3561	Real tag end - flush .
+1295	reads a variable int32 from the current position
+3716	Creates a question set with a set time limit in seconds .
+26	Resizes the entries storage if necessary .
+2157	set number of columns into the given configuration .
+4100	Returns the stack trace of the throwable as a string
+1463	Calculates the relative path of the source code file of a StackTrace element if its available . Uses the packageName of the class to create a relative path and appends the filename included with the stack trace element .
+4158	Deletes a comment . Only the person that created the comment can delete it .
+871	Checks to see if a given server is the primary server in this replica set .
+5122	Creates a tree of box nesting based on the content bounds of the boxes . This tree is only used for determining the backgrounds .
+2444	These have trailing newlines that we want to avoid spanning
+4988	Gets the document header .
+1629	Adds the data serie value .
+3063	Read a &lt ; title&gt ; element
+1323	enforced by constructor parameters .
+4418	Reads a cowfile from an InputStream and returns a string .
+4344	Removes the value at the top of the value stack and casts it before returning it
+4	Returns a new CharBuffer identical to buf except twice the capacity .
+4906	Adds a file to list of files that are deleted and will be committed next time &lt ; git - commit&gt ; is run .
+2655	Create an authorization header for the service .
+4002	Helper to log a call to a method
+159	Iterates through the given loaders until it finds one that can load Finalizer .
+916	Gets a read preference that forces reads to a secondary with the given set of tags that is less stale than the given maximum .
+2973	Removes all elements of the specified collection from the batch operation .
+2519	Simple caching mechanism for the providers on a per request basis
+1961	Request coming from the client side .
+474	Reflectively call the constructor of an object .
+1973	Start the client bundle .
+4647	Starts generating tick events starting from 0 . This method must not be called when the tick source is already running .
+701	Recursively searches for the field specified by the fieldName in the class and all the super classes until it either finds it or runs out of parents .
+3981	Gets the schema .
+566	Returns the int encoding of the given type .
+4363	Creates a new Characters instance containing all characters minus the given ones .
+1030	Gets the underlying socket address
+1051	Set the text index version number .
+3893	This method returns the URL to the Image of this MenuItem .
+4503	Check if the pager has a new adapter and switch to it if it does .
+1352	In real world scenarios this would be replaced by the actual IAM solution
+2171	For cases where we need to set hadoop1 output format in a hadoop2 Configuration object .
+4322	Add one word to the trie
+4969	Sets the options for delete .
+3466	A handler for failed banner ads
+1735	Adds the data series .
+4417	Call this with the provided cowfileSpec - that is the value passed to - f on the commandline .
+1647	Creates the grid layout .
+2553	Allows the manifest for the archive file to be provided inline in the build file rather than in an external file .
+3268	Write a Geometry Collection
+3059	Read a &lt ; phase&gt ; element
+3588	Returns a Local Storage .
+4239	Returns the next value from the JSON stream as a parse tree .
+3698	Get an Issue Type by name .
+991	Converts to GeoJSON representation
+2030	Create a wrapper ReceiveQueue that does decoding on the fly .
+1840	Converts a hexadecimal character to an integer .
+524	Generates the instructions to jump to a label based on the comparison of the top two stack values .
+2769	Constructs a web request to return the user - defined metadata for this share . Sign with no length specified .
+172	Build a HostAndPort instance from separate host and port values .
+4819	Get the destination .
+4537	Initializes all available connectors .
+1885	Join the tag with the key .
+4820	Get the MessageConsumer .
+1804	Get the android tool path .
+58	Enters this monitor if the guard is satisfied . Blocks indefinitely acquiring the lock but does not wait for the guard to be satisfied and may be interrupted .
+581	Appends the descriptor corresponding to this Java type to the given string buffer .
+5169	This method returns the full detail for a legislator .
+482	This is implemented in native code in the Android SDK .
+1875	will only notify once
+552	Visits an annotation of a parameter this method .
+257	Call the specified consumer with the exception passing through any rail .
+2706	Returns an access condition such that an operation will be performed only if resource s current sequence number is less than the specified value . This condition only applies to page blobs .
+580	Returns the Java type corresponding to the given type descriptor . For method descriptors buf is supposed to contain nothing more than the descriptor itself .
+4211	Retrieves all share events performed by the given user .
+1949	Clips to the intersection of the current clipping region and the specified rectangle .
+2281	Create an automatically managed pool of database connections to the supplied JDBC database URL .
+3976	Initialize already started loaders .
+1755	Adds the logo to header .
+1083	Returns true if this write concern indicates that write operations must be acknowledged .
+4677	Extracts words from text removing non alpha characters
+4720	Waits for processing finished .
+3872	Lazy login is used in copmination with a Single Sign On mechanism .
+1990	Add a task that gets executed once .
+3874	Logs a user out and stores the UserAttribues in the eFaps database .
+3334	Checks whether a tag is contained in its direct children . An efficient way to check if the given tag is a direct child of this tag .
+1559	Creates the donout series default .
+772	Adds a listener to the pathChildrenCache initializes the cache then starts the cache - management background thread
+794	Remove a configuration . The container configuration cannot be removed .
+3531	Main loop of nio
+2902	Returns a boolean indicating whether the host of the specified URI is DNS .
+3469	Translates an adapter position to an actual position within the underlying dataset .
+3367	Parse a string constant whilst interpreting all escape characters .
+3825	Set the default selected item .
+443	Changes the simulated physical height for this display .
+806	An overridden implementation that heavily favors read access over write access speed . This is thread - safe .
+496	Goes through the meta data and puts each value in to a bundle as the correct type .
+3298	Raise an event on a named event bus passing it to applicable consumers asynchronously .
+2779	Constructs a request to return a listing of all files and directories in this storage account . Sign with no length specified .
+895	Add an error result
+2036	Enable the logging diagnostic context
+1569	Sets the resource type map .
+1558	Creates the series default pie chart .
+4393	Instantiate a new object of type T
+3675	Get the Guice modules to be used in injecting dependencies .
+1148	Writes the file s data to a file on disk .
+1503	Check whether a bitset contains a set bit .
+3789	Gets the image .
+2046	Destroy the session .
+617	Converts an object of a different type to the type used by this property . If types are not convertible an exception is thrown .
+3630	Obtains the chip s text from a specific typed array .
+4508	Get the number of bytes that would be used to store a bitmap with the size in pixels and storage config .
+802	Load properties from the specified configuration into system wide configuration
+414	Sets the current data position .
+4428	Determine if the given mode flag is known and mapped to a particular cow face .
+120	Returns an immutable map containing the same entries as the provided sorted map with the same ordering .
+764	Convenience method for when the schemaName is set but we don t want to parse the body
+1936	Creates an SVG path string for the supplied Java2D path .
+1362	Calculates the desired positions of all items .
+3329	marks the owner tag in the attributes
+3978	Set the change listener .
+3943	Prints the .
+1751	Gets the dokument .
+3285	Reads a JSON object from the given string .
+480	Returns the BroadcaseReceivers wrappers matching intent s action and permissions .
+1348	Retrieve the servlet context path of a process definition from a known process engine .
+3104	Check if this build task has a direct build configuration dependency on the given build task
+17	okay since we have to copy the just - created array anyway .
+3198	Set value of given field on given instance .
+2172	Does the given word match?
+3727	Encodes the API key for Basic authentication .
+2336	We currently just expose them as immutable sets in RAM since all of the modification operations are optional .
+3465	Gets banner ad at a particular index in the fetched ads list .
+4552	Wraps the passed instance inside a matching tracee context logging provider instance . Will return the passed instance if no matching tracee context logging provider exists .
+3986	Removes the attribute with the given name .
+1268	Computes cosine similarity of values in two given arrays when the norm of one array is known in advance which is a not - uncommon case .
+1555	Sets the legend styling .
+2430	Creates a new quaternion from the float imaginary components .
+1783	Calculates a map which contains all files to be pushed to the device or emulator . The source filename works as the key while the value is the destination .
+479	Returns the text contained within this view .
+4744	Get the class of the Factory for the given factoryClass .
+4441	Gets all schemas for this catalog keyed by unique name .
+499	Returns whether a permission should be treated as granted to the package for backward compatibility reasons .
+2569	Create an empty zip file
+468	Reflectively get the value of a field .
+410	this needs to start above 0 which is a magic number to Parcel
+4785	Retrieves the package definition from the supplied sourceFile .
+3905	Invalidate session .
+4119	Indents a block of text . You provide the block of text as a String and the indent object and it returns another String with each line properly indented .
+4350	Determines whether this range immediated follows or precedes the given other one .
+1289	Enable the VM with the specified host name . Hosts start in an enabled state so you only need to call this method if you have previously explicitly disabled the host .
+465	Adds entry to the DropboxManager with the flag indicating data is text .
+4160	Retrieves a single comment based on ID .
+656	Returns true if the given arg is a valid main command of Liquibase .
+1522	For all fields where the value was
+561	Reads a stack map frame type and stores it at the given index in the given array .
+4874	Checks if two unordered lists are equal .
+556	Visits a TABLESWITCH instruction .
+1926	Parse a duration
+3307	adds to the attribute value set .
+982	Gets the address of the current master
+4666	Gets absolute file path of resource
+2016	Add a header
+4742	Helper method which splices the provided String into a List of Pattern instances .
+4870	Commits the file system object
+325	Revoke the given permissions for the given process and user .
+5073	Performs the migration of a personality . This must be run under the table lock so that only one thread can use it at a time .
+671	Checks if a specific object is present in a database
+3434	Check to see if any of the uninitialized NEW instructions have moved . Again these are rare so a linear pass is fine .
+4781	Starts the checking task
+4630	Fetches cities in a state .
+4282	Percent - decodes a string .
+2591	Add the header field to the dynamic table . Entries are evicted from the dynamic table until the size of the table and the new header field is less than the table s capacity . If the size of the new entry is larger than the table s capacity the dynamic table will be cleared .
+2136	Get a instance of standard base64 implementation from apache commons - codec library
+1673	Adds the view application action event page element daily summary values .
+2573	Set the maximum table size . If this is below the maximum size of the dynamic table used by the encoder the beginning of the next header block MUST signal this change .
+1955	Returns a clip path reference for the current user clip . This is written out on all SVG elements that draw or fill shapes or text .
+2175	Return true if the word is uncountable .
+3242	Writes an individual LDAP directory entry to the DSML file .
+1072	Gets this read concern as a document .
+2457	For some reasons LambdaExprs are duplicate and the equals method is not implemented correctly .
+3745	Method to get the value for a key in case of wizard .
+2590	Returns the lowest index value for the header field name in the dynamic table . Returns - 1 if the header field name is not in the dynamic table .
+594	Sets the column mapping to those passed in .
+76	Parses a media type from its string representation .
+3754	This method retieves the UserAttribute for the ColumnWidths and evaluates the string .
+5088	Retrieve DigestUtils implementation
+4612	Is value = expected?
+819	check whether we need to apply timeout to a rest . li request task .
+600	Sets the value of this parameter on the given change .
+4404	Wrap a callable statement to monitor it .
+1746	Decrypt value .
+4144	Add page indicators based on the attached ViewPager
+1085	Constructs a new WriteConcern from the current one and the specified tag - set based value for w
+2859	Constructs a web request to return the ACL for this queue . Sign with no length specified .
+563	Returns the output frame local variable type at the given index .
+2001	Add an event listener to the channel There can only be one consumer and many listeners .
+3027	Get a list of all successful reports in a given schematron output .
+2334	Ensures namespace is valid by ensuring it only has alphanumeric characters or the underscore for all characters in the string
+1292	Retrieves summary - data from the given input source
+3589	Returns a Session Storage .
+4450	Grows as - needed to fit the provided new capacity .
+2478	Returns a stream that on each animation frame emits the duration elapsed since the previous animation frame in nanoseconds .
+5010	Correctly resizes the table so no phantom columns appear
+4333	Match a string literal
+64	Signals some other thread waiting on a satisfied guard if one exists .
+4543	Getter method names must have a specific prefix .
+2452	See JLS 9 . 9
+848	Generates a consistent exception that can be used if coercion fails .
+1100	If the document does not contain the given key return the given default value . Otherwise gets the value of the key as a BsonDecimal128 .
+945	Insert a document into a collection . If the collection does not exists on the server then it will be created . If the new document does not contain an _id field it will be added .
+876	Gets the error message associated with a failed command .
+2231	Increases the size of cached results buffer .
+2308	Updates the stop times that reference the specified pattern stop .
+4954	Implementations of &lt ; git log&gt ; with options and one file to be added to index .
+1725	Adds the data item .
+2808	Requests the service to start copying an Azure File s contents properties and metadata to a new Azure File using the specified access conditions lease ID request options and operation context .
+1667	Gets the user id from security context .
+2162	The first element is expected to be a map or null . Anything else causes an error .
+4140	Returns true if and only if the path corresponding to a WatchEvent represents the given file . This will be the case for Create Modify Delete events .
+2057	Reads the readConfig file which can be a classpath or file system resource .
+416	Returns the item at the current position or null if uninitialized or null .
+756	Most relational databases support 9 fractional digits and subclasses must overwrite this method if they support less than that .
+2266	Sets field to null in statement or string array depending on whether postgres is being used .
+361	Creates a FragmentController for the given fragment class .
+29	Convert a list of hextets into a human - readable IPv6 address .
+2732	Downloads the queue s metadata and approximate message count value using the specified request options and operation context .
+1071	Creates a child context based on this and serializes the value with it to the writer .
+2145	The cheap ugly version of the above for when you don t want to catch 900 exceptions at the calling site .
+3619	Creates and returns a property which allows to animate the global angle of the progress drawable .
+4519	Get the ActionBar height in the Context s theme .
+3503	Deserialize tuple values .
+4594	Register a new adapter class .
+79	Returns the escaped form of a given literal string .
+616	Executes the Liquibase update .
+1221	Send an asset to the client .
+4469	If the position is not visible on the map animate the camera to include it after the delay .
+295	Creates native stub which returns the default return value .
+3024	Remove all variables with the specified names
+4771	only for partitioned region!
+4526	Central method to get cached FileObjectWrapper . Creates new FileObjectWrapper if it can t be found
+1213	Constructs a new AssetClassLoader that includes the public dir if present in the current working dir
+3520	Expire at .
+1044	Creates a filter that matches all documents containing a field with grid coordinates data that exist entirely within the specified polygon .
+342	The fd must be seekable .
+2525	Exclude the given query - parameter names from encoding .
+2987	Illustrates how to form and execute an upsert operation .
+326	Enumerate the SDKs to be used for this test .
+2931	Reserved for internal use . Sets the resolver to project the entity retrieved as a particular type .
+1720	Gets the committee proposal list .
+2044	Get the ServiceEndpointServer constructed with all of the service endpionts that you registered
+842	Main loop of monitoring thread .
+2897	Asserts that the specified integer is in the valid range .
+4586	Returns the next code point in the iteration .
+5084	Retrieve ImageUtils implementation
+1266	este metodo teve que ser implementado pois a Bahia trata de forma diferente
+1939	Returns a stroke style string based on the current stroke and alpha settings .
+1331	Serialized name actully specified via annotation
+1450	Build the route .
+3377	Write an unsigned integer value using 32bits using a big - endian encoding .
+203	Specifies the expected number of edges in the network .
+1469	This method directly renders the byte array to the output . It completely bypasses any rendering engine .
+2721	Constructs a canonicalized string that will be used to construct the signature string for signing a Table service request under the Shared Key authentication scheme .
+3372	Determine the maximum width of any configured command name
+2032	Start a listener .
+1304	Adds the specified attribute . If the Tag previously contained an attribute with the same name the old attribute is replaced by the specified attribute .
+885	Checks if this writer s current state is in the list of given states .
+3133	This checks if jenkins does not use option Prevent Cross Site Request Forgery exploits
+317	Compared to real Android there is no check that the package name matches the application package name and the method returns instantly .
+3855	Method used to initialize this StructurBrowserModel .
+1822	Ensure the client secrets file has been filled out .
+1634	Creates the ministry summary .
+3770	This method generates the Key for a UserAttribute by using the UUID of the Command and the given static part so that for every StruturBrowser a unique key for expand etc is created .
+2864	Validate that the IP address is IPv4 .
+2500	The quick way to detect for a tier of devices . This method detects for all other types of phones but excludes the iPhone and RichCSS Tier devices .
+1864	Commits this edit so it is visible to readers . This releases the edit lock so another edit may be started on the same key .
+1826	Get the Maven GAV string of the plugin .
+193	Returns the Unicode code point of the character at the given index .
+1582	Creates the field .
+3264	Write a Polygon
+2689	Load store definitions from disk and apply consumer function .
+2282	Add a single key - value pair of supplemental info to this error .
+568	Pops a type from the output frame stack .
+2286	Gets the pattern speed for a given pattern for a specified date and time window .
+2876	Returns an enumerable collection of shares whose names begin with the specified prefix using the specified details settings request options and operation context .
+4173	Constructs the URL to access the FB graph API and retrieve a profile image for the user with the given facebook id .
+3274	Write a Triangle
+2712	RESERVED FOR INTERNAL USE . Applies the sequence number access conditions to the request .
+226	Adds an index generated by EventBus annotation preprocessor .
+944	Gets a Codec but if it detects a cyclic dependency return a LazyCodec which breaks the chain .
+2139	Return byte blob for the next proto object . null indicates end of stream ;
+1462	Used to check whether a class exists on the classpath .
+4756	Merge in the deprecated parameters to the new ones unless the new parameters have values .
+2174	Return the pluralized version of a word .
+313	Returns the estimated position along a path of the given length .
+888	Convert to a byte array . Note that the numbers are stored in big - endian order .
+4887	This command adds the current content of new or modified files to the index thus staging that content for inclusion in the next commit .
+3559	Simple factory method to obtain a new instance for the given context object and name .
+2831	Appends a path to a URI correctly using the given separator .
+3574	Escape appended sequence if needed .
+4966	For checking a file or list of files from a branch .
+4189	Returns the hash key used to authenticate this application with Facebook . Useful for debugging .
+947	Get a single document from collection by _id .
+3155	Removes the project build record .
+4723	Configures and starts the guest node
+1557	Creates the high lighter north .
+2086	Turn a Thrift Struct into a loading schema for a pig script .
+363	Returns the natural dimensions of the default display .
+3572	Add a context converter .
+13	Writes all the given bytes to this sink .
+4259	Handles a broadcast intent received by a Broadcast Receiver on Android . Call this method if you already have a broadcast receiver defined but want to also utilize Socialize SmartAlerts .
+4410	Set the language .
+1614	Navigate to page .
+2983	Returns the snapshot or shared access signature qualified URI for this share .
+3533	to be called on each loop to process idle routines .
+573	Visits an annotation of the class .
+2704	Gets the Extended Error information from the response stream .
+5104	Start evaluating the user input and eventually execute the command requested by the user .
+2571	compress a stream to an output stream
+1020	Creates a copy of an existing database cursor . The new cursor is an iterator even if the original was an array .
+2460	A reachable break statement exits a statement if within the break target either there are no try statements whose try blocks contain the break statement or there are try statements whose try blocks contain the break statement and all finally clauses of those try statements can complete normally .
+4154	Merge properties into the config .
+2533	Handle DynaView processing . This method will end the Faces life - cycle .
+3345	value for the id attribute .
+2672	Generate relationship file for pom transfer .
+3296	Runs each appropriate EventHandler in an Executor .
+2422	Creates a new complex from the float angle in radians .
+4541	Tries to create a Connector for a given connector configuration name .
+1042	Creates a filter that matches all documents containing a field that is an array where at least one member of the array matches the given filter .
+1571	Gets the uppdrag .
+3444	Return a printed description of the given instructions .
+3105	Loads JSON configuration to the module configuration object
+1425	Throw exception if field was not found .
+5042	Creates the datasource config based on the provided parameters .
+4662	Get resource last modified date
+2465	Determine whether a potentially applicable generic method m is applicable for a method invocation that provides no explicit type arguments .
+3326	adds the given children to the last position of the current children of this object .
+4488	Get the number of rows in the cursor .
+3	buffer when possible .
+2489	Detects if the current device is an iPhone .
+2350	Remove the provided job . Will also delete the job if it was persisted .
+1721	Gets the parliament electoral regions .
+3521	Decr by .
+4751	Adds the provided error message to this ErrorMessageContainer .
+2639	Lets have class name less than 200 to allow new generators safelly to add more sufixes there if needed
+3809	Script that searches for an existing iframe to use it for the download of the frame . If it does not exist it will be created .
+3622	Creates and returns a listener which allows to restart the progress drawable s animation when it has been finished .
+1750	Gets the active user account .
+4187	Extends the user s Facebook access token if needed .
+3876	Gets the model .
+1390	This is used by the configuration provider
+694	Transforms this data type into the native data type of the target DBMS .
+2324	Create an SQL table with all the fields specified by this table object plus an integer CSV line number field in the first position .
+4222	DO NOT CALL
+5072	Add or remove parameters to fit the method declaration and also convert them to appropriate data type .
+2745	Gets the hour metrics table for a specific storage service .
+765	Convenience method for other classes similar to this that want to be able to modify the procedure text to add the schema
+1924	Method to handle the cursor changing positions . Returns true if handled false if it should be passed to the super method .
+2542	Copies the sources contents to the given destination file .
+1631	Adds the annual summary data .
+1207	Use a named key for accessing to the request scoped Handle .
+200	Removes the entry at the specified index given the hash of its key .
+378	Makes sure that given provider exists .
+3892	Checks for access to menu .
+5007	create controls and apply configurations .
+596	Override default values for properties with the given ConfigurationProviders .
+3730	Get a property as string .
+3395	Get the appropriate configuration schema for a project . This defines what keys are permitted .
+5159	Create the MBean object .
+4715	Creates the receivedAt key
+1592	Gets the page id .
+3145	Lookups built artifacts for the specified BuildRecord
+4049	Disconnects the component from the remote service .
+3273	Write a TIN
+1998	Builds a proxy queue service to the impl .
+1208	Mostly for kotlin null safe operator and immutable properties .
+45	Returns a new builder expecting the specified number of entries to be added .
+873	Adds a new key to the query if not present yet . Sets this key as the current key .
+3482	Build a string representation of a type and optionally its generic type arguments .
+1792	Extracts the package name from an apk file .
+1440	!!!! Only for testing purposes !!!!
+4243	Performs a simple HTTP GET to the Twitter resource endpoint specified . If the user is not currently linked to a Twitter account they will be prompted to authenticate .
+3805	Adds categories to the blacklist_categories parameter
+411	non - existent - in - JDK java . util . Arrays . checkOffsetAndCount method .
+4566	Upon reservation the method enables registering the properly built immutable term instance .
+2041	Add an endpoint with a managment bundle and an alias
+994	Turns this group command into the DBObject format of the command .
+3739	Find an unused port .
+1092	Create an index key for a geohaystack index on the given field .
+3806	Call this method to initiate the download .
+4351	Created a new IndexRange that spans all characters between the smallest and the highest index of the two ranges .
+4578	Update the resource representation adding the path where the resource is published and whether or not if given that URI it can be resolved to the same resource .
+4877	Sets the preferred client type .
+2599	Asserts that two characters are equal .
+3625	Initializes the button which allows to show or hide the floating action buttons .
+5018	Creates a member of restriction .
+4135	Create a new instance of MemorySize by adding up the given array of memorySizes
+3495	Checks if an public empty constructor is available
+3652	Checks if a method can be used as a callback to handle operation result .
+1303	Sets a custom attribute
+3888	Called by the web container to indicate to a filter that it is being placed into service . The servlet container calls the init method exactly once after instantiating the filter . The init method must complete successfully before the filter is asked to do any filtering work . The web container cannot place the filter into service if the init method either
+3686	recursive method to get all packages including children packages
+2123	Construct a Thrift object from the tuple .
+2025	Stop client . Stops processing call backs .
+2271	Frequency entries have no ID in GTFS so we define one based on the fields in the frequency entry .
+4270	Ignores proxy and always returns raw object
+3969	Registers the specified embedded web context .
+5134	Obtains the bottom border of the box
+1959	Tracks timeouts periodically if timeout tracking is enabled .
+2249	Builds a list of empty ticks .
+3603	Obtains the duration of the animation which may be used to changed the visibility of the floating action button from a specific typed array .
+634	Examines the given object s class and returns true if reader and writer methods both exist for the given property name .
+2340	Get trip speed in meters per second .
+1920	Copy the text between start and end in clipboard . If no span is present text is saved as plain text but if span is present save it in Clipboard using intent .
+2225	Percent encodes a string
+2751	Reserved for internal use . Constructs an HttpURLConnection to perform a merge operation .
+2619	Verifies that the actual value is equal to the given one within a positive offset .
+4424	Gets all cowfiles found in the given directory .
+660	On windows machines it splits args on = signs . Put it back like it was .
+1235	Mount Swagger using the given options .
+1894	the last item in list
+3137	Check is some of the dependencies from the previous build were rebuild . Checking is done based on captured dependencies which are stored in the Build Record .
+1251	Faz a correcao da nota
+1752	Creates the basic layout with panel and footer .
+526	Generates the instruction to push the value of a static field on the stack .
+3398	Determine the system root . That is the installation directory for the compiler itself .
+3339	adds the WebSocket listener for the given WebSocket session
+2710	RESERVED FOR INTERNAL USE . Applies the access condition to the request .
+4445	Gets all tables for this schema keyed by unique name .
+3816	Parse the response into a type represented by the Class object . Checks for a refreshed token and updates the token repository accordingly .
+3406	Parse options from the list of arguments removing those which are recognised . Anything which is not recognised is left as is .
+510	Forked from android . os . Debug
+1694	Adds the data for year to map .
+3441	Create a new local with a scope of the full method . This means we need to search the existing locals to find the proper index for our new local . This might have the side effect of causing us to rewrite the method byte codes to adjust the offsets for the existing local variables - see below for details .
+3190	Instantiate embedded jetty to be used in tests .
+4784	Assigns the indentationToken of this RenderConfiguration .
+160	Dispatches all events enqueued prior to this call serially and in order for every listener .
+4716	Initializes the technical region
+3116	Flattening collector . Look at StreamCollectorsTest for example usage
+3907	Gets the users .
+48	Returns ~2x the old capacity if small ; ~1 . 5x otherwise .
+2881	Gets the Extended Error information .
+2446	Execute a transformation on all the type parameters of this element .
+3194	Get all static fields on given class object .
+3432	We need to locate and remember any NEW instructions that create uninitialized objects . Their offset may be contained in a StackMap entry and will probably need to be updated as we add instrumentation code . Note that these instructions are fairly rare .
+4409	Run cowsay with the provided attributes .
+4473	Get a cached bold span .
+4941	Returns the file at the specified index in the list of renamed files .
+1806	This method returns the previously specified version . However if none have been specified it returns the latest version .
+3999	Creates from the given xml string a json string .
+1797	Copies an input stream into an output stream but does not close the streams .
+2235	Operates the trade at the index - th position
+3570	Callback is useful to configure a component instantiated before the engine is built .
+237	Concurrent subtraction bound to 0 and Long . MAX_VALUE . Any concurrent write will happen before this operation .
+3185	Parse java version .
+2753	Reserved for internal use . Constructs an HttpURLConnection to perform an update operation .
+3312	checks the value in this attribute contains a valid regex .
+3828	Set the markupid into the model .
+1045	Creates a filter that matches all documents containing a field with grid coordinates data that exist entirely within the specified circle .
+5097	Creates the dry source detail view .
+220	Posts the given event to the event bus .
+3227	Resolve the LDAP server type artifact and its dependencies .
+4848	Writes the serialized object to file .
+4623	This method grabs district basic election data according to electionId and stageId . Per state lists of a Presidential election are available by specifying the stateId .
+222	Remove and gets the recent sticky event for the given event type .
+687	Inserts a new clause after the given key . Throws IllegalArgumentException if the existingKey does not exist .
+3511	Parses the port .
+1111	Throw IllegalArgumentException if the value is null .
+3782	Method that removes all classifcations and afterwards adds the classification forms as elements to the form by walking down the tree .
+1488	Cancels any existing animations for given View .
+2131	Collect a set of hosts from all child InputSplits . Note that this is just a hint to the MapReduce framework for where the task should go so we return the top 5 as returning too many can be expensive on the MR side of things .
+2681	Write sealed records to a zip file .
+1733	Sets the column converters .
+3724	Sets the primary street address for this person .
+2677	Non - blocking send with a logback formatter to format the message .
+2764	Constructs a web request to delete the share and all of the directories and files within it . Sign with no length specified .
+2279	Once a feed has been loaded into the database examine its contents looking for various problems and errors .
+3453	Returns the class that corresponds to type .
+2066	Add a new value to the list but don t employ a wrapper .
+670	Returns true if the passed runtime labels match this label expression
+3852	Recursive method to add child classifications .
+158	Returns the sum of all values in this map .
+426	Sets the active state of the default network .
+2866	Encodes a byte array as a Base64 string .
+1836	Finds the files in the supplied folder that match the configured includes .
+562	Sets this frame to the given value .
+329	Adds an HTTP response rule . The response will be returned when the rule is matched .
+254	Generates and concatenates Publishers on each rail signalling errors immediately and generating 2 publishers upfront .
+1633	Adds the entry data .
+166	Adds a task to the queue and makes sure a worker thread is running .
+5089	Retrieve StringUtils implementation
+1248	Retorna o Lote assinado .
+1954	Returns an element to represent a radial gradient . All the radial gradients that are used get written to the DEFS element in the SVG .
+1034	Creates a filter that matches all documents where the value of the given field is less than the specified value .
+3879	Method used to convert the date value from the ui in date values for eFaps .
+937	Executes a database command with the selected readPreference and encodes the command using the given encoder .
+4620	This method dumps all candidate ratings from a scorecard by an SIG .
+1785	Resolves an artifact to a particular repository .
+2099	Turn a nested message into a pig script load string . For repeated nested messages it generates a string for a bag of tuples . For non - repeated nested messages it just generates a string for the tuple itself .
+3021	Apply the passed schematron on the passed XML resource using a custom error handler .
+1374	Add an additional managed instance
+4963	This is just a test method for verifying that a given ref is not of refType provided as one of the parameters .
+4974	Begins injection of filters including the Service and IdocScript injectors required to load other ucm entities .
+1341	Sets HTTP proxy for WebClient with bypass proxy hosts
+2548	Add a section to the manifest
+4740	This is the interface into the rule . This method should throw an exception containing a reason message if the rule fails the check . The plugin will then decide based on the fail flag if it should stop or just log the message as a warning .
+210	default configuration redis template when have RedisConnectionFactory
+2555	Make sure we don t think we already have a MANIFEST next time this task gets executed .
+3074	Check if the subject has the given role .
+3249	Read a Line String
+1624	Creates the paging controls .
+622	Generate a CREATE INDEX SQL statement for Firebird databases .
+4850	If null will build based on host port and provider url pattern .
+5138	Checks if another node is fully located inside the content bounds of this box .
+1989	Supply an instance of DnsClient .
+834	Copies the value or error from the source promise to the destination promise .
+2470	Retrieves nodes from root to leaf and returns leaf index .
+4918	Checks whether the - m option should be set and sets it .
+4636	This method grabs the extended bio for each candidate that has one .
+336	Gets the index of the specified bit in the set which is the number of marked bits that appear before the specified bit .
+2844	Get the signature hash embedded inside the Shared Access Signature for the table service .
+4364	Gets the value of the deploymentDescriptor property .
+3035	Format with two objects .
+564	Sets the output frame local variable type at the given index .
+2795	Runs the table getting started sample .
+103	Returns an array containing all of the elements from this fluent iterable in iteration order .
+4015	Edit view for date fields
+864	Puts a value at an index . For interface compatibility . Must be passed a String that is parsable to an int .
+3551	BaragonService base path actions
+2967	Adds a table operation to delete the specified entity to the batch operation .
+3766	Execute the model .
+1253	Inutiliza a nota
+3567	Builds the engine instance .
+1442	This might be a bit hacky . But just a little bit .
+4274	Loads an image based on Base64 encoded bytes .
+2212	Configures the callback url
+5045	Create a value property from a string value .
+4408	Run cowsay with the provided properties .
+3960	Delete an entry from the local cache .
+3808	Hook method providing the actual resource stream .
+3568	Adds a template locator .
+4853	Build JMS Service
+2198	Parse JSON received from reddit into a list of subreddits . This parser expects the JSON to be of a listing of subreddits .
+2640	Returns the boolean value of the property or the default value .
+2011	Builder method to set callback handler that takes a list
+709	Returns all child nodes with the given namespace and name . If none match an empty list is returned . Returned list is unmodifiableList .
+2284	Factory Builder for cases where the entity has already been decoded and an error is discovered during validation
+3692	get the list of properties that will be available in a basic view bean
+1997	Build the impl .
+4668	Generates non negative long key of maximum length 18
+4999	Returns the URL for authorizing the user .
+2755	Writes the contents of the ServiceProperties to the stream in xml format .
+235	Repeatedly subscribe to the source if the predicate returns true after completion of the previous subscription . A specified maximum of repeat will limit the number of re - subscribe .
+2662	Process the parameters of the introspection request .
+1489	Animates given View .
+3994	Delete the trigger with the given id .
+1737	Gets the ballot summary item .
+2906	Returns a GMT date in the specified format
+2116	Returns value of a static field with given name in containingClass .
+2788	Dispatches a read operation of N bytes .
+2290	Get distance for a pattern . Uses the first trip associated with the pattern .
+4883	Implementations of &lt ; git - add&gt ; in verbose mode .
+2263	This just pulls some of the range checking logic out of the main trip checking loop so it s more readable .
+4553	Creates a new instance of the passed type via reflection .
+83	Handle lazy allocation of arrays .
+4232	Gets the application - wide actions .
+1565	Gets the kommunvalkrets .
+1977	Determines the request type .
+4548	Capitalizes first char of an input string .
+1968	Call the method .
+3900	Called when the request cycle object is beginning its response .
+4020	Method to set the contentview with Title Text and Image .
+3671	Runs operation in background .
+141	Returns a new array that contains the concatenated contents of two arrays .
+762	Returns Local Host IP Address
+2410	Creates a new quaternion from the double components .
+1815	Generate correct R . java for apklibs dependencies of a current project
+1993	Utility method to create a coordinator .
+2508	Return a URI representation of this URL including path and query string
+4764	Draw the icon at the specified location .
+3023	Remove the variable with the specified name
+4534	Gets a list with all wrapper classes .
+4349	Determines whether this range overlaps with the given other one .
+2816	Opens an output stream object to write data to the file . The file must already exist and any existing data may be overwritten .
+3485	Finds and removes a given method
+2709	RESERVED FOR INTERNAL USE . Applies the source access conditions to the request .
+2882	Parse the table extended error information from the response body .
+3717	Retrieve a question set you have created .
+2219	Configure the longitude for geography subscription
+2511	Get the array of values for a given parameter name .
+1888	If disk is not read will prepare it first .
+988	Gets this value as a BsonNumber if it is one otherwise throws exception
+1577	Adds the party data .
+979	Creates replace options from updateOptions .
+4389	MOJO execution method .
+1516	Run daemon process .
+1772	Writes the script to start the emulator in the background for unix based environments .
+3966	builds the html for one element
+2265	Get the uncompressed file size in bytes for the specified GTFS table .
+4829	Returns the pool configuration of the scorer .
+4297	Get the column value as OffsetDateTime .
+4888	This command adds the current content of new or modified files to the index with verbose option set .
+2318	Add a GTFS feed to this cache where the ID is calculated from the feed itself
+823	Returns new task that builds graph using graphviz .
+1590	Gets the committee proposal container .
+2426	Multiplies the components of this quaternion by a float scalar .
+1863	delete all content
+2956	Creates a new Blob service client .
+2476	Creates an event stream that emits an impulse on every invalidation of the given observable .
+115	think tip it over into being worthwhile .
+1036	Creates a filter that matches all documents where the value of the given field is less than or equal to the specified value .
+2247	Displays a chart in a frame .
+372	Returns true if the resource was found filling in mRetStringBlock and mRetData .
+446	Returns the connection back to the connection manager and prepares for retrieving a new connection during the next request .
+4533	Write the type string to the Stringbuilder
+2393	Returns a fast estimate of the inverse square root of the value
+4021	Provides the localized friendly name of a field .
+840	Finds node with next lowest sequence number than the given node within the given list of nodes .
+100	Removes all values for the provided key .
+4702	Merge passed attributes with the supplied property values .
+2329	Generate a select statement from the columns that actually exist in the database table . This method is intended to be used when exporting to a GTFS and eventually generates the select all with each individual field and applicable transformations listed out .
+3845	Gets the data JS .
+3921	Init the component .
+3608	Creates and returns a drawable which can be used as the floating action button s background when it is activated .
+2791	Repositions this stream to the position at the time the mark method was last called on this input stream . Note repositioning the file read stream will disable file MD5 checking .
+1510	Sets TapBarMenu s background color from given resource .
+420	Reads a primitive which may reinterpret zeros of other types .
+2068	Set a value in the list .
+3913	Execute the events .
+934	Gets a collection with a given name .
+535	Generates the instructions to create and throw an exception . The exception class must have a constructor with a single String argument .
+3282	Creates a new empty JsonObject . This is equivalent to creating a new JsonObject using the constructor .
+4028	Method to set an show a cropped imaged .
+606	Parse the given storedCheckSum string value and return a new CheckSum object .
+4726	Returns a total number of query pages .
+5156	List districts for state and chamber .
+439	Changes the flags for this display .
+1242	auto generated Axis2 call back method for mdfeRecepcaoEvento method override this method for handling normal response from mdfeRecepcaoEvento operation
+1222	Configure DBI instance .
+4610	Get a list of acceptable variants . Current implementation only leverages media type for the specification of variants .
+697	boolean data type column are allowed for versions > = 11 . 1 . 1 . 1
+2033	Builds a service .
+970	Creates an update that adds each of the given values to the array value of the field with the given name unless the value is already present in which case it does nothing
+4571	5 . 2 . 4 . Remove Dot Segments
+3409	Get first ancestor of a syntactic item matching the given kind . If no item was found then null is returned .
+1848	Load the image in advance .
+4280	Returns a put string version of this metric compatible with the telnet - style reporter .
+3690	run through all the beans until it is found
+3626	Creates and returns a listener which allows to show or hide the floating action buttons .
+2435	Creates a new quaternion from the rotation double angle in radians around the axis vector double components .
+4821	Get the MessageProducer or create one from the JMS session .
+3512	Sets the .
+2501	Return true if the value is an EL expression .
+4658	Tests if set is null or empty
+5087	Retrieve ZipUtils implementation
+493	Triggers presentation of the corresponding output buffer for the given input buffer and passes the given metadata as buffer info .
+4994	Remove entries that are out of their maxLifetime .
+812	Add a soft constraint match of specified weighting .
+1702	Display document attachements .
+5124	Set the real file of component url
+2167	Underscore the given word .
+665	If any errors have been found print the list of errors first then print the command line help text .
+1286	Set the autoscale call back action . The callback you pass to this method receives an indication when an autoscale action is to be performed telling it which autoscale rule prompted the action and whether the action is to scale up or scale down the autoscale group . The callback then initiates the appropriate scaling actions .
+1964	Handle a response from the backend service
+1423	Find single field using strategy .
+4521	True if a data network is connected .
+614	Processes all the characters in a line .
+1282	Shuts down the Mesos driver .
+21	Stores the contents of a map in an output stream as part of serialization . It does not support concurrent maps whose content may change while the method is running .
+3346	Merges and returns ByteBuffer from the given dataArray . The ByteBuffer will be returned after flip .
+4864	Not repeat randomly choose a number from 1 to the initinalized size
+3849	Adds the value .
+2385	Wraps the radian between - PI and PI
+267	Pause all tasks running in FileDownloader .
+1896	Aligns the sheet s position with the FAB .
+2360	writes data to parcel
+2316	For a given integer ID return the value for the specified field name for that entity .
+3719	Gets the address for this individual .
+583	Returns a JVM instruction opcode adapted to this Java type . This method must not be used for method types .
+1912	Returns true if the input string contains a word - breaking character .
+5120	If the JAXBContext is not cached then it will create a new instance and cache it .
+4831	Sets the model file of the serialized classifier .
+1620	Gets the value of the address property .
+940	Evaluates JavaScript functions on the database server . This is useful if you need to touch a lot of data lightly in which case network transfer could be a bottleneck .
+4461	Gets the column of the provided ordinal position where positions start at one .
+1841	if deltaY > 0 tryToMove the content down
+1220	Munge up the SQL as desired . Responsible for figuring out ow to bind any arguments in to the resultant prepared statement .
+2176	Helper method to create lzo output file needed to create RecordWriter
+1165	Declare AADAuthenticationFilter bean .
+488	Executes the next queued task .
+1359	Recalculates the positions of each sub action item on demand .
+2364	Check if the fields are properly signed
+3597	Obtains the floating action button s size from a specific typed array .
+1018	Backpatches the message length into the beginning of the message .
+3839	Checks if the user with given name and password is allowed to login .
+2491	Detects if the current browser is a Windows Mobile device . Excludes Windows Phone 7 . x and 8 devices . Focuses on Windows Mobile 6 . xx and earlier .
+3297	Raise an event on all event busses passing it to applicable consumers asynchronously .
+2230	Adds a trade at the end of tick period .
+4099	Converts the object into a boolean value .
+4423	Get a cowfile by name from the given directory .
+4045	Write to buffer .
+3586	Invalidate the cache fragments whose key contains the given part of the key .
+658	Extract a single object from a JAR file into a temporary file .
+4899	Automatically stage all tracked files that have been changed and then commit all files staged in the git repository s index .
+3539	package protected for testing purposes
+2051	Send the queue item to the event .
+211	String Type App map .
+748	Set the defaultValueBoolean based on a given string . If the passed value cannot be parsed as a date it is assumed to be a function that returns a boolean . If the string null or an empty string is passed it will set a null value . If 1 is passed defaultValueBoolean is set to true . If 0 is passed defaultValueBoolean is set to false
+4712	Get the value of the specified attribute from the Checkstyle configuration . If parentConfigurations is non - null and non - empty the parent configurations are searched if the attribute cannot be found in the current configuration . If the attribute is still not found the specified default value will be returned .
+4809	Creates configures and runs the guest nodes and collects information form them
+169	Adds the chain to the seen set and returns whether all the chain was new to us .
+2207	Checks that a URL is a valid OAuth callback
+1435	Inserts backslashes before any occurrences of a backslash or quote in the given string . Also converts any special characters appropriately .
+3854	Internal method to call a constructor it is used to set that this StructurBrowserModel is not a root .
+4251	Retrieves a User based on the given ID .
+1486	Resets the fields to the initial values ready to start over .
+4795	Adds all source file found by recursive search under sourceRoot to the toPopulate List using a width - first approach .
+747	Set the valueBoolean based on a given string . If the passed value cannot be parsed as a date it is assumed to be a function that returns a boolean . If the string null or an empty string is passed it will set a null value . If 1 is passed defaultValueBoolean is set to true . If 0 is passed defaultValueBoolean is set to false
+3850	Gets the index .
+2850	Returns the share for this directory .
+2730	Deletes the queue if it exists using the specified request options and operation context .
+2630	Asserts that two objects do not refer to the same instance .
+856	Validates that the array contains no null elements
+1317	Sets whether the search is focused or not .
+2701	Uploads the table s permissions using the specified request options and operation context .
+4058	Returns the SPFPersona associated to the specified application . If the application does not exist returns the default SPFPersona .
+2361	Calculates the height of the SnackBar
+3280	Abbreviates a String using ellipses . This will turn Now is the time for all good men into Now is the time for ...
+4506	Update or delete records and get the number of rows affected .
+300	Replaces protected and public class modifiers with private .
+3725	Gets a single person exactly as it was when you created it . This route is useful for auditing purposes as you can provide proof that a verification took place along with all of its associated data .
+721	Create a new Precondition subclass based on the given tag name .
+2576	Returns the index value for the given header field in the static table . Returns - 1 if the header field is not in the static table .
+2067	Add a new array to the list .
+2648	Collect claims of the end - user .
+949	Allows you to run map - reduce aggregation operations over a collection and saves to a named collection .
+3311	adds value change lister which will be invoked when the value changed
+4215	Records a like against the given entity for the current user . This method will NOT prompt the user to share their like .
+9	Useful as a public method?
+4444	Resyncs the entire directory recursively registering and canceling any discrepancies found .
+3784	Method evaluates a Field and adds it to the row .
+3385	Append an integer item to the front of an array of integer type together producing a fresh array whose length equals that the second plus one .
+444	Changes the rotation for this display .
+1536	tab the JSON output by the given number of characters specified by delta .
+4247	Does a POST but expects a single object in return .
+2963	Resets the operation status flags between operations .
+5100	Validate that the options if Bean Validation is available on classpath .
+4083	Computes the signature of a method . Note that if 2 methods are declared in different classes or interfaces then I1 . m and I2 . m are different but they can still have the same signature ...
+5123	Computes efficient background color for all the nodes in the tree
+3621	Creates and returns a property which allows to animate the sweep angle of the progress drawable .
+422	This method consumes an input stream and returns its content .
+4499	True if this method has been previously called for the current row . False if the cursor is before the first row or after the last row .
+1073	be copied into a single byte array . For that reason the compress method defined in the base class can t be used .
+2359	Inserts a PersistableBundle value into the mapping of this Bundle replacing any existing value for the given key . Either key or value may be null .
+3970	a map is not a good structure for that because keys may be used more than once
+236	Returns the appropriate Mono instance for a known Supplier Flux .
+5161	Unregister the MBean represented by the object name .
+4987	Show object s status in the working directory
+1960	Checks client health periodically to see if we are connected . Tries to reconnect if not connected .
+1297	reads the magic of a demo file identifying the engine type
+2545	override of parent ; validates configuration before initializing the output stream .
+4512	Use the default layout for the panes .
+112	Returns a hash function which computes its hash code by concatenating the hash codes of the underlying hash functions together . This can be useful if you need to generate hash codes of a specific length .
+4524	Returns an Option consisting of the result of applying the given function to the current value .
+3342	Gets the TagRepository to do different tag operations . This tag repository is specific to this BrowserPage instance .
+763	Returns Local Host Name
+929	Gets the credentials in an immutable list . The list will be empty if no credentials were specified in the connection string .
+3780	This is a possibility to replace the current Instance for the form with another one using an table evaluate esjp .
+962	Creates an update that sets the value of the field with the given name to the given value .
+1261	auto generated Axis2 call back method for mdfeRetRecepcao method override this method for handling normal response from mdfeRetRecepcao operation
+4082	Convenient call to return a class in a different class loader ... note that it will handle correctly a class in the same class loader
+2390	Calculates the value at x y z using trilinear interpolation
+4168	Parse a server response into a JSON Object . This is a basic implementation using org . json . JSONObject representation . More sophisticated applications may wish to do their own parsing .
+2239	Increments the acceleration factor .
+3403	Activate all modules in the order of occurrence in the given list . It is assumed that all dependencies are already resolved prior to this and all modules are topologically sorted .
+3952	Try cloning an object .
+3868	Prune finished tasks .
+1996	Used for quickly delegating one callback to another . This allows one liners so you don t have to create a builder for this common case .
+3741	Sets the values for given parameter .
+4515	Get an Intent to insert or update rows of the content .
+1184	Status code .
+3142	Create a BuildSetTask of latest revisions of BuildConfigurations contained in the BuildConfigurationSet
+1561	Creates the committeee ranking menu bar .
+4910	Adds a file to the list of new files that are ready to be committed next time &lt ; git - commit&gt ; command is run .
+4163	Retrieves all comments associated with the given entity .
+1118	Returns the binary as a UUID . The binary type must be 4 .
+571	Visits the source of the class .
+3399	Determine where the root of this project is . This is the nearest enclosing directory containing a wy . toml file . The point is that we may be operating in some subdirectory of the project and want the tool to automatically search out the real root for us .
+2784	Constructs a HttpURLConnection to set the file s metadata Sign with 0 length .
+4159	Adds a comment to the given entity . This method will NOT prompt the user to share their comment as the desired networks are passed as a parameter .
+2188	Format a comma separated list of the given list .
+2317	Add a GTFS feed to this cache with the given ID . NB this is not the feed ID because feed IDs are not unique when you load multiple versions of the same feed .
+2445	Takes a compatibility assertion about an expression or type called a constraint formula and reduces it to a set of bounds on inference variables . Often a constraint formula reduces to other constraint formulas which must be recursively reduced . A procedure is followed to identify these additional constraint formulas and ultimately to express via a bound set the conditions under which the choices for inferred types would render each constraint formula true .
+4808	Using a specified Velocity Template and provided context create the outputFilename .
+4750	Formats results of query execution .
+4011	Unregister all the active queries associated with the given appIdentifier . Application will not be notified about the event .
+1217	Find a parameter by name and invoke the given callback .
+3658	Cancels operation launch by its tag . May not physically kill the background thread but it is guaranteed that the result of the operation will not be delivered to any ServiceConnector .
+4412	Do some cowsaying or cowthinking .
+3967	override this if you want to have a different order of the elements .
+2827	Uploads the source stream data to the file . If the file already exists on the service it will be overwritten .
+2723	Signs a request using the specified operation context under the Shared Key authentication scheme .
+4451	Provides detailed logging for a media encoder .
+3090	Flushes the left - over buffer . Characters from the input buffer are used to add more data to the _leftOverBuffer in order to make the flush happen .
+2636	checks whether a getter or setter exists on the specified type or any of its super classes excluding Object . respects JsonIgnore accordingly .
+1545	Creates the map from list .
+1956	Match one regexp at a time . Remove the matched part from the string trim and match next regexp on that string ...
+4684	Loops through the FilterTags held by this Filter and returns the state of the tag if it exists and - 1 if it does not .
+1913	Given a string and starting index return true if the first numCharsToCheck characters at the starting index are either a letter or a digit .
+3365	Check that the End - Of - File has not been reached . This method should be called from contexts where we are expecting something to follow .
+357	so it should be package private
+2606	Asserts that the actual value is a uppercase character .
+3123	Deletes a temporary build and artifacts created during the build or orphan dependencies used
+3162	Instantiate embedded tomcat to be used in tests .
+1246	A utility method that copies the namepaces from the SOAPEnvelope
+4057	To be called from application uninstall monitor
+303	Add a child node to this one . Also initializes the parent field of the child .
+4114	Executes the external command in the given working directory and waits for it to be finished .
+4834	The actual service queue for the clustered event bus . All events are sent to this queue first .
+2719	Append a string to a string builder with a newline constant
+822	Returns task that builds graph using graphviz . Returned task might be shared with other concurrent requests .
+3606	Adapts the background of the image button which is used to show the floating image button s background and icon depending on the floating button s colors .
+816	Calculates an indication on how big this problem instance is . This is intentionally very loosely defined for now .
+4308	Performs sharpening on result image . This can be useful after scaling down .
+3743	Adds a value for given key .
+125	Returns true if the files located by the given paths exist are not directories and contain the same bytes .
+1180	Get a path for the given pattern . If the path doesn t exist a new path will be created .
+3358	gets the child text set for this tag .
+1264	Faz o encerramento do MDFe assinado
+612	Writes the next line to the file .
+3846	Gets the javascript .
+2773	Constructs a request to return a listing of all shares in this storage account . Sign with no length specified .
+5105	Find all commands available on classpath .
+3256	Read a Compound Curve
+657	Returns true if the given main command arg needs no special parameters .
+2691	Create http request context and apply site config .
+4371	This will check that the BW project specified in the POM project exists .
+2594	Set the comma delimited list of default scripts
+3997	Creates from the given xml string an Object . The given map hold the aliases . For more information with aliasing see documation of xstream .
+4432	Applies word wrapping to the message to handle long lines .
+294	If the Config already has a sw qualifier do nothing . Otherwise add a sw qualifier for the given width .
+5058	This method will only be called if we know that JSR 303 1 . 1 Bean Validation API and compliant implementation are available on classpath .
+560	Visits a line number declaration .
+1923	Don t allow user to set starting position or ending position of selection within the mention .
+5170	Compares with the specified object by ordinal .
+2354	Receives callback from the service when a job that previously landed on the app must stop executing . Colours the UI and post a message to uncolour it after a second .
+740	gets a column name .
+3555	De - register any targets representing agents that are not known to the BaragonService or which otherwise need to be removed .
+3634	Obtains whether the chip should be closable or not from a specific typed array .
+2453	See JLS 5 . 1 . 10 . Capture Conversion .
+376	Makes sure that given service exists .
+2657	Create an instance of JAX - RS client .
+459	Returns true if the given package has permission to access the device .
+2403	Converts a multiplication into a shift .
+2936	Add query parameter to an existing Uri . This takes care of any existing query parameters in the Uri .
+3070	Get the deferred action from the request .
+3528	Gets the bit .
+1192	Get or create a response using the given status code .
+2000	Start this .
+3375	Create a content filter from the string representation .
+1475	Switches the item that is currently being dragged with the item belonging to given id by notifying the adapter to swap positions and that the data set has changed .
+1392	Encodes the specified data into a base64 string .
+1434	Tokenizes the given String into String tokens .
+646	Re - initialize the configuration with the given ConfigurationProviders . Any existing AbstractConfigurationContainer instances are reset to defaults .
+4992	Move the entry to the beginning of the LinkedList .
+5076	Handles a preflight CORS request .
+1972	Stop the client bundle .
