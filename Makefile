@@ -41,7 +41,8 @@ help:
 run-tier-a:
 	@for nb in $(TIER_A); do \
 		echo "==> $$nb"; \
-		papermill --kernel python3 "$$nb" "$$nb" || exit 1; \
+		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
+		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$base") || exit 1; \
 	done
 
 smoke-tier-b:
@@ -49,7 +50,8 @@ smoke-tier-b:
 	@for nb in $(TIER_B); do \
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
-		papermill --kernel python3 "$$nb" "$$out" || exit 1; \
+		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
+		(cd "$$dir" && papermill --kernel python3 "$$base" "$$out") || exit 1; \
 	done
 
 smoke-tier-c:
@@ -57,5 +59,6 @@ smoke-tier-c:
 	@for nb in $(TIER_C); do \
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
-		papermill --kernel python3 -p SMOKE_TEST 1 "$$nb" "$$out" || exit 1; \
+		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
+		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
