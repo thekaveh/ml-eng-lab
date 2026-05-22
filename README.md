@@ -24,17 +24,16 @@ Three ways to run these notebooks, in increasing order of "I want my own machine
 
 ### 1. genai-vanilla jupyterhub (Recommended)
 
-If you already run the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack, its jupyterhub service is DS/ML-capable (PyTorch + PyG pre-installed). Mount this repo into it via the deployment overlay:
+This repo vendors `genai-vanilla` as a submodule at `vendor/genai-vanilla`, so the integration is automatic:
 
 ```bash
-ml/scripts/link-jupyter-override.sh    # one-time: symlinks deploy/...override.yml into genai-vanilla
-# Set ML_REPO_PATH=/Users/kaveh/repos/ml in genai-vanilla/.env
-cd /path/to/genai-vanilla && ./start.sh
+git submodule update --init --recursive
+cd vendor/genai-vanilla && ./start.sh
 # Then attach VS Code or browse to http://localhost:63081
 ml/scripts/setup-in-jupyter.sh         # one-time per container: pip install -e nnx
 ```
 
-See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) for details and [docs/vscode-remote-access.md](docs/vscode-remote-access.md) for editor setup.
+See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) and [docs/vscode-remote-access.md](docs/vscode-remote-access.md).
 
 ### 2. Local Docker
 

@@ -4,37 +4,35 @@ Three paths, pick whichever fits the moment.
 
 ## genai-vanilla jupyterhub (recommended)
 
-Prerequisite: a working [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) checkout. Its jupyterhub service was broadened to be DS/ML-capable at commit `cb4d8f4` (May 2026). All of torch / pytorch-lightning / torch_geometric / torchmetrics are baked into the image.
+This repo vendors a snapshot of [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) as a git submodule at `vendor/genai-vanilla`, pinned to a branch (`ml-integration`) that includes a Docker Compose override for the ml mount. No manual symlink or setup script is needed — the override applies automatically when you start the stack from inside the submodule directory.
 
 ### One-time setup
 
 ```bash
-# In the ml repo:
-ml/scripts/link-jupyter-override.sh        # symlinks deploy/...override.yml into genai-vanilla
+# Clone (or initialize) submodules:
+git submodule update --init --recursive
 ```
 
-Set these in your genai-vanilla `.env`:
+Optional `.env` in `vendor/genai-vanilla/`:
+
 ```bash
-ML_REPO_PATH=/Users/kaveh/repos/ml
-HOST_SSH_DIR=$HOME/.ssh                    # so git operations work inside the container
+ML_REPO_PATH=../..               # default: ../.. (= ml repo root)
+HOST_SSH_DIR=$HOME/.ssh          # default: ~/.ssh
 ```
 
 ### Each session
 
 ```bash
-cd /path/to/genai-vanilla && ./start.sh    # the override file auto-applies
+cd /Users/kaveh/repos/ml/vendor/genai-vanilla && ./start.sh
 ```
 
 The first time a container is created (or after image rebuild), run inside it:
 
 ```bash
 docker exec -it <jupyterhub-container> /home/jovyan/work/ml/scripts/setup-in-jupyter.sh
-# Or attach via VS Code and run scripts/setup-in-jupyter.sh from the integrated terminal.
 ```
 
-This `pip install -e`s the nnx submodule so notebook imports resolve. The editable install persists in the named `jupyterhub-data` volume across container restarts; only needs to be re-run if the image is rebuilt.
-
-See [jupyterhub-integration.md](jupyterhub-integration.md) for the details.
+This installs nnx editable so notebook imports resolve. See [jupyterhub-integration.md](jupyterhub-integration.md) for the details.
 
 ## Local Docker
 

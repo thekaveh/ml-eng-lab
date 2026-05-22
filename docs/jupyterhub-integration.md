@@ -1,54 +1,88 @@
 # JupyterHub integration
 
-The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. That service's image is DS/ML-capable (PyTorch + PyG + Lightning baked in) as of `genai-vanilla@cb4d8f40c3862b82511b010ae467638d846f8f9c`.
+The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. That service's image is DS/ML-capable (PyTorch + PyG + Lightning baked in) as of `genai-vanilla@cb4d8f4`.
 
-## Why this runtime
+This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla). The submodule is pinned to the `ml-integration` branch of `thekaveh/genai-vanilla`, which is identical to `main` except for a single committed `docker-compose.override.yml` that bind-mounts this ml repo into the jupyterhub container.
 
-- The image contains the right pinned versions of torch, torch_geometric, pytorch-lightning, torchmetrics. No local install required.
-- The genai-vanilla stack also runs LiteLLM, Weaviate, Neo4j, Supabase — useful for any LLM/RAG-flavored future tasks.
-- One running container; no environment drift between sessions.
+## Why this layout
 
-## The deployment overlay
+The two repos have orthogonal release cycles. Vendoring genai-vanilla as a submodule means:
 
-The ml repo is mounted into the running jupyterhub container via a per-user Docker Compose override file. The override lives in this repo (at [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml)) — versioned alongside the rest of the project — and is symlinked into the local genai-vanilla checkout where Docker Compose auto-discovers it.
+- Everything ml's runtime needs lives inside ml's git boundary.
+- The override file is a normal versioned file inside the submodule — no symlinks, no setup scripts to remember.
+- ml records a specific genai-vanilla SHA via the submodule pointer — reproducible.
+- genai-vanilla's `main` branch stays generic; only the `ml-integration` branch carries the override.
 
-### Why an overlay file
+The standalone `/Users/kaveh/repos/genai-vanilla/` checkout is retained for genai-vanilla-only work and is independent of this submodule.
 
-genai-vanilla's tree should not know about ml-specific paths (`/Users/kaveh/repos/ml/...`). Putting the mount in the upstream `services/jupyterhub/compose.yml` would couple genai-vanilla to one specific consumer. The override pattern keeps genai-vanilla generic.
+## Setup
 
-### Setup
+Clone with submodules:
 
 ```bash
-# 1. Set env vars in genai-vanilla/.env:
-echo "ML_REPO_PATH=/Users/kaveh/repos/ml" >> /path/to/genai-vanilla/.env
-echo "HOST_SSH_DIR=$HOME/.ssh" >> /path/to/genai-vanilla/.env
+git clone --recurse-submodules https://github.com/thekaveh/ml.git
+# Or, if already cloned:
+git submodule update --init --recursive
+```
 
-# 2. Symlink the overlay into the genai-vanilla checkout:
-/Users/kaveh/repos/ml/scripts/link-jupyter-override.sh
+Optional `.env` configuration in `vendor/genai-vanilla/.env` (the override has working defaults if you don't):
 
-# 3. Start the stack (override auto-applies):
-cd /path/to/genai-vanilla && ./start.sh
+```bash
+ML_REPO_PATH=../..               # default: ../.. (= ml repo root from vendor/genai-vanilla/)
+HOST_SSH_DIR=$HOME/.ssh          # default: ~/.ssh
+```
 
-# 4. Inside the running container, install nnx editable:
+## Run
+
+```bash
+cd /Users/kaveh/repos/ml/vendor/genai-vanilla
+./start.sh
+```
+
+The override applies automatically. Inside the container, the ml repo is at `/home/jovyan/work/ml`.
+
+## One-time per container: install nnx editable
+
+```bash
+docker exec -it <project>-jupyterhub /Users/kaveh/repos/ml/scripts/setup-in-jupyter.sh
+# Or attach with VS Code and run scripts/setup-in-jupyter.sh from the terminal.
+```
+
+Wait — that path is the host path. Inside the container, the script lives at `/home/jovyan/work/ml/scripts/setup-in-jupyter.sh`:
+
+```bash
 docker exec -it <project>-jupyterhub /home/jovyan/work/ml/scripts/setup-in-jupyter.sh
-# (Or attach with VS Code and run the script from the terminal.)
+```
+
+The editable install persists in the named `jupyterhub-data` volume across container restarts. Only needs re-running after an image rebuild.
+
+## Bumping the submodule
+
+When genai-vanilla's main advances and you want to incorporate those changes:
+
+```bash
+cd /Users/kaveh/repos/ml/vendor/genai-vanilla
+git checkout ml-integration
+git fetch origin
+git merge origin/main             # rebase + push if you prefer linear history
+git push origin ml-integration
+cd ../..
+git add vendor/genai-vanilla
+git commit -m "ml: bump genai-vanilla submodule to <new-sha>"
 ```
 
 ## Tested against
 
-This integration is tested against `genai-vanilla@cb4d8f40c3862b82511b010ae467638d846f8f9c` (Phase 1 merge).
-
-When genai-vanilla advances, re-test the integration and update the SHA recorded here.
+Submodule pinned to a commit on `ml-integration` that includes the ML-capable image changes from `genai-vanilla@cb4d8f4` plus the integration override.
 
 ## Things to know
 
-- **First-container setup**: `setup-in-jupyter.sh` does a `pip install -e /home/jovyan/work/ml/nnx`. The editable install persists in the named `jupyterhub-data` volume, so it survives container restarts. After an image rebuild (`docker compose build jupyterhub --no-cache`), re-run the script.
-- **Git operations**: the host's `~/.ssh` is mounted read-only at `/home/jovyan/.ssh`. `git push` works with the host identity. Configure name/email via `git config --global` inside the container if needed.
-- **Orphaned containers**: if `./start.sh` reports name conflicts, run `./stop.sh` first; if names remain, remove with `docker rm -f <name>`. Then re-start.
-- **Image rebuilds**: run from the genai-vanilla root with `.env` loaded, e.g. `cd /path/to/genai-vanilla && docker compose build jupyterhub`. Building from a different directory may produce the wrong image tag (project-name-prefixed).
+- **First-container setup**: the editable nnx install persists in the named `jupyterhub-data` volume. After an image rebuild (`docker compose build jupyterhub --no-cache`), re-run `setup-in-jupyter.sh`.
+- **Git operations**: the host's `~/.ssh` is mounted read-only at `/home/jovyan/.ssh`. `git push` works with the host identity.
+- **Orphaned containers**: if `./start.sh` reports name conflicts, run `./stop.sh` first; if names remain, remove with `docker rm -f <name>`.
 
 ## Common failure modes
 
-- **`ModuleNotFoundError: No module named 'nnx'`** — `setup-in-jupyter.sh` wasn't run for this container instance. Run it.
-- **`from nnx.nn.net.feed_fwd_nn import FeedFwdNN` fails** with import error — submodule not initialized on the host. Run `git submodule update --init --recursive` in the ml repo.
-- **Notebook hangs at first cell** — likely waiting for a stack service that didn't come up. Check `docker compose ps` for unhealthy services in the genai-vanilla stack.
+- **`ModuleNotFoundError: No module named 'nnx'`** — `setup-in-jupyter.sh` wasn't run for this container instance.
+- **`from nnx.nn.net.feed_fwd_nn import FeedFwdNN` fails** at install time — submodule not initialized. Run `git submodule update --init --recursive` at the ml repo root.
+- **Notebook hangs at first cell** — likely waiting for a stack service that didn't come up. Check `docker compose ps`.
