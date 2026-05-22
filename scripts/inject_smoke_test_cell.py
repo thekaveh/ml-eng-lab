@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Inject a `parameters`-tagged SMOKE_TEST cell at the top of each notebook.
+
+Idempotent: if a parameters cell with SMOKE_TEST already exists, skips the file.
+
+Usage:
+    python scripts/inject_smoke_test_cell.py NOTEBOOK [...]
+"""
+from __future__ import annotations
+import json
+import sys
+from pathlib import Path
+
+SMOKE_CELL_SOURCE = [
+    "# Papermill parameters cell. Default values used when run interactively.\n",
+    "# Set via: papermill -p SMOKE_TEST 1 in.ipynb out.ipynb\n",
+    "SMOKE_TEST = 0          # 1 = run a tiny smoke version of this notebook\n",
+    "SMOKE_TEST_EPOCHS = 1   # max epochs when SMOKE_TEST=1\n",
+    "SMOKE_TEST_SUBSET = 256 # max samples when SMOKE_TEST=1\n",
+]
+
+
+def has_parameters_cell(nb: dict) -> bool:
+    for cell in nb.get("cells", []):
+        if cell.get("cell_type") != "code":
+            continue
+        tags = cell.get("metadata", {}).get("tags", [])
+        if "parameters" in tags:
+            return True
+    return False
+
+
+def make_parameters_cell() -> dict:
+    return {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {"tags": ["parameters"]},
+        "outputs": [],
+        "source": SMOKE_CELL_SOURCE,
+    }
+
+
+def find_insert_index(nb: dict) -> int:
+    """Insert after leading markdown cells, before the first code cell."""
+    for i, cell in enumerate(nb.get("cells", [])):
+        if cell.get("cell_type") == "code":
+            return i
+    return 0
+
+
+def process(path: Path) -> str:
+    nb = json.loads(path.read_text(encoding="utf-8"))
+    if has_parameters_cell(nb):
+        return "unchanged (parameters cell present)"
+    idx = find_insert_index(nb)
+    nb["cells"].insert(idx, make_parameters_cell())
+    path.write_text(json.dumps(nb, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    return f"injected at cell index {idx}"
+
+
+def main(argv):
+    if not argv:
+        print("Usage: inject_smoke_test_cell.py NOTEBOOK [...]", file=sys.stderr)
+        return 2
+    for arg in argv:
+        p = Path(arg)
+        if not p.exists():
+            print(f"SKIP: {p}", file=sys.stderr)
+            continue
+        result = process(p)
+        print(f"{p}: {result}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

@@ -1,0 +1,20 @@
+# Root pyproject.toml — for tooling (ruff, pre-commit) only.
+# The ml repo is NOT pip-installable as a package itself. Each task folder
+# is a self-contained set of notebooks; library code lives in the nnx submodule.
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    "nnx/",                                 # submodule has its own ruff config
+    "archive/",                             # preserved as-is
+    ".venv/",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # line too long — notebook-derived code, gradual cleanup
+    "E731",  # lambda assignment
+    "E741",  # ambiguous var name
+]

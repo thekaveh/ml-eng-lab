@@ -1,0 +1,19 @@
+# Docker Compose override for genai-vanilla's jupyterhub service.
+#
+# Mounts the ml repo into the running jupyterhub container so notebooks
+# can be edited and executed against the genai-vanilla DS/ML image
+# (which includes PyTorch + PyG + Lightning as of genai-vanilla@cb4d8f4).
+#
+# Usage:
+#   1) Set in genai-vanilla/.env:
+#        ML_REPO_PATH=/absolute/path/to/ml
+#        HOST_SSH_DIR=$HOME/.ssh
+#   2) Symlink this file into the genai-vanilla checkout as docker-compose.override.yml:
+#        ml/scripts/link-jupyter-override.sh
+#   3) Run genai-vanilla/start.sh — override auto-applies.
+
+services:
+  jupyterhub:
+    volumes:
+      - ${ML_REPO_PATH}:/home/jovyan/work/ml
+      - ${HOST_SSH_DIR}:/home/jovyan/.ssh:ro

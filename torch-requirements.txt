@@ -1,12 +1,18 @@
-pytorch-lightning
-torchvision
-torchaudio
-torchtext
-torchsummary
-torchmetrics
-torch-scatter
-torch-sparse
-torch-cluster
-torch-spline-conv
-torch_geometric
+# Matched to genai-vanilla jupyterhub image versions (Phase 1).
+# When running in that image, pip install is a no-op (already present).
+# Outside that image, these pins ensure reproducibility.
+
+pytorch-lightning==2.4.0
+torchvision==0.19.1
+torchaudio==2.4.1
+torchmetrics==1.4.2
+
+# Graph Neural Networks (PyG) — wheels matched to torch 2.4 CPU build
+--find-links https://data.pyg.org/whl/torch-2.4.0+cpu.html  # index uses minor version
+torch-scatter==2.1.2
+torch-sparse==0.6.18
+torch-cluster==1.6.3
+torch-spline-conv==1.2.2
+torch_geometric==2.6.1
+
 transformers

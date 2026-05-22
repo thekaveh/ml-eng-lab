@@ -30,3 +30,9 @@ notebook
 ipywidgets
 kaleido
 prettytable
+
+# NNx — local submodule, editable install
+-e ./nnx
+
+# Notebook re-execution
+papermill>=2.4
