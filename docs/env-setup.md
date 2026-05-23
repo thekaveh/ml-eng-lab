@@ -4,26 +4,18 @@ Three paths, pick whichever fits the moment.
 
 ## genai-vanilla jupyterhub (recommended)
 
-This repo vendors a snapshot of [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) as a git submodule at `vendor/genai-vanilla`, pinned to a branch (`ml-integration`) that includes a Docker Compose override for the ml mount. No manual symlink or setup script is needed — the override applies automatically when you start the stack from inside the submodule directory.
+This repo vendors [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) as a git submodule at `vendor/genai-vanilla` (pinned to `main`). The ml-specific docker compose override lives in `deploy/genai-vanilla-jupyterhub.override.yml` and is applied via a wrapper script.
 
 ### One-time setup
 
 ```bash
-# Clone (or initialize) submodules:
 git submodule update --init --recursive
-```
-
-Optional `.env` in `vendor/genai-vanilla/`:
-
-```bash
-ML_REPO_PATH=../..               # default: ../.. (= ml repo root)
-HOST_SSH_DIR=$HOME/.ssh          # default: ~/.ssh
 ```
 
 ### Each session
 
 ```bash
-cd /Users/kaveh/repos/ml/vendor/genai-vanilla && ./start.sh
+/Users/kaveh/repos/ml/scripts/start-jupyterhub.sh
 ```
 
 The first time a container is created (or after image rebuild), run inside it:

@@ -24,13 +24,13 @@ Three ways to run these notebooks, in increasing order of "I want my own machine
 
 ### 1. genai-vanilla jupyterhub (Recommended)
 
-This repo vendors `genai-vanilla` as a submodule at `vendor/genai-vanilla`, so the integration is automatic:
+This repo vendors `genai-vanilla` as a submodule (pinned to its `main`). The ml-specific compose override lives in `deploy/` and is applied via a wrapper script:
 
 ```bash
 git submodule update --init --recursive
-cd vendor/genai-vanilla && ./start.sh
+scripts/start-jupyterhub.sh
 # Then attach VS Code or browse to http://localhost:63081
-ml/scripts/setup-in-jupyter.sh         # one-time per container: pip install -e nnx
+scripts/setup-in-jupyter.sh   # one-time per container, inside the container
 ```
 
 See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) and [docs/vscode-remote-access.md](docs/vscode-remote-access.md).

@@ -2,18 +2,11 @@
 
 The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. That service's image is DS/ML-capable (PyTorch + PyG + Lightning baked in) as of `genai-vanilla@cb4d8f4`.
 
-This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla). The submodule is pinned to the `ml-integration` branch of `thekaveh/genai-vanilla`, which is identical to `main` except for a single committed `docker-compose.override.yml` that bind-mounts this ml repo into the jupyterhub container.
+This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla), pinned to genai-vanilla's `main` branch. The ml-specific docker compose override lives in this repo at [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml) and is layered onto the stack via a wrapper script ([`scripts/start-jupyterhub.sh`](../scripts/start-jupyterhub.sh)) that sets `COMPOSE_FILE` and invokes the submodule's `./start.sh`.
 
 ## Why this layout
 
-The two repos have orthogonal release cycles. Vendoring genai-vanilla as a submodule means:
-
-- Everything ml's runtime needs lives inside ml's git boundary.
-- The override file is a normal versioned file inside the submodule — no symlinks, no setup scripts to remember.
-- ml records a specific genai-vanilla SHA via the submodule pointer — reproducible.
-- genai-vanilla's `main` branch stays generic; only the `ml-integration` branch carries the override.
-
-The standalone `/Users/kaveh/repos/genai-vanilla/` checkout is retained for genai-vanilla-only work and is independent of this submodule.
+The two repos have orthogonal release cycles. The submodule pin pulls a known-good genai-vanilla snapshot; the override file in ml describes ml's deployment needs. genai-vanilla's `main` stays clean — no ml-specific files. Bumping the submodule is one command (`git submodule update --remote`).
 
 ## Setup
 
@@ -25,47 +18,37 @@ git clone --recurse-submodules https://github.com/thekaveh/ml.git
 git submodule update --init --recursive
 ```
 
-Optional `.env` configuration in `vendor/genai-vanilla/.env` (the override has working defaults if you don't):
-
-```bash
-ML_REPO_PATH=../..               # default: ../.. (= ml repo root from vendor/genai-vanilla/)
-HOST_SSH_DIR=$HOME/.ssh          # default: ~/.ssh
-```
-
 ## Run
 
 ```bash
-cd /Users/kaveh/repos/ml/vendor/genai-vanilla
-./start.sh
+/Users/kaveh/repos/ml/scripts/start-jupyterhub.sh
 ```
 
-The override applies automatically. Inside the container, the ml repo is at `/home/jovyan/work/ml`.
+The wrapper sets `ML_REPO_PATH` (the ml repo root) and `HOST_SSH_DIR` (defaults to `~/.ssh`), exports `COMPOSE_FILE` to layer the override onto genai-vanilla's base compose, and execs genai-vanilla's `./start.sh`. From the running container's perspective, the ml repo is at `/home/jovyan/work/ml`.
 
-## One-time per container: install nnx editable
+To run with custom paths:
 
 ```bash
-docker exec -it <project>-jupyterhub /Users/kaveh/repos/ml/scripts/setup-in-jupyter.sh
-# Or attach with VS Code and run scripts/setup-in-jupyter.sh from the terminal.
+HOST_SSH_DIR=/path/to/keys ml/scripts/start-jupyterhub.sh
 ```
 
-Wait — that path is the host path. Inside the container, the script lives at `/home/jovyan/work/ml/scripts/setup-in-jupyter.sh`:
+## One-time per container: install nnx editable
 
 ```bash
 docker exec -it <project>-jupyterhub /home/jovyan/work/ml/scripts/setup-in-jupyter.sh
 ```
 
-The editable install persists in the named `jupyterhub-data` volume across container restarts. Only needs re-running after an image rebuild.
+Or attach with VS Code and run from the integrated terminal. The editable install persists in the named `jupyterhub-data` volume.
 
 ## Bumping the submodule
 
-When genai-vanilla's main advances and you want to incorporate those changes:
+Standard submodule workflow:
 
 ```bash
 cd /Users/kaveh/repos/ml/vendor/genai-vanilla
-git checkout ml-integration
 git fetch origin
-git merge origin/main             # rebase + push if you prefer linear history
-git push origin ml-integration
+git checkout main
+git pull origin main
 cd ../..
 git add vendor/genai-vanilla
 git commit -m "ml: bump genai-vanilla submodule to <new-sha>"
@@ -73,16 +56,11 @@ git commit -m "ml: bump genai-vanilla submodule to <new-sha>"
 
 ## Tested against
 
-Submodule pinned to a commit on `ml-integration` that includes the ML-capable image changes from `genai-vanilla@cb4d8f4` plus the integration override.
-
-## Things to know
-
-- **First-container setup**: the editable nnx install persists in the named `jupyterhub-data` volume. After an image rebuild (`docker compose build jupyterhub --no-cache`), re-run `setup-in-jupyter.sh`.
-- **Git operations**: the host's `~/.ssh` is mounted read-only at `/home/jovyan/.ssh`. `git push` works with the host identity.
-- **Orphaned containers**: if `./start.sh` reports name conflicts, run `./stop.sh` first; if names remain, remove with `docker rm -f <name>`.
+Submodule pinned to a commit on genai-vanilla `main` that includes the DS/ML-capable image (Phase 1, `cb4d8f4` or later).
 
 ## Common failure modes
 
 - **`ModuleNotFoundError: No module named 'nnx'`** — `setup-in-jupyter.sh` wasn't run for this container instance.
-- **`from nnx.nn.net.feed_fwd_nn import FeedFwdNN` fails** at install time — submodule not initialized. Run `git submodule update --init --recursive` at the ml repo root.
-- **Notebook hangs at first cell** — likely waiting for a stack service that didn't come up. Check `docker compose ps`.
+- **Submodule not found at vendor/genai-vanilla/** — run `git submodule update --init --recursive` at the ml repo root.
+- **`ML_REPO_PATH variable is not set`** during compose up — you ran `cd vendor/genai-vanilla && ./start.sh` directly instead of using the wrapper. Use `scripts/start-jupyterhub.sh`.
+- **Notebook hangs at first cell** — stack service didn't come up. Check `docker compose ps` (from inside `vendor/genai-vanilla/`).

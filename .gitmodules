@@ -4,4 +4,3 @@
 [submodule "vendor/genai-vanilla"]
 	path = vendor/genai-vanilla
 	url = https://github.com/thekaveh/genai-vanilla.git
-	branch = ml-integration
