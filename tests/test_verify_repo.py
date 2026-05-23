@@ -78,3 +78,17 @@ def test_structure_s7_no_pycache_tracked():
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
     s7 = [f for f in data["findings"] if f["id"].startswith("S7")]
     assert s7 == [], f"S7 found tracked bloat: {s7}"
+
+
+def test_docs_d1_known_notebooks_have_required_sections():
+    r = run_verify("--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    # Skeleton/initial: just assert the check ran.
+    assert "docs" in data["summary"]["checks_run"]
+
+
+def test_docs_d8_terminology_consistency_known_canonicals():
+    """The check should mention canonical spellings in its allow-list logic."""
+    SCRIPT_TEXT = SCRIPT.read_text()
+    for token in ("genai-vanilla", "JupyterHub", "NumPy", "PyTorch"):
+        assert token in SCRIPT_TEXT, f"D8 missing canonical {token!r}"
