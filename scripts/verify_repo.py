@@ -120,6 +120,19 @@ _IMPORT_RE = re.compile(r"^\s*(?:from\s+([\w\.]+)\s+import|import\s+([\w\.]+))")
 _GITIGNORE_REQUIRED_PATTERNS = (".claude/", ".superpowers/", "plan-*.md", "notes-*.md")
 _BLOAT_PATTERNS = ("__pycache__", ".ipynb_checkpoints", ".DS_Store")
 
+# Modules expected to be available in the genai-vanilla jupyterhub runtime but
+# not necessarily in the verifier's lightweight venv. S2 reports these as
+# warnings rather than errors when missing locally.
+_RUNTIME_ONLY_MODULES = frozenset({
+    "numpy",
+    "torch", "torchvision", "torch_geometric", "torch_sparse", "torch_scatter",
+    "torch_cluster", "torch_spline_conv", "pyg_lib",
+    "matplotlib", "seaborn", "pandas", "sklearn", "scipy",
+    "networkx", "community",
+    "nnx",
+    "plotly", "tqdm", "rich",
+})
+
 
 def _git_ls_files(repo: Path) -> list[str]:
     out = subprocess.run(
@@ -174,12 +187,15 @@ def check_structure(repo: Path, fast: bool) -> CheckResult:
                 message=f"failed to parse: {e}",
             ))
 
-    seen_modules: dict[str, str] = {}
     for nb in notebooks:
         try:
             doc = nbformat.read(nb, as_version=4)
         except Exception:
             continue
+        sibling_modules = {
+            p.stem for p in nb.parent.glob("*.py") if p.stem != "__init__"
+        }
+        seen_in_notebook: set[str] = set()
         for ci, cell in enumerate(doc.cells):
             if cell.cell_type != "code":
                 continue
@@ -188,21 +204,31 @@ def check_structure(repo: Path, fast: bool) -> CheckResult:
                 if not m:
                     continue
                 module = (m.group(1) or m.group(2) or "").split(".")[0]
-                if not module or module in seen_modules:
+                if not module or module in seen_in_notebook:
                     continue
-                seen_modules[module] = f"{nb.relative_to(repo)}:cell[{ci}]:line[{li}]"
+                seen_in_notebook.add(module)
+                if module in sibling_modules:
+                    continue
+                location = f"{nb.relative_to(repo)}:cell[{ci}]:line[{li}]"
                 try:
-                    if importlib.util.find_spec(module) is None:
-                        result.findings.append(Finding(
-                            id="S2.unresolved_import", check="structure", severity="error",
-                            location=seen_modules[module],
-                            message=f"module {module!r} not importable in current env",
-                        ))
+                    spec = importlib.util.find_spec(module)
                 except (ImportError, ValueError) as e:
                     result.findings.append(Finding(
                         id="S2.import_error", check="structure", severity="warning",
-                        location=seen_modules[module],
+                        location=location,
                         message=f"find_spec({module!r}) raised {e!r}",
+                    ))
+                    continue
+                if spec is None:
+                    severity = "warning" if module in _RUNTIME_ONLY_MODULES else "error"
+                    result.findings.append(Finding(
+                        id="S2.unresolved_import", check="structure", severity=severity,
+                        location=location,
+                        message=(
+                            f"module {module!r} not importable in verifier env"
+                            + (" (expected only in runtime container)"
+                               if module in _RUNTIME_ONLY_MODULES else "")
+                        ),
                     ))
 
     for md in _iter_in_scope_text_files(repo):
@@ -703,13 +729,21 @@ def main(argv: list[str] | None = None) -> int:
     results = [CHECKS[name](REPO_ROOT, args.fast) for name in checks_to_run]
 
     all_findings = [asdict(f) for r in results for f in r.findings]
+    error_count = sum(1 for f in all_findings if f["severity"] == "error")
+    warning_count = sum(1 for f in all_findings if f["severity"] == "warning")
     payload = {
         "schema_version": 1,
         "summary": {
             "checks_run": checks_to_run,
             "skipped": [r.name for r in results if r.skipped],
             "total_findings": len(all_findings),
+            "errors": error_count,
+            "warnings": warning_count,
             "by_check": {r.name: len(r.findings) for r in results},
+            "by_check_errors": {
+                r.name: sum(1 for f in r.findings if f.severity == "error")
+                for r in results
+            },
         },
         "findings": all_findings,
     }
@@ -721,9 +755,14 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(out_text)
 
-    if all_findings:
-        print(f"verify_repo: {len(all_findings)} findings", file=sys.stderr)
+    if error_count:
+        print(
+            f"verify_repo: {error_count} errors, {warning_count} warnings",
+            file=sys.stderr,
+        )
         return 1
+    if warning_count:
+        print(f"verify_repo: 0 errors, {warning_count} warnings", file=sys.stderr)
     return 0
 
 
