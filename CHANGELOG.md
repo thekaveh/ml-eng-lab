@@ -6,8 +6,11 @@ This repo follows [Keep a Changelog](https://keepachangelog.com/). Date format: 
 
 ### Added
 - `scripts/verify_repo.py` — four-check verification oracle (structure, docs, comments, execution).
+- `scripts/verify_repo_config.yaml` — required-sections + Tier-A list pulled out of code; new tasks edit YAML.
+- `scripts/verify_repo.py --phase-b-out PATH` — exports surviving comment candidates as JSON for a calling agent to dispatch the LLM judge.
 - `scripts/edit_notebook_markdown.py` — Tier-C-safe markdown-cell editor.
-- `tests/` — pytest suite for the verifier and the markdown editor.
+- New verifier checks: `S7.forbidden_toplevel` (catches resurrected `common/`), `E7.no_papermill_params_tag` (catches missing `parameters` tag), `E8.stale_output` (output-source-hash drift; no-op until the post-execution hook lands).
+- `tests/` — pytest suite for the verifier and the markdown editor (20 tests).
 - `docs/FINDINGS-NNX.md`, `docs/FINDINGS-VENDOR.md` — issue sinks for the read-only submodules.
 - Canonical hierarchical-section template in every active notebook (`#1 Overview` → `#6 Evaluation & Results`).
 - `CONTRIBUTING.md`, `CHANGELOG.md`.
@@ -27,6 +30,12 @@ This repo follows [Keep a Changelog](https://keepachangelog.com/). Date format: 
 ### Changed
 - All per-task READMEs and the root README follow a canonical H2 hierarchy.
 - `.gitignore` broadened: covers `docs/superpowers/`, `.mypy_cache/`, `.trunk/`, `.vscode/`, `.pytest_cache/`, `plan-*.md`, `notes-*.md`, `audit-*.md`.
+- nnx submodule pointer bumped to `ae4e2f4` (thekaveh/NNx#1 + #2): see "nnx via submodule" below.
+
+### nnx via submodule
+The `nnx` submodule (thekaveh/NNx) advanced two releases in this cycle:
+- **`thekaveh/NNx#1`**: fixes `Losses.MEAN_SQUARED_ERROR`/`BINARY_CROSS_ENTROPY` swap and the `NNIterationDataPoint.from_state()` KeyError on `val_edp=None`.
+- **`thekaveh/NNx#2`**: `NNModel.train()` extracted into 6 helpers; new `Callback` ABC with `EarlyStopping`/`LRMonitor`/`ModelCheckpoint`; `Schedulers` enum (Step/Cosine/OneCycle/LinearWarmup); opt-in mixed-precision via `NNModelParams.mixed_precision`; `VisUtils.confusion_matrix` + `classification_report`; new `GraphNNBase` removes ~95% duplication across the three GNN modules; type hints added to all Enum `__call__`s.
 
 ## 2026-05-22 — repo cleanup + doc standardization loop
 
