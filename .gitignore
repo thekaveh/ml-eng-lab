@@ -167,3 +167,9 @@ notes-*.md
 audit-*.md
 .venv/
 /tmp/ml-verify/
+
+# Editor / linter / dev-tool caches
+.mypy_cache/
+.trunk/
+.vscode/
+.pytest_cache/
