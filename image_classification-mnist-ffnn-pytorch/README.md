@@ -15,6 +15,8 @@ This is the canonical reference for "how to build a small classifier using nnx".
 
 ## 3. What's in the notebook
 
+> **Tip:** GitHub may show "Unable to render code block" on output cells with large matplotlib PNGs. [View this notebook on nbviewer](https://nbviewer.org/github/thekaveh/ml-lab/blob/main/image_classification-mnist-ffnn-pytorch/notebook.ipynb) for full rendering.
+
 - §1 Overview — task, dataset, approach, libraries.
 - §2 Environment & Setup — `nnx` and torchvision imports, hyperparameters, seed/device setup.
 - §3 Data — construct an `NNDataset` wrapping torchvision's MNIST.

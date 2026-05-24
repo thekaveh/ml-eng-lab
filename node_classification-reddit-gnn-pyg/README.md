@@ -22,6 +22,8 @@ The Phase-3 notebooks preserve August-2023 training outputs and serve as the pri
 
 Nine notebooks across three phases. Each follows the standard 6-section structure (see [../CONTRIBUTING.md](../CONTRIBUTING.md)).
 
+> **Tip:** GitHub may show "Unable to render code block" on output cells with large matplotlib PNGs (Phase 1 EDA + Phase 2/3 training curves trip the renderer). [Browse this folder on nbviewer](https://nbviewer.org/github/thekaveh/ml-lab/tree/main/node_classification-reddit-gnn-pyg/) for full rendering.
+
 ### 3.1 Phase 1 — dataset exploration
 
 - **phase1-dataset-exploration-notebook.ipynb** — §1 Overview, §2 Setup, §3 Dataset deep-dive (graph properties, degree distribution, community structure via Louvain, t-SNE projections).

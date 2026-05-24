@@ -15,6 +15,8 @@ This folder does **not** use the shared `nnx` submodule. It's intentionally stan
 
 ## 3. What's in the notebook
 
+> **Tip:** GitHub may show "Unable to render code block" on output cells with large matplotlib PNGs. [View this notebook on nbviewer](https://nbviewer.org/github/thekaveh/ml-lab/blob/main/image_classification-mnist-ffnn-numpy/notebook.ipynb) for full rendering.
+
 - §1 Overview — task, dataset, approach, libraries.
 - §2 Environment & Setup — imports, hyperparameters, reproducibility.
 - §3 Data — MNIST loading and inspection.
