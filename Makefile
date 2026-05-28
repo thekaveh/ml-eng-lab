@@ -14,7 +14,8 @@
 TIER_A := \
     image_classification-mnist-ffnn-numpy/notebook.ipynb \
     image_classification-mnist-ffnn-pytorch/notebook.ipynb \
-    node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb
+    node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
+    tabular_classification-iris-mlp-pytorch/notebook.ipynb
 
 TIER_B := \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
