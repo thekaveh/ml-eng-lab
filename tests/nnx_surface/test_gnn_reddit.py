@@ -39,15 +39,21 @@ from nnx import (
 # unavailable on Darwin ARM. CI runs on Linux and has them; local Mac
 # checkouts skip these tests cleanly.
 def _has_pyg_sampler() -> bool:
+    """Return True iff either pyg_lib or torch_sparse imports cleanly.
+
+    Catches `Exception` (not just ImportError) because pyg_lib / torch_sparse
+    are C-extension wheels; on torch ABI mismatch they can raise OSError or
+    RuntimeError at import. Either way we treat the sampler as unavailable.
+    """
     try:
         import pyg_lib  # noqa: F401
         return True
-    except ImportError:
+    except Exception:
         pass
     try:
         import torch_sparse  # noqa: F401
         return True
-    except ImportError:
+    except Exception:
         return False
 
 
@@ -137,7 +143,7 @@ def test_gat_consolidates_n_heads_into_nnparams(tiny_graph_data, gnn_loaders):
     assert run is not None
 
 
-def test_nnparams_state_round_trips_n_heads(tiny_graph_data):
+def test_nnparams_state_round_trips_n_heads():
     """NNParams.state() omits n_heads when None; includes it when set.
 
     Pins the rule that prevents existing run.id hashes from shifting when
