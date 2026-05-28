@@ -31,19 +31,21 @@ TIER_C := \
 
 SMOKE_OUT := /tmp/ml-smoke
 
-.PHONY: help run-tier-a smoke-tier-b smoke-tier-c
+.PHONY: help run-tier-a smoke-tier-b smoke-tier-c test verify
 
 help:
 	@echo "Targets:"
 	@echo "  run-tier-a    Re-execute Tier-A notebooks in place. CI runs this on every PR."
 	@echo "  smoke-tier-b  Papermill Tier-B notebooks to $(SMOKE_OUT)/ (preserves source outputs)."
 	@echo "  smoke-tier-c  Papermill Tier-C notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/."
+	@echo "  test          Run pytest on tests/ directory."
+	@echo "  verify        Run repo verifier (scripts/verify_repo.py --check all --fast)."
 
 run-tier-a:
 	@for nb in $(TIER_A); do \
 		echo "==> $$nb"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$base") || exit 1; \
+		(cd "$$dir" && papermill --kernel python3 "$$base" "$$base") || exit 1; \
 	done
 
 smoke-tier-b:
@@ -63,3 +65,9 @@ smoke-tier-c:
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
 		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
+
+test:
+	pytest tests/ -v
+
+verify:
+	python scripts/verify_repo.py --check all --fast
