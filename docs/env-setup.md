@@ -69,4 +69,7 @@ The current setup is CPU-only. No GPU image variant is shipped. For GPU training
 - **Tier B** (`make smoke-tier-b`, on-demand, writes to /tmp):
   - `node_classification-reddit-gnn-pyg/phase2-model-selection-notebook[1-4].ipynb`
 - **Tier C** (`make smoke-tier-c`, on-demand, writes to /tmp):
-  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook[1-4].ipynb`
+  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb`
+  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb`
+  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb`
+  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb`
