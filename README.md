@@ -26,9 +26,10 @@ ml/
 ├── nnx/                                       (git submodule → thekaveh/NNx)
 ├── vendor/genai-vanilla/                      (git submodule, JupyterHub stack)
 ├── archive/                                   (preserved-as-is experiments)
-├── image_classification-mnist-ffnn-numpy/     ┐
-├── image_classification-mnist-ffnn-pytorch/   │ active task folders
-└── node_classification-reddit-gnn-pyg/        ┘
+├── image_classification-mnist-ffnn-numpy/      ┐
+├── image_classification-mnist-ffnn-pytorch/    │
+├── node_classification-reddit-gnn-pyg/         │ active task folders
+└── tabular_classification-iris-mlp-pytorch/    ┘
 ```
 
 ## 3. Quick start
@@ -75,6 +76,7 @@ See [docs/env-setup.md](docs/env-setup.md) for environment details.
 | [image_classification-mnist-ffnn-numpy/](image_classification-mnist-ffnn-numpy/) | Image classification | MNIST | Feed-forward NN (from scratch) | NumPy |
 | [image_classification-mnist-ffnn-pytorch/](image_classification-mnist-ffnn-pytorch/) | Image classification | MNIST | Feed-forward NN | PyTorch (via nnx) |
 | [node_classification-reddit-gnn-pyg/](node_classification-reddit-gnn-pyg/) | Node classification | Reddit | GNN (GraphConv, GraphSAGE, GAT) | PyTorch Geometric (via nnx) |
+| [tabular_classification-iris-mlp-pytorch/](tabular_classification-iris-mlp-pytorch/) | Tabular classification | Iris | Feed-forward NN | PyTorch (via nnx) |
 
 > **Tip:** GitHub may show "Unable to render code block" on output cells with large matplotlib PNGs. [Browse this repo on nbviewer](https://nbviewer.org/github/thekaveh/ml-lab/tree/main/) for full rendering of any notebook.
 
