@@ -2,6 +2,7 @@
 # When running in that image, pip install is a no-op (already present).
 # Outside that image, these pins ensure reproducibility.
 
+torch==2.4.1
 pytorch-lightning==2.4.0
 torchvision==0.19.1
 torchaudio==2.4.1
