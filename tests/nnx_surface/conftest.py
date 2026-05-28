@@ -13,6 +13,15 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
+import nnx
+
+
+@pytest.fixture(autouse=True)
+def _nnx_run_isolation(monkeypatch, tmp_path):
+    """Autouse: chdir each test into tmp_path and pin global seeds for determinism."""
+    monkeypatch.chdir(tmp_path)
+    nnx.set_seed(0)
+
 
 @dataclass(frozen=True)
 class TinyTabularBatch:

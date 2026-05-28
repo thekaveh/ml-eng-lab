@@ -45,7 +45,7 @@ def test_feedfwd_train_one_batch_and_predict(tiny_image_batch):
     run = model.train(params=train_params)
     assert run is not None, "NNModel.train() must return an NNRun"
 
-    result = model.predict(tiny_image_batch.X)
+    result = model.predict(X=tiny_image_batch.X)
     # PredictResult unpacks as (logits, classes) — back-compat with the legacy 2-tuple.
     logits, classes = result
     assert logits.shape == (4, 10), f"expected logits.shape == (4, 10), got {logits.shape}"
@@ -70,3 +70,7 @@ def test_feedfwd_no_hidden_layers(tiny_image_batch):
         .with_val_loader(value=tiny_image_batch.val_loader)
     )
     model.train(params=train_params)  # must not raise
+
+    logits, classes = model.predict(X=tiny_image_batch.X)
+    assert logits.shape == (4, 10)
+    assert classes.shape == (4,)
