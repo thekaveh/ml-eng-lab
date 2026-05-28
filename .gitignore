@@ -50,7 +50,6 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
-.pytest_cache/
 cover/
 
 # Translations
@@ -133,7 +132,6 @@ venv.bak/
 /site
 
 # mypy
-.mypy_cache/
 .dmypy.json
 dmypy.json
 
@@ -171,6 +169,5 @@ audit-*.md
 
 # Editor / linter / dev-tool caches
 .mypy_cache/
-.trunk/
 .vscode/
 .pytest_cache/

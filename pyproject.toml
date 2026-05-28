@@ -9,6 +9,7 @@ exclude = [
     "nnx/",                                 # submodule has its own ruff config
     "archive/",                             # preserved as-is
     ".venv/",
+    "vendor/",
 ]
 
 [tool.ruff.lint]
