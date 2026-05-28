@@ -169,5 +169,6 @@ audit-*.md
 
 # Editor / linter / dev-tool caches
 .mypy_cache/
+.trunk/
 .vscode/
 .pytest_cache/
