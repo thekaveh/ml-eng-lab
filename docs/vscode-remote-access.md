@@ -2,7 +2,7 @@
 
 Three modes, pick by use case.
 
-## Mode 1: Attach to Running Container (Recommended)
+## 1. Mode 1 — Attach to Running Container (Recommended)
 
 Install extension: **Dev Containers** (ms-vscode-remote.remote-containers).
 
@@ -20,7 +20,7 @@ What works inside:
 
 This is the best ergonomic match for "edit + commit, no local install".
 
-## Mode 2: Connect to Remote Jupyter Server
+## 2. Mode 2 — Connect to Remote Jupyter Server
 
 Install extension: **Jupyter** (ms-toolsai.jupyter).
 
@@ -37,7 +37,7 @@ Notes:
 - This works because the ml-lab repo is bind-mounted: the path tree exists on both sides. Relative paths in notebooks (`./data/foo.csv`) resolve correctly because the kernel's CWD is set by VS Code to the notebook's directory inside the container.
 - Useful when you want to keep using your local VS Code window's extensions and context.
 
-## Mode 3: Browser Jupyter Lab
+## 3. Mode 3 — Browser Jupyter Lab
 
 The simplest path. After the stack is up:
 - Open `http://localhost:63081/?token=<JUPYTER_TOKEN>`
@@ -46,7 +46,7 @@ The simplest path. After the stack is up:
 
 Use this for quick edits, demos, or when VS Code is overkill.
 
-## Not pursued
+## 4. Not pursued
 
 - **Remote-SSH** — requires an SSH server in the container. Extra surface area for no benefit over Mode 1.
 - **`.devcontainer.json` reopen-in-container** — would rebuild a new image. We have a long-lived running container already; Mode 1's attach is simpler.

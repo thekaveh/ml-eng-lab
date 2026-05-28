@@ -2,7 +2,7 @@
 
 Three paths, pick whichever fits the moment.
 
-## genai-vanilla jupyterhub (recommended)
+## 1. genai-vanilla jupyterhub (recommended)
 
 This repo vendors [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) as a git submodule at `vendor/genai-vanilla` (pinned to `main`). The ml-specific docker compose override lives in `deploy/genai-vanilla-jupyterhub.override.yml` and is applied via a wrapper script.
 
@@ -26,7 +26,7 @@ docker exec -it <jupyterhub-container> /home/jovyan/work/ml-lab/scripts/setup-in
 
 This installs nnx editable so notebook imports resolve. See [jupyterhub-integration.md](jupyterhub-integration.md) for the details.
 
-## Local Docker
+## 2. Local Docker
 
 ```bash
 docker build -t ml-lab .                   # uses the in-repo Dockerfile
@@ -39,7 +39,7 @@ Notes:
 - Image is CPU-only.
 - `--shm-size=4g` is the minimum for the GNN notebooks; for serious GNN training, increase to 16-50g.
 
-## Local Python venv
+## 3. Local Python venv
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -53,18 +53,19 @@ Caveats:
 - PyG wheels: torch + torch_geometric must match. The pins in `torch-requirements.txt` are tested against the `--find-links` wheel index at `https://data.pyg.org/whl/torch-2.4.0+cpu.html`.
 - macOS Apple Silicon: PyG wheels for `arm64` are not always available at that index. If pip falls back to source builds, expect ~15 min compile time and Xcode CLT installed.
 
-## GPU notes
+## 4. GPU notes
 
 The current setup is CPU-only. No GPU image variant is shipped. For GPU training:
 - Tier-C GNN notebooks were originally trained on GPU (Aug 2023 outputs preserved).
 - For new GPU runs, use a cloud GPU box with `torch.cuda` available, or set up a separate GPU-enabled jupyterhub variant (out of scope here).
 
-## Tier mapping
+## 5. Tier mapping
 
 - **Tier A** (`make run-tier-a`, runs in CI):
   - `image_classification-mnist-ffnn-numpy/notebook.ipynb`
   - `image_classification-mnist-ffnn-pytorch/notebook.ipynb`
   - `node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb`
+  - `tabular_classification-iris-mlp-pytorch/notebook.ipynb`
 - **Tier B** (`make smoke-tier-b`, on-demand, writes to /tmp):
   - `node_classification-reddit-gnn-pyg/phase2-model-selection-notebook[1-4].ipynb`
 - **Tier C** (`make smoke-tier-c`, on-demand, writes to /tmp):
