@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Repo verification oracle for the cleanup-and-standardization /goal loop.
+"""Repo verification oracle.
 
 Runs four orthogonal checks (structure, execution, docs, comments) and emits
 machine-readable findings JSON + a human-readable report. Exit code 0 = no
 findings; nonzero = findings present (count in stderr).
-
-See docs/superpowers/specs/2026-05-22-repo-cleanup-and-doc-standardization-design.md.
 """
 from __future__ import annotations
 
@@ -16,9 +14,9 @@ import json
 import re
 import subprocess
 import sys
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Callable, Iterator
 
 import nbformat
 
@@ -33,17 +31,22 @@ CONFIG_PATH = Path(__file__).resolve().parent / "verify_repo_config.yaml"
 
 def _load_config() -> dict:
     if _yaml is None or not CONFIG_PATH.exists():
-        return {}
+        raise RuntimeError(
+            "verify_repo_config.yaml is required; install PyYAML and ensure "
+            "the file exists."
+        )
     return _yaml.safe_load(CONFIG_PATH.read_text()) or {}
 
 
 _CONFIG = _load_config()
 
-ACTIVE_TASK_DIRS = tuple(_CONFIG.get("active_task_dirs", (
-    "image_classification-mnist-ffnn-numpy",
-    "image_classification-mnist-ffnn-pytorch",
-    "node_classification-reddit-gnn-pyg",
-)))
+_active_task_dirs_raw = _CONFIG.get("active_task_dirs")
+if not _active_task_dirs_raw:
+    raise RuntimeError(
+        "verify_repo_config.yaml is required; install PyYAML and ensure "
+        "the file exists."
+    )
+ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
 
 VERIFY_ONLY_DIRS = ("archive", "nnx", "vendor")
 
@@ -55,61 +58,15 @@ def _required_sections_from_config() -> dict[str, tuple[str, ...]]:
     return {k: tuple(v) for k, v in raw.items()}
 
 
-_DEFAULT_REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {
-    "image_classification-mnist-ffnn-numpy/notebook.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "image_classification-mnist-ffnn-pytorch/notebook.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Dataset deep-dive",
-    ),
-    "node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-    "node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb": (
-        "1. Overview", "2. Environment & Setup", "3. Data",
-        "4. Model", "5. Training", "6. Evaluation & Results",
-    ),
-}
+REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = _required_sections_from_config()
 
-REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = (
-    _required_sections_from_config() or _DEFAULT_REQUIRED_SECTIONS
-)
-
-TIER_A_NOTEBOOKS = tuple(_CONFIG.get("tier_a_notebooks", (
-    "image_classification-mnist-ffnn-numpy/notebook.ipynb",
-    "image_classification-mnist-ffnn-pytorch/notebook.ipynb",
-    "node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb",
-)))
+_tier_a_raw = _CONFIG.get("tier_a_notebooks")
+if not _tier_a_raw:
+    raise RuntimeError(
+        "verify_repo_config.yaml is required; install PyYAML and ensure "
+        "the file exists."
+    )
+TIER_A_NOTEBOOKS = tuple(_tier_a_raw)
 
 README_REQUIRED_H2 = (
     "1. Task summary", "2. Why this exists", "3. What's in the notebook",
@@ -208,7 +165,7 @@ def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
             yield p
 
 
-def check_structure(repo: Path, fast: bool) -> CheckResult:
+def check_structure(repo: Path) -> CheckResult:
     result = CheckResult(name="structure")
     tracked = set(_git_ls_files(repo))
 
@@ -397,7 +354,7 @@ def _ordered_contains(required: tuple[str, ...], actual: list[str]) -> tuple[boo
     return (not missing, missing)
 
 
-def check_docs(repo: Path, fast: bool) -> CheckResult:
+def check_docs(repo: Path) -> CheckResult:
     result = CheckResult(name="docs")
 
     for rel, required in REQUIRED_SECTIONS.items():
@@ -597,7 +554,7 @@ def _iter_in_scope_code(repo: Path):
             yield marker, cell.source
 
 
-def check_comments(repo: Path, fast: bool) -> CheckResult:
+def check_comments(repo: Path) -> CheckResult:
     result = CheckResult(name="comments")
     for path_marker, source in _iter_in_scope_code(repo):
         try:
