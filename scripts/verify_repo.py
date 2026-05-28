@@ -904,7 +904,11 @@ def main(argv: list[str] | None = None) -> int:
     else:
         checks_to_run = [args.check]
 
-    results = [CHECKS[name](REPO_ROOT, args.fast) for name in checks_to_run]
+    # Only check_execution respects --fast; the other three never read it.
+    results = [
+        CHECKS[name](REPO_ROOT, args.fast) if name == "execution" else CHECKS[name](REPO_ROOT)
+        for name in checks_to_run
+    ]
 
     all_findings = [asdict(f) for r in results for f in r.findings]
     error_count = sum(1 for f in all_findings if f["severity"] == "error")
