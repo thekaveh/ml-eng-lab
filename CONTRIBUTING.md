@@ -14,8 +14,9 @@ A short guide for adding new task folders and modifying shared code in this lab.
 1. Open a feature branch off `main`.
 2. Make your change.
 3. Run `python scripts/verify_repo.py --check all --fast` — must exit 0 (no error-severity findings; warnings are OK).
-4. If you touched a notebook, re-run it (Tier-A: `make run-tier-a`; Tier-B: `make smoke-tier-b`; Tier-C: `make smoke-tier-c`). Tier-C source notebooks must remain byte-equal to the `pre-cleanup-baseline` tag — verify check E5 enforces this.
-5. Open a PR. CI runs Tier-A automatically; Tier-B/C run on schedule and on `workflow_dispatch`.
+4. Run `pytest tests/` locally. CI also runs `pytest tests/nnx_surface` as the per-PR `pytest-nnx-surface` gate.
+5. If you touched a notebook, re-run it (Tier-A: `make run-tier-a`; Tier-B: `make smoke-tier-b`; Tier-C: `make smoke-tier-c`). Tier-C source notebooks must remain byte-equal to the `pre-cleanup-baseline` tag — verify check E5 enforces this.
+6. Open a PR. CI runs Tier-A automatically; Tier-B/C run on schedule and on `workflow_dispatch`.
 
 ## 3. Adding a new task folder
 
@@ -45,6 +46,8 @@ Convention: top-level folder named `[task]-[dataset]-[model]-[framework]/`.
   4. `cd nnx && git pull && cd .. && git add nnx && git commit`.
 - **`vendor/genai-vanilla/` is vendored.** Don't edit it directly. The ml-specific compose override lives in [`deploy/`](deploy/) — never commit override files inside `vendor/genai-vanilla/`.
 - **`archive/` is read-only.** Preserved Aug-2023 work.
+
+Found an issue in the read-only `nnx` submodule? Append to [docs/FINDINGS-NNX.md](docs/FINDINGS-NNX.md). Same for `vendor/genai-vanilla`: [docs/FINDINGS-VENDOR.md](docs/FINDINGS-VENDOR.md).
 
 ## 5. Running notebooks
 
