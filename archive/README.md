@@ -8,7 +8,7 @@ If you want to revive any of these, treat it as starting from scratch with the o
 
 ## codexglue_summarization/
 
-23 sub-experiments around the [CodeXGLUE](https://github.com/microsoft/CodeXGLUE) code-summarization benchmark. Two families:
+22 sub-experiments around the [CodeXGLUE](https://github.com/microsoft/CodeXGLUE) code-summarization benchmark. Two families:
 
 ### Cross-language experiments
 

@@ -87,7 +87,7 @@ See [docs/env-setup.md](docs/env-setup.md) for environment details.
 
 | Folder | Task | Dataset | Model | Framework |
 |---|---|---|---|---|
-| [archive/codexglue_summarization/](archive/codexglue_summarization/) | Code summarization (23 experiments) | CodeXGLUE | Transformers | HuggingFace |
+| [archive/codexglue_summarization/](archive/codexglue_summarization/) | Code summarization (22 experiments) | CodeXGLUE | Transformers | HuggingFace |
 
 ### 4.3 Planned
 
@@ -181,4 +181,4 @@ The README is the entry point; the items below are the hub's index of secondary 
 
 ### 10.4. Archive
 
-- [archive/README.md](archive/README.md) — preserved Aug-2023 codexglue summarization experiments (23 runs); read-only.
+- [archive/README.md](archive/README.md) — preserved Aug-2023 codexglue summarization experiments (22 runs); read-only.

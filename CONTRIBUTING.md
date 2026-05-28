@@ -13,8 +13,8 @@ A short guide for adding new task folders and modifying shared code in this lab.
 
 1. Open a feature branch off `main`.
 2. Make your change.
-3. Run `python scripts/verify_repo.py --check all --fast` — must exit 0 (no error-severity findings; warnings are OK).
-4. Run `pytest tests/` locally. CI also runs `pytest tests/nnx_surface` as the per-PR `pytest-nnx-surface` gate.
+3. Run `make verify` (wraps `python scripts/verify_repo.py --check all --fast`) — must exit 0 (no error-severity findings; warnings are OK).
+4. Run `make test` (wraps `pytest tests/`) locally. CI also runs `pytest tests/nnx_surface` as the per-PR `pytest-nnx-surface` gate.
 5. If you touched a notebook, re-run it (Tier-A: `make run-tier-a`; Tier-B: `make smoke-tier-b`; Tier-C: `make smoke-tier-c`). Tier-C **code cells** must remain identical to the `pre-cleanup-baseline` tag — verify check E5 enforces this (markdown and embedded outputs are not compared).
 6. Open a PR. CI runs Tier-A automatically; Tier-B/C run on schedule and on `workflow_dispatch`.
 
@@ -65,6 +65,13 @@ Primary runtime: the `genai-vanilla` stack vendored as a submodule at `vendor/ge
 - `python scripts/verify_repo.py --check all` — adds the full Tier-A/B/C papermill smoke. Requires the genai-vanilla container or an equivalent fully-provisioned env.
 
 Exit code 0 iff zero error-severity findings; warnings are informational. Tier-C **code-cell source** equality with the `pre-cleanup-baseline` git tag is enforced by check E5 (markdown / outputs are not compared). Edits to phase3 markdown cells should still use `scripts/edit_notebook_markdown.py` for safety.
+
+### 6.1. Helper scripts
+
+- `scripts/verify_repo.py` — the four-check oracle described above.
+- `scripts/edit_notebook_markdown.py` — Tier-C-safe markdown-cell editor (changes a single markdown cell's source in-place).
+- `scripts/inject_smoke_test_cell.py` — adds a papermill `parameters`-tagged cell (`SMOKE_TEST = 0`) to a notebook. Use when promoting a notebook to Tier-B / Tier-C so `make smoke-tier-b/c` can truncate via `-p SMOKE_TEST 1`.
+- `scripts/rewrite_imports.py` — applies the `common/* → nnx/*` module-path rewrite plus the per-net-Params consolidation (`{FeedFwdNN, GraphAtt, GraphConv, GraphSage}Params → NNParams`). Idempotent; safe to re-run.
 
 ## 7. One concern per PR
 
