@@ -33,7 +33,7 @@ In the recommended runtime ([../docs/jupyterhub-integration.md](../docs/jupyterh
 # Run all cells.
 ```
 
-Or via the Tier-A make target:
+Or via the Tier-A `make` target:
 
 ```bash
 make run-tier-a
