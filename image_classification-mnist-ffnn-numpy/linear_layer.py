@@ -40,14 +40,14 @@ class LinearLayer:
             assert self.b.shape[0] == self.feature_size_out
             np.testing.assert_almost_equal(np.linalg.norm(self.b), 1)
 
-    # X: nxm -> Z: nxc 
+    # X: nxm -> Z: nxc
     def forward(self, X: np.matrix):
         assert X is not None
         assert X.ndim == 2
         assert X.shape[1] == self.feature_size_in
 
         self.X = X
-        
+
         Z = Funcs.linear(self.X, self.W, self.b)
 
         assert Z is not None

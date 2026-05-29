@@ -33,7 +33,7 @@ class SoftmaxCrossEntropyLayer:
         assert Y_hat.shape[1] == self.feature_size
 
         self.Y_hat = Y_hat
-        
+
         L = Funcs.cross_entropy(Y, Y_hat)
 
         return L

@@ -313,8 +313,8 @@ def check_structure(repo: Path) -> CheckResult:
                 id="S7.forbidden_toplevel", check="structure", severity="error",
                 location=d,
                 message=(
-                    f"forbidden top-level directory exists (tracked or not); "
-                    f"violates repo conventions — see CONTRIBUTING.md"
+                    "forbidden top-level directory exists (tracked or not); "
+                    "violates repo conventions — see CONTRIBUTING.md"
                 ),
             ))
 
@@ -340,7 +340,6 @@ def _notebook_markdown_text(nb_path: Path) -> str:
 
 def _ordered_contains(required: tuple[str, ...], actual: list[str]) -> tuple[bool, list[str]]:
     """Returns (ok, missing). `actual` must contain `required` as an ordered subsequence."""
-    i = 0
     missing: list[str] = []
     needed_idx = 0
     actual_idx = 0
