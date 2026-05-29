@@ -46,6 +46,8 @@ This repo follows [Keep a Changelog](https://keepachangelog.com/). Date format: 
   - `tests/test_inject_smoke_test_cell.py` — new (4 tests, brings parity with sibling-script test coverage): happy-path injection inserts a `parameters`-tagged cell before the first code cell; idempotent when one already exists; `main` returns 2 on empty argv; missing files are skipped without aborting the run.
   - `image_classification-mnist-ffnn-pytorch/README.md` + `tabular_classification-iris-mlp-pytorch/README.md` §4 — backtick `make` so "Tier-A `make` target" reads as a command reference.
   - `scripts/verify_repo_config.yaml` — one-line comment noting `tier_a_notebooks` must stay in sync with Makefile's `TIER_A`.
+  - `README.md` §3.1 quick-start — replace standalone `scripts/setup-in-jupyter.sh` with the `docker exec -it <jupyterhub-container> /home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh` form already canonical in `docs/env-setup.md` §1.2 and `docs/jupyterhub-integration.md`; the prior shape sat next to the host-shell `start-jupyterhub.sh` and would have invited the reader to run it in the wrong shell.
+  - `requirements.txt` — promote `tqdm` (used by `image_classification-mnist-ffnn-numpy/feed_fwd_nn.py` for the training-loop progress bar) and `nbformat` (used by `scripts/{verify_repo,edit_notebook_markdown,inject_smoke_test_cell}.py` and the test suite) from transitive (via papermill / jupyter) to direct declarations.
 
 ### Removed
 - `common/` — leftover from the pre-nnx era; replaced by the `nnx` submodule.
