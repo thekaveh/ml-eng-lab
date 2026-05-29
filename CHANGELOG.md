@@ -43,6 +43,9 @@ This repo follows [Keep a Changelog](https://keepachangelog.com/). Date format: 
   - `README.md` §3.2 — match `docs/env-setup.md` §2 docker run (quote `$(pwd)`, add `--shm-size=4g` minimum for GNN notebooks; cross-link).
   - `requirements.txt` — add `pytest` so `make test` (per CONTRIBUTING §2) works after a fresh `pip install -r requirements.txt`; add trailing newline.
   - Active notebook cells (excluding Tier-C phase3, source-locked by check E5) — ruff cleanup: dropped unused imports (`torch_sparse.SparseTensor`, `torch.utils.data.{DataLoader,SubsetRandomSampler}`, `torch.nn.functional`, duplicate `tqdm`, per-net class imports `Graph{Conv,Sage,Att}NN` + `FeedFwdNN` dispatched through `NNModel(Nets.X)` instead) in phase1 + phase2-{1,2,3}; bare `f` prefixes (F541) in mnist-pytorch + phase2-{1,2,3,4} `title=` kwargs and iris `print(…)`; one E701 single-line `if … : continue` split. phase2-notebook4 patched at raw-JSON level to avoid 17k lines of float-precision output re-serialization noise.
+  - `tests/test_inject_smoke_test_cell.py` — new (4 tests, brings parity with sibling-script test coverage): happy-path injection inserts a `parameters`-tagged cell before the first code cell; idempotent when one already exists; `main` returns 2 on empty argv; missing files are skipped without aborting the run.
+  - `image_classification-mnist-ffnn-pytorch/README.md` + `tabular_classification-iris-mlp-pytorch/README.md` §4 — backtick `make` so "Tier-A `make` target" reads as a command reference.
+  - `scripts/verify_repo_config.yaml` — one-line comment noting `tier_a_notebooks` must stay in sync with Makefile's `TIER_A`.
 
 ### Removed
 - `common/` — leftover from the pre-nnx era; replaced by the `nnx` submodule.
