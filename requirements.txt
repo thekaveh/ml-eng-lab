@@ -35,9 +35,14 @@ matplotlib
 seaborn
 networkx
 scikit-learn
+tqdm  # direct: image_classification-mnist-ffnn-numpy/feed_fwd_nn.py training-loop progress bar
+nbformat  # direct: scripts/{verify_repo,edit_notebook_markdown,inject_smoke_test_cell}.py + tests/
 
 # NNx — local submodule, editable install
 -e ./nnx
 
 # Notebook re-execution
 papermill>=2.4
+
+# Local test runner (CONTRIBUTING §2 "make test" / "pytest tests/")
+pytest

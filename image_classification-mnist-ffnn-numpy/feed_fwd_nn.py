@@ -26,7 +26,7 @@ class FeedFwdNN:
 
         assert X_train is not None
         assert X_train.ndim == 2
-        
+
         assert Y_train is not None
         assert Y_train.ndim == 2
 
@@ -38,7 +38,7 @@ class FeedFwdNN:
 
         assert X_val is not None
         assert X_val.ndim == 2
-        
+
         assert Y_val is not None
         assert Y_val.ndim == 2
 
@@ -72,7 +72,7 @@ class FeedFwdNN:
     def train_and_validate(self):
         iter_idx: int = 0
         iteration_data = []
-        
+
         tqdm_bar = tqdm(total=int(self.n_epochs * len(self.I_train) // self.mini_batch_size))
 
         for epoch_idx in range(self.n_epochs):
@@ -129,5 +129,5 @@ class FeedFwdNN:
             L_val = L3_val.forward(A2, Y)
 
             loss_vals.append(L_val)
-        
+
         return np.mean(loss_vals)

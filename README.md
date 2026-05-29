@@ -47,7 +47,7 @@ This repo vendors `genai-vanilla` as a submodule (pinned to its `main`). The ml-
 git submodule update --init --recursive
 scripts/start-jupyterhub.sh
 # Then attach VS Code or browse to http://localhost:63081
-scripts/setup-in-jupyter.sh   # one-time per container, inside the container
+docker exec -it <jupyterhub-container> /home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh   # one-time per container
 ```
 
 See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) and [docs/vscode-remote-access.md](docs/vscode-remote-access.md).
@@ -56,8 +56,10 @@ See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) and [docs/v
 
 ```bash
 docker build -t ml-lab .
-docker run -p 8888:8888 -v $(pwd):/home/jovyan/work ml-lab
+docker run -p 8888:8888 -v "$(pwd):/home/jovyan/work" --shm-size=4g ml-lab
 ```
+
+`--shm-size=4g` is the minimum for the GNN notebooks; see [docs/env-setup.md](docs/env-setup.md) §2 for more.
 
 ### 3.3 Local venv
 

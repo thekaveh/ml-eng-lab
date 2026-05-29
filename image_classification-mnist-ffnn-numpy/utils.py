@@ -26,7 +26,7 @@ class Utils:
         , y2
         , x_ticks_inc=20
     ):
-        fig = plt.figure(figsize = fig_size)
+        plt.figure(figsize = fig_size)
 
         ax = sns.lineplot(label=y1_legend, x=x, y=y1)
         ax = sns.lineplot(label=y2_legend, x=x, y=y2)
@@ -38,5 +38,5 @@ class Utils:
         ax.set_xticks(range(0, len(x), x_ticks_inc))
 
         plt.legend(fontsize='x-large')
-        plt.tight_layout() 
-        plt.show();
+        plt.tight_layout()
+        plt.show()

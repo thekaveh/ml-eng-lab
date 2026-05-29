@@ -97,6 +97,7 @@ required_sections:
     - "6. Evaluation & Results"
 
 # Notebooks Tier-A runs in-place (refreshes outputs in CI).
+# Keep this list in sync with Makefile's TIER_A variable.
 tier_a_notebooks:
   - image_classification-mnist-ffnn-numpy/notebook.ipynb
   - image_classification-mnist-ffnn-pytorch/notebook.ipynb

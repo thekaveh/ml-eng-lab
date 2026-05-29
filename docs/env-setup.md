@@ -6,13 +6,13 @@ Three paths, pick whichever fits the moment.
 
 This repo vendors [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) as a git submodule at `vendor/genai-vanilla` (pinned to `main`). The ml-specific docker compose override lives in `deploy/genai-vanilla-jupyterhub.override.yml` and is applied via a wrapper script.
 
-### One-time setup
+### 1.1. One-time setup
 
 ```bash
 git submodule update --init --recursive
 ```
 
-### Each session
+### 1.2. Each session
 
 ```bash
 scripts/start-jupyterhub.sh
