@@ -41,3 +41,6 @@ scikit-learn
 
 # Notebook re-execution
 papermill>=2.4
+
+# Local test runner (CONTRIBUTING §2 "make test" / "pytest tests/")
+pytest

@@ -56,8 +56,10 @@ See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) and [docs/v
 
 ```bash
 docker build -t ml-lab .
-docker run -p 8888:8888 -v $(pwd):/home/jovyan/work ml-lab
+docker run -p 8888:8888 -v "$(pwd):/home/jovyan/work" --shm-size=4g ml-lab
 ```
+
+`--shm-size=4g` is the minimum for the GNN notebooks; see [docs/env-setup.md](docs/env-setup.md) §2 for more.
 
 ### 3.3 Local venv
 

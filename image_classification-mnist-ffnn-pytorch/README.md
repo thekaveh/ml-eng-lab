@@ -4,7 +4,7 @@
 
 - **Task:** Image classification.
 - **Dataset:** MNIST handwritten digits.
-- **Model:** Feed-forward neural network — using `nnx.nn.net.FeedFwdNN`.
+- **Model:** Feed-forward neural network — using `nnx.FeedFwdNN`.
 - **Framework:** PyTorch (via [`nnx`](../nnx)).
 
 ## 2. Why this exists
