@@ -89,6 +89,7 @@ See [docs/env-setup.md](docs/env-setup.md) for environment details.
 | [text_generation-tinyshakespeare-transformer-pytorch/](text_generation-tinyshakespeare-transformer-pytorch/) | Text generation (autoregressive LM) | TinyShakespeare (embedded) | Decoder-only transformer | PyTorch (via nnx) |
 | [peft-mnist-to-fmnist-dora-vs-lora-pytorch/](peft-mnist-to-fmnist-dora-vs-lora-pytorch/) | PEFT cross-task adaptation (LoRA vs DoRA) | MNIST → Fashion-MNIST | Feed-forward NN + LoRA / DoRA adapters | PyTorch (via nnx) |
 | [dim_reduction-iris-autoencoder-pytorch/](dim_reduction-iris-autoencoder-pytorch/) | Dimensionality reduction (PCA vs autoencoder) | Iris | Autoencoder (FFN with input_dim==output_dim) | PyTorch (via nnx) + sklearn |
+| [tabular_regression-diabetes-mlp-pytorch/](tabular_regression-diabetes-mlp-pytorch/) | Tabular regression | Diabetes | Feed-forward MLP + sklearn baselines | PyTorch (via nnx) + sklearn |
 
 > **Tip:** GitHub may show "Unable to render code block" on output cells with large matplotlib PNGs. [Browse this repo on nbviewer](https://nbviewer.org/github/thekaveh/ml-lab/tree/main/) for full rendering of any notebook.
 

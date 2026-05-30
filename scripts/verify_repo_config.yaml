@@ -15,6 +15,7 @@ active_task_dirs:
   - text_generation-tinyshakespeare-transformer-pytorch
   - peft-mnist-to-fmnist-dora-vs-lora-pytorch
   - dim_reduction-iris-autoencoder-pytorch
+  - tabular_regression-diabetes-mlp-pytorch
 
 # Required top-level section headings (markdown H1 `# N. <name>`) per notebook.
 # Adding a new notebook means adding an entry here. Otherwise the default
@@ -151,6 +152,13 @@ required_sections:
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
+  tabular_regression-diabetes-mlp-pytorch/notebook.ipynb:
+    - "1. Overview"
+    - "2. Environment & Setup"
+    - "3. Data"
+    - "4. Model"
+    - "5. Training"
+    - "6. Evaluation & Results"
 
 # Notebooks Tier-A runs in-place (refreshes outputs in CI).
 # Keep this list in sync with Makefile's TIER_A variable.
@@ -166,3 +174,4 @@ tier_a_notebooks:
   - text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb
   - peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb
   - dim_reduction-iris-autoencoder-pytorch/notebook.ipynb
+  - tabular_regression-diabetes-mlp-pytorch/notebook.ipynb
