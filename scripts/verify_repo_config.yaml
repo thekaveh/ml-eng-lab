@@ -111,6 +111,13 @@ required_sections:
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
+  pruning-mnist-ffnn-pytorch/notebook.ipynb:
+    - "1. Overview"
+    - "2. Environment & Setup"
+    - "3. Data"
+    - "4. Model"
+    - "5. Training"
+    - "6. Evaluation & Results"
 
 # Notebooks Tier-A runs in-place (refreshes outputs in CI).
 # Keep this list in sync with Makefile's TIER_A variable.
@@ -121,3 +128,4 @@ tier_a_notebooks:
   - tabular_classification-iris-mlp-pytorch/notebook.ipynb
   - model_surgery-mnist-ffnn-pytorch/notebook.ipynb
   - quantization-mnist-ffnn-pytorch/notebook.ipynb
+  - pruning-mnist-ffnn-pytorch/notebook.ipynb
