@@ -43,10 +43,13 @@ jobs:
 
   tier-a-papermill:
     runs-on: ubuntu-latest
-    # All 21 Tier-A notebooks should finish well under 15 min on CPU (measured cumulative ~7 min).
-    # Cap explicitly so a hang (e.g., the issue-#3 phase1 stall) fails fast instead of burning
-    # the GH Actions default 6 h.
-    timeout-minutes: 30
+    # 21 Tier-A notebooks. Cumulative ~7 min on a macOS M-series CPU but Linux
+    # GH Actions runners are ~3-4× slower for hand-coded numpy training
+    # (image_classification-mnist-ffnn-numpy is the worst offender — observed
+    # ~30 min on its own at PR-#5 HEAD edcab84). 90 min cap leaves headroom
+    # for the heaviest notebook AND room for the issue-#3 phase1 dataset
+    # download, while still failing fast vs GH's default 6 h.
+    timeout-minutes: 90
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
