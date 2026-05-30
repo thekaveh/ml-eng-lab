@@ -30,7 +30,8 @@ TIER_A := \
     link_prediction-karate-graphsage-pyg/notebook.ipynb \
     community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb \
     text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb \
-    sentiment_classification-vader-mlp-pytorch/notebook.ipynb
+    sentiment_classification-vader-mlp-pytorch/notebook.ipynb \
+    preference_alignment-toy-dpo-pytorch/notebook.ipynb
 
 TIER_B := \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
