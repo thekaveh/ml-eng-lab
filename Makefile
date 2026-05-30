@@ -27,7 +27,8 @@ TIER_A := \
     diffusion-mnist-ddpm-pytorch/notebook.ipynb \
     moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb \
     clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb \
-    link_prediction-karate-graphsage-pyg/notebook.ipynb
+    link_prediction-karate-graphsage-pyg/notebook.ipynb \
+    community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb
 
 TIER_B := \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \

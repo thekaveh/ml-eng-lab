@@ -20,6 +20,7 @@ active_task_dirs:
   - moe-fmnist-mixture-of-experts-pytorch
   - clustering-iris-kmeans-vs-ae-pytorch
   - link_prediction-karate-graphsage-pyg
+  - community_detection-karate-louvain-vs-gnn-pyg
 
 # Required top-level section headings (markdown H1 `# N. <name>`) per notebook.
 # Adding a new notebook means adding an entry here. Otherwise the default
@@ -191,6 +192,13 @@ required_sections:
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
+  community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb:
+    - "1. Overview"
+    - "2. Environment & Setup"
+    - "3. Data"
+    - "4. Model"
+    - "5. Training"
+    - "6. Evaluation & Results"
 
 # Notebooks Tier-A runs in-place (refreshes outputs in CI).
 # Keep this list in sync with Makefile's TIER_A variable.
@@ -211,3 +219,4 @@ tier_a_notebooks:
   - moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb
   - clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb
   - link_prediction-karate-graphsage-pyg/notebook.ipynb
+  - community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb
