@@ -57,6 +57,21 @@ Primary runtime: the `genai-vanilla` stack vendored as a submodule at `vendor/ge
 - Inside the running container, run `/home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh` once to pip install -e the nnx submodule.
 - See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) for the full setup.
 
+### 5.1. One-time NLP-task setup
+
+Two Tier-A tasks need a model + a lexicon that `pip install -r requirements.txt` doesn't pull on its own. Run these once after the venv is set up (CI runs them automatically in `.github/workflows/ci.yml`'s `tier-a-papermill` job):
+
+```bash
+# spaCy English model — needed by text_classification-agnews-spacy-mlp-pytorch
+# and sentiment_classification-vader-mlp-pytorch
+python -m spacy download en_core_web_sm
+
+# NLTK VADER lexicon — needed by sentiment_classification-vader-mlp-pytorch
+# (the notebook also has a lazy fallback download, but pre-downloading avoids
+# the per-run delay)
+python -c "import nltk; nltk.download('vader_lexicon', quiet=True)"
+```
+
 ## 6. Verification
 
 `scripts/verify_repo.py` is the repo's four-check oracle. Run before commits / PRs:
