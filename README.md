@@ -85,6 +85,7 @@ See [docs/env-setup.md](docs/env-setup.md) for environment details.
 | [model_surgery-mnist-ffnn-pytorch/](model_surgery-mnist-ffnn-pytorch/) | Model surgery (Net2Net) | MNIST | Feed-forward NN | PyTorch (via nnx) |
 | [quantization-mnist-ffnn-pytorch/](quantization-mnist-ffnn-pytorch/) | Quantization (PTQ + QAT) | MNIST | Feed-forward NN | PyTorch (via nnx) + torchao |
 | [pruning-mnist-ffnn-pytorch/](pruning-mnist-ffnn-pytorch/) | Pruning (magnitude sparsity sweep) | MNIST | Feed-forward NN | PyTorch (via nnx) |
+| [knowledge_distillation-mnist-ffnn-pytorch/](knowledge_distillation-mnist-ffnn-pytorch/) | Knowledge distillation (born-again) | MNIST | Feed-forward NN | PyTorch (via nnx) |
 
 > **Tip:** GitHub may show "Unable to render code block" on output cells with large matplotlib PNGs. [Browse this repo on nbviewer](https://nbviewer.org/github/thekaveh/ml-lab/tree/main/) for full rendering of any notebook.
 
