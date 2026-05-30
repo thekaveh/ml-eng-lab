@@ -24,7 +24,8 @@ TIER_A := \
     peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb \
     dim_reduction-iris-autoencoder-pytorch/notebook.ipynb \
     tabular_regression-diabetes-mlp-pytorch/notebook.ipynb \
-    diffusion-mnist-ddpm-pytorch/notebook.ipynb
+    diffusion-mnist-ddpm-pytorch/notebook.ipynb \
+    moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb
 
 TIER_B := \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
