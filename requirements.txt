@@ -2,7 +2,6 @@ rich
 gitpython
 opencv-python
 glob2
-nltk
 spacy
 python-louvain
 gensim

@@ -56,6 +56,8 @@ This repo follows [Keep a Changelog](https://keepachangelog.com/). Date format: 
 - `.DS_Store` at repo root.
 
 ### Fixed
+- **Fourth-round audit follow-up**:
+  - `requirements.txt` — `nltk` was listed twice (line 5 from the original uncategorized inherited-deps block + line 40 from the newer-added documented-direct-dep block). My earlier "added nltk to requirements.txt" claim in the sentiment_classification CHANGELOG entry wasn't technically accurate — the bare `nltk` was already there; my new line was a duplicate with a better comment. Drop the bare line 5; keep the documented line 40.
 - **Third-round audit follow-up**:
   - `Dockerfile` — was missing the spaCy `en_core_web_sm` + NLTK `vader_lexicon` downloads that two Tier-A NLP tasks need. CI workflow now does these, but the local-Docker path in `docs/env-setup.md` §2 (`docker build -t ml-lab . && docker run … ml-lab`) didn't — users would hit `OSError: Can't find model 'en_core_web_sm'` on the first NLP notebook. Add a final `RUN` step mirroring CI.
   - `docs/env-setup.md` §3 (Local Python venv) — install block didn't mention the two one-time downloads; only `pip install -r requirements.txt` was shown. Add the commands inline + a §3 caveat that the Docker path in §2 bakes them in.
