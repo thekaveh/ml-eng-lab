@@ -21,7 +21,8 @@ TIER_A := \
     pruning-mnist-ffnn-pytorch/notebook.ipynb \
     knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb \
     text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb \
-    peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb
+    peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb \
+    dim_reduction-iris-autoencoder-pytorch/notebook.ipynb
 
 TIER_B := \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
