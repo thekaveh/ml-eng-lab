@@ -163,14 +163,14 @@ Future tasks planned (each will become a new top-level folder):
 
 - [ ] `image_classification-cifar10-resnet-pytorch`
 - [ ] `tabular_classification-titanic-xgboost-sklearn`
-- [ ] `text_classification-imdb-distilbert-hf`
-- [ ] `link_prediction-citation-graphsage-pyg`
+- [ ] `text_classification-imdb-distilbert-hf` — distinct from the shipped `text_classification-agnews-spacy-mlp-pytorch/` (pre-transformer baseline); this entry is specifically the DistilBERT fine-tune / PEFT continuation.
+- [ ] `link_prediction-citation-graphsage-pyg` — distinct from the shipped `link_prediction-karate-graphsage-pyg/` (small-graph smoke); this entry is on a real citation network.
 - [ ] `time_series_forecasting-electricity-tft-pytorch`
 - [ ] `anomaly_detection-creditcard-autoencoder-pytorch`
 - [ ] `recommendation-movielens-mf-pytorch`
-- [ ] `generative-mnist-vae-pytorch`
+- [ ] `generative-mnist-vae-pytorch` — distinct from the shipped `diffusion-mnist-ddpm-pytorch/`; VAEs and diffusion are different generative families.
 - [ ] `reinforcement_learning-cartpole-dqn-pytorch`
-- [ ] `diffusion-mnist-ddpm-pytorch`
+- [x] `diffusion-mnist-ddpm-pytorch` — shipped 2026-05-29 in PR #4.
 
 Adding a new task: see the "Adding a new task folder" section in [CONTRIBUTING.md](CONTRIBUTING.md).
 
