@@ -13,6 +13,7 @@ active_task_dirs:
   - pruning-mnist-ffnn-pytorch
   - knowledge_distillation-mnist-ffnn-pytorch
   - text_generation-tinyshakespeare-transformer-pytorch
+  - peft-mnist-to-fmnist-dora-vs-lora-pytorch
 
 # Required top-level section headings (markdown H1 `# N. <name>`) per notebook.
 # Adding a new notebook means adding an entry here. Otherwise the default
@@ -135,6 +136,13 @@ required_sections:
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
+  peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb:
+    - "1. Overview"
+    - "2. Environment & Setup"
+    - "3. Data"
+    - "4. Model"
+    - "5. Training"
+    - "6. Evaluation & Results"
 
 # Notebooks Tier-A runs in-place (refreshes outputs in CI).
 # Keep this list in sync with Makefile's TIER_A variable.
@@ -148,3 +156,4 @@ tier_a_notebooks:
   - pruning-mnist-ffnn-pytorch/notebook.ipynb
   - knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb
   - text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb
+  - peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb
