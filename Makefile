@@ -26,7 +26,8 @@ TIER_A := \
     tabular_regression-diabetes-mlp-pytorch/notebook.ipynb \
     diffusion-mnist-ddpm-pytorch/notebook.ipynb \
     moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb \
-    clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb
+    clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb \
+    link_prediction-karate-graphsage-pyg/notebook.ipynb
 
 TIER_B := \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
