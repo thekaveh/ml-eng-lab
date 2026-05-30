@@ -70,7 +70,7 @@ The current setup is CPU-only. No GPU image variant is shipped. For GPU training
 
 The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` variables) and `scripts/verify_repo_config.yaml` (`tier_a_notebooks`). The lists below are mirrored from there; if they drift, the Makefile + YAML win.
 
-- **Tier A** (`make run-tier-a`, runs in CI on every PR):
+- **Tier-A** (`make run-tier-a`, runs in CI on every PR):
   - `image_classification-mnist-ffnn-numpy/notebook.ipynb`
   - `image_classification-mnist-ffnn-pytorch/notebook.ipynb`
   - `node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb`
@@ -92,7 +92,7 @@ The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` varia
   - `sentiment_classification-vader-mlp-pytorch/notebook.ipynb`
   - `preference_alignment-toy-dpo-pytorch/notebook.ipynb`
   - `self_supervised-fmnist-jepa-pytorch/notebook.ipynb`
-- **Tier B** (`make smoke-tier-b`, on-demand, writes to /tmp):
+- **Tier-B** (`make smoke-tier-b`, on-demand, writes to /tmp):
   - `node_classification-reddit-gnn-pyg/phase2-model-selection-notebook{1,2,3,4}.ipynb`
-- **Tier C** (`make smoke-tier-c`, on-demand, writes to /tmp):
+- **Tier-C** (`make smoke-tier-c`, on-demand, writes to /tmp):
   - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook{,2,3,4}.ipynb`

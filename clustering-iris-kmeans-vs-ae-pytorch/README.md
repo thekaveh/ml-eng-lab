@@ -40,7 +40,7 @@ Or via the Tier-A `make` target:
 make run-tier-a
 ```
 
-**Tier A** (cheap, ~15 s on CPU). Re-executed in CI on every PR. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell; `SMOKE_TEST=1` drops `N_EPOCHS` to 5 — the AE under-trains visibly and the latent's KMeans win shrinks.
+**Tier-A** (cheap, ~15 s on CPU). Re-executed in CI on every PR. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell; `SMOKE_TEST=1` drops `N_EPOCHS` to 5 — the AE under-trains visibly and the latent's KMeans win shrinks.
 
 ## 5. Dependencies
 

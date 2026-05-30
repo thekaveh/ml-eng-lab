@@ -39,7 +39,7 @@ Or via the Tier-A `make` target:
 make run-tier-a
 ```
 
-**Tier A** (cheap, <2 s of compute on CPU; <30 s wall-clock including loader setup). Re-executed in CI on every PR.
+**Tier-A** (cheap, <2 s of compute on CPU; <30 s wall-clock including loader setup). Re-executed in CI on every PR.
 
 ## 5. Dependencies
 

@@ -56,4 +56,4 @@ Each notebook fine-tunes a pre-trained model (CodeBERT / GraphCodeBERT / RoBERTa
 
 ## Why archived
 
-The codexglue experiments depend on the older `transformers` API and have not been touched since Aug 2023. The active task index in the root README focuses on four smaller, more polished tasks (numpy MNIST, pytorch MNIST, GNN on Reddit, iris MLP). Codexglue stays here as a reference snapshot.
+The codexglue experiments depend on the older `transformers` API and have not been touched since Aug 2023. The active task index in the root README (`README.md` §4.1) now spans 21 task folders covering vision, tabular, graph, NLP, generative, PEFT, MoE, JEPA, DPO and more. Codexglue stays here as a reference snapshot.

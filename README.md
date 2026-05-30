@@ -27,10 +27,7 @@ ml-lab/
 ├── nnx/                                       (git submodule → thekaveh/NNx)
 ├── vendor/genai-vanilla/                      (git submodule, JupyterHub stack)
 ├── archive/                                   (preserved-as-is experiments)
-├── image_classification-mnist-ffnn-numpy/      ┐
-├── image_classification-mnist-ffnn-pytorch/    │
-├── node_classification-reddit-gnn-pyg/         │ active task folders
-└── tabular_classification-iris-mlp-pytorch/    ┘
+└── <21 active task folders>                   ([task]-[dataset]-[model]-[framework]/ — full list in §4.1)
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release history; per-folder docs are linked from [§10 Other documentation](#10-other-documentation).

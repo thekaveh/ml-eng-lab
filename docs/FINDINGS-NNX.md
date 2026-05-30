@@ -49,7 +49,9 @@ DataLoader(
 )
 ```
 
-The `NNTabularDataset` docstring already says *"For regression, prefer to construct the DataLoaders yourself"* — so this is documented behavior, not a bug. Still worth a future `NNTabularDataset(task='regression' | 'classification', ...)` mode to make the recipe ergonomic.
+The `NNTabularDataset` docstring already says *"For regression, prefer to construct the DataLoaders yourself"* — so this is documented behavior, not a bug.
+
+**Suggested upstream fix**: add a `NNTabularDataset(task='regression' | 'classification', ...)` mode that conditionally skips the `torch.long` coercion when `task='regression'`. The current docstring already notes the limitation; the API just needs to grow the explicit knob so regression callers don't have to bypass the wrapper entirely.
 
 ### 1.4. `EarlyStopping(monitor=...)` default is `"val_edp.error"`, doesn't exist for regression EDPs
 

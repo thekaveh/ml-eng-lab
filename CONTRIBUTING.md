@@ -22,7 +22,7 @@ A short guide for adding new task folders and modifying shared code in this lab.
 
 Convention: top-level folder named `[task]-[dataset]-[model]-[framework]/`.
 
-1. Survey [`nnx/src/nnx/`](nnx/src/nnx/) for reusable primitives.
+1. Survey [`nnx/src/nnx/`](https://github.com/thekaveh/NNx/tree/main/src/nnx) for reusable primitives.
 2. Identify gaps. If you need new primitives, **land them in [`thekaveh/NNx`](https://github.com/thekaveh/NNx) first** (branch in `./nnx`, commit, push), then bump the submodule pointer here.
 3. Scaffold the new task folder with a `README.md` (use [`node_classification-reddit-gnn-pyg/README.md`](node_classification-reddit-gnn-pyg/README.md) as template) and notebook(s). At the top of §3 "What's in the notebook(s)", include the nbviewer tip — GitHub's notebook renderer chokes on cells with large embedded matplotlib PNGs:
 

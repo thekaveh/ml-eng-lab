@@ -40,7 +40,7 @@ Or via the Tier-A `make` target:
 make run-tier-a
 ```
 
-**Tier A** (heavier — ~90 s on CPU). Re-executed in CI on every PR. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell; `SMOKE_TEST=1` drops both pretrain + probe to 1 epoch each.
+**Tier-A** (heavier — ~90 s on CPU). Re-executed in CI on every PR. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell; `SMOKE_TEST=1` drops both pretrain + probe to 1 epoch each.
 
 ## 5. Dependencies
 
@@ -53,7 +53,7 @@ All in the root `requirements.txt` + `torch-requirements.txt`.
 
 ## 6. Known issues
 
-- **~90 s runtime** is the heaviest Tier-A notebook in the collection (next-heaviest is model_surgery at 47 s). The ViT forward (49 patches × 64 d_model × 2 layers) is slow on CPU even at this scale; a U-Net or convolutional encoder would be faster but the I-JEPA recipe is ViT-canonical.
+- **~90 s runtime** is the heaviest Tier-A notebook in the collection (next-heaviest is model_surgery at ~45 s). The ViT forward (49 patches × 64 d_model × 2 layers) is slow on CPU even at this scale; a U-Net or convolutional encoder would be faster but the I-JEPA recipe is ViT-canonical.
 - **Linear probe val accuracy ~74%** at this pretrain budget — well above the 10% random baseline (the SSL proof-of-life) but well below the ~93%+ Fashion-MNIST supervised baseline. Real I-JEPA needs 100+ pretrain epochs to close the gap; here we stay Tier-A.
 - **Fashion-MNIST, not CIFAR**: see §1 for the rationale. Switching to CIFAR-10 means swapping the `NNDataset(ds_class=thv.datasets.FashionMNIST, ...)` to `CIFAR10` and bumping `image_size=32, in_channels=3` — the rest of the recipe is unchanged.
 - **Single mask block per step.** The I-JEPA paper uses 4 target blocks per image. Our `mask_fn` returns 1; a multi-block variant would sample 4 blocks and aggregate the prediction losses. Future hyperparameter tuning.

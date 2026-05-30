@@ -44,10 +44,10 @@ In the recommended runtime (genai-vanilla jupyterhub, see [../docs/jupyterhub-in
 Or use papermill (the Tier-A target in the root Makefile):
 
 ```bash
-make run-tier-a   # re-runs this notebook plus the pytorch MNIST, GNN phase1, and iris MLP
+make run-tier-a   # re-runs this notebook in place, alongside the other Tier-A notebooks (see docs/env-setup.md §5)
 ```
 
-**Tier A** (cheap, <5 min on CPU). Re-executed in CI on every PR.
+**Tier-A** (cheap, <5 min on CPU). Re-executed in CI on every PR.
 
 ## 5. Dependencies
 
