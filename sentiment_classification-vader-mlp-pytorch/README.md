@@ -52,12 +52,12 @@ make run-tier-a
 - `scikit-learn` — split + accuracy + classification_report + confusion_matrix.
 - `numpy`, `matplotlib`, `prettytable`.
 
-`nltk` is not currently in `requirements.txt` — add `nltk` to root requirements before merging this task (or rely on the lazy download path documented in §2.1).
+`nltk` is in the root `requirements.txt`. The `vader_lexicon` itself is a separate download — CI pre-downloads it via `python -c "import nltk; nltk.download('vader_lexicon', quiet=True)"` in `.github/workflows/ci.yml`; the notebook also has a lazy fallback in §2.1 for fresh local installs.
 
 ## 6. Known issues
 
 - **Embedded corpus is tiny (60 unique reviews, 240 after tiling).** Real sentiment benchmarks (IMDB 50k, Amazon Reviews) are much larger. Absolute accuracy numbers are not directly comparable. The *relative* ordering (VADER ≈ neural at this scale) is the pedagogical point.
-- **`nltk` lazy download.** The first run downloads `vader_lexicon` (~125 KB) via `nltk.download`. CI containers may not have this preloaded; the notebook's try/except handles it but the first run takes a few extra seconds.
+- **`vader_lexicon` lazy download fallback.** CI pre-downloads the lexicon in the `tier-a-papermill` job. For fresh local installs, the notebook's `try / except LookupError → nltk.download('vader_lexicon', quiet=True)` in §2.1 handles the first run (~125 KB, cached after).
 - **VADER's compound thresholds (±0.05) are the original-paper defaults.** Domain-specific tuning (e.g., compound > 0.2 for more conservative positive classification) helps on noisy real-world text; we use defaults for reproducibility.
 - **Neutral detection is the weak spot for both recipes.** Embedded "neutral" reviews are factual statements with no polarity words (release dates, store hours, package weights). VADER calls these neutral by default — good. The neural MLP can learn this if the train split contains enough factual-statement vocabulary; with 16 neutral train samples, it sometimes overfits to specific neutral keywords.
-- **`nltk` is not in `requirements.txt`.** This will need to be added before the task can run on a fresh `pip install -r requirements.txt`. The lazy `nltk.download('vader_lexicon')` won't help if the package itself isn't installed.
+- **`vader_lexicon` is a separate download.** `pip install nltk` doesn't pull the lexicon — it ships separately and is fetched via `nltk.download('vader_lexicon')` (lazy in §2.1; pre-downloaded in CI).

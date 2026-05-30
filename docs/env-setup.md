@@ -46,12 +46,19 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r torch-requirements.txt
 pip install -r requirements.txt
 git submodule update --init --recursive    # if not done at clone time
+
+# One-time downloads for the two Tier-A NLP tasks (text_classification-agnews-spacy-mlp
+# and sentiment_classification-vader-mlp). pip install doesn't pull these.
+python -m spacy download en_core_web_sm
+python -c "import nltk; nltk.download('vader_lexicon', quiet=True)"
+
 jupyter lab
 ```
 
 Caveats:
 - PyG wheels: torch + torch_geometric must match. The pins in `torch-requirements.txt` are tested against the `--find-links` wheel index at `https://data.pyg.org/whl/torch-2.4.0+cpu.html`.
 - macOS Apple Silicon: PyG wheels for `arm64` are not always available at that index. If pip falls back to source builds, expect ~15 min compile time and Xcode CLT installed.
+- The `docker build`/`docker run` path in §2 above bakes the spaCy + NLTK downloads into the image, so the venv-only path above is the only one that needs them done manually. See [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §5.1 for the same instructions in the contributor workflow.
 
 ## 4. GPU notes
 
@@ -61,15 +68,31 @@ The current setup is CPU-only. No GPU image variant is shipped. For GPU training
 
 ## 5. Tier mapping
 
-- **Tier A** (`make run-tier-a`, runs in CI):
+The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` variables) and `scripts/verify_repo_config.yaml` (`tier_a_notebooks`). The lists below are mirrored from there; if they drift, the Makefile + YAML win.
+
+- **Tier A** (`make run-tier-a`, runs in CI on every PR):
   - `image_classification-mnist-ffnn-numpy/notebook.ipynb`
   - `image_classification-mnist-ffnn-pytorch/notebook.ipynb`
   - `node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb`
   - `tabular_classification-iris-mlp-pytorch/notebook.ipynb`
+  - `model_surgery-mnist-ffnn-pytorch/notebook.ipynb`
+  - `quantization-mnist-ffnn-pytorch/notebook.ipynb`
+  - `pruning-mnist-ffnn-pytorch/notebook.ipynb`
+  - `knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb`
+  - `text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb`
+  - `peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb`
+  - `dim_reduction-iris-autoencoder-pytorch/notebook.ipynb`
+  - `tabular_regression-diabetes-mlp-pytorch/notebook.ipynb`
+  - `diffusion-mnist-ddpm-pytorch/notebook.ipynb`
+  - `moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb`
+  - `clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb`
+  - `link_prediction-karate-graphsage-pyg/notebook.ipynb`
+  - `community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb`
+  - `text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb`
+  - `sentiment_classification-vader-mlp-pytorch/notebook.ipynb`
+  - `preference_alignment-toy-dpo-pytorch/notebook.ipynb`
+  - `self_supervised-fmnist-jepa-pytorch/notebook.ipynb`
 - **Tier B** (`make smoke-tier-b`, on-demand, writes to /tmp):
-  - `node_classification-reddit-gnn-pyg/phase2-model-selection-notebook[1-4].ipynb`
+  - `node_classification-reddit-gnn-pyg/phase2-model-selection-notebook{1,2,3,4}.ipynb`
 - **Tier C** (`make smoke-tier-c`, on-demand, writes to /tmp):
-  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb`
-  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb`
-  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb`
-  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb`
+  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook{,2,3,4}.ipynb`

@@ -46,7 +46,7 @@ make run-tier-a
 
 - `torch` — autograd + tensors.
 - `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `set_seed`.
-- `spacy` — tokenizer + lemmatizer. **Note**: `en_core_web_sm` (the small English model) must be installed separately via `python -m spacy download en_core_web_sm`. CI installs it explicitly (not via `requirements.txt`).
+- `spacy` — tokenizer + lemmatizer. The package itself is in the root `requirements.txt`; the `en_core_web_sm` model is a separate download and is installed by CI via a dedicated step (`python -m spacy download en_core_web_sm`). For local development run that command once after `pip install -r requirements.txt`.
 - `scikit-learn` — train/test split, accuracy + classification_report + confusion_matrix.
 - `numpy` — feature matrix.
 - `matplotlib` — confusion-matrix heatmap.
@@ -57,6 +57,6 @@ make run-tier-a
 
 - **Embedded corpus is tiny.** 80 unique headlines × 4 tiling = 320 documents. Real AG-News is 120k. Absolute accuracy numbers are not directly comparable.
 - **Vocab is train-only** — the standard recipe. Test-time tokens not in vocab are simply ignored (zero featurization weight). This is correct behavior; it would matter more at larger vocab sizes.
-- **`en_core_web_sm` is a separate install.** `pip install spacy` doesn't pull the English model. CI step: `python -m spacy download en_core_web_sm`. Document this on every contributor onboarding.
+- **`en_core_web_sm` is a separate install.** `pip install spacy` doesn't pull the English model. CI runs `python -m spacy download en_core_web_sm` as a dedicated step in `.github/workflows/ci.yml`'s `tier-a-papermill` job; local contributors need to run the same command once after `pip install -r requirements.txt`.
 - **No baseline.** A standard pipeline would compare against `sklearn.naive_bayes.MultinomialNB` or `sklearn.linear_model.LogisticRegression` on the same BoW features; the MLP doesn't necessarily win at this corpus scale. Adding sklearn baselines is queued.
 - **No bigram / TF-IDF features.** Both would help a real run; this notebook stays at the simplest baseline so the *recipe shape* is unambiguous.

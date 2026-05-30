@@ -60,6 +60,8 @@ All in the root `requirements.txt` + `torch-requirements.txt`.
 - **No explicit encoder/decoder modules.** We extract latents by walking `net.layers[: bottleneck_idx + 1]` manually with `F.relu` between Linears. This mirrors what `FeedFwdNN.forward` does internally; if you change the activation in `NNParams`, also update the latent-extractor in §5.3.
 - **MSE on MinMax-scaled `[0, 1]` inputs.** Switching to `StandardScaler` (mean 0, std 1) would change the absolute reconstruction-loss scale but not the species-separation ranking.
 
-## 7. Producer for follow-up #8
+## 7. Sibling: `clustering-iris-kmeans-vs-ae-pytorch/`
 
-`runs/<best>/` contains the trained AE checkpoint via `NNRun`. The queued candidate `clustering-iris-kmeans-vs-ae-pytorch` will load that checkpoint and run KMeans on the AE latent vs raw features. This notebook is the *producer* of that dependency.
+The unsupervised-clustering counterpart on the same AE recipe lives at [`../clustering-iris-kmeans-vs-ae-pytorch/`](../clustering-iris-kmeans-vs-ae-pytorch/) — KMeans on raw 4-D features vs on the 2-D AE latent, scored with ARI + NMI vs the true species labels.
+
+Originally this notebook was intended as the *producer* of a saved AE checkpoint at `runs/<best>/` that the sibling would load. In practice `runs/` is gitignored (so the checkpoint isn't available on a fresh CI checkout), and the sibling **retrains the AE inline** with the same architecture / seed / `N_EPOCHS` for CI isolation. No cross-notebook checkpoint dependency at runtime; the two notebooks are independent.

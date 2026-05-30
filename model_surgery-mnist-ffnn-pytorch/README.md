@@ -4,7 +4,7 @@
 
 - **Task:** Function-preserving model surgery (architectural edits to a *trained* model).
 - **Dataset:** MNIST handwritten digits (60k train, 10k test, 28×28 grayscale) — same `nnx.NNDataset` wrapper as the sibling `image_classification-mnist-ffnn-pytorch` task.
-- **Model:** Feed-forward neural network via `nnx.FeedFwdNN` + `Nets.FEED_FWD`, with **ReLU** activation (`nnx.deepen`'s identity-init insertion is function-preserving only for ReLU; see [§4](#4-model)).
+- **Model:** Feed-forward neural network via `nnx.FeedFwdNN` + `Nets.FEED_FWD`, with **ReLU** activation (`nnx.deepen`'s identity-init insertion is function-preserving only for ReLU — see §6 *Known issues* + the notebook's §4 *Model*).
 - **Framework:** PyTorch (via [`nnx`](../nnx)).
 
 ## 2. Why this exists

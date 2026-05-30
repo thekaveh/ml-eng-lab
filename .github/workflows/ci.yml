@@ -34,7 +34,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r torch-requirements.txt
           pip install -r requirements.txt
-          pip install pytest
 
       - name: Verify nnx import
         run: python -c "import nnx; print(nnx.__file__)"
@@ -44,6 +43,13 @@ jobs:
 
   tier-a-papermill:
     runs-on: ubuntu-latest
+    # 21 Tier-A notebooks. Cumulative ~7 min on a macOS M-series CPU but Linux
+    # GH Actions runners are ~3-4× slower for hand-coded numpy training
+    # (image_classification-mnist-ffnn-numpy is the worst offender — observed
+    # ~30 min on its own at PR-#5 HEAD edcab84). 90 min cap leaves headroom
+    # for the heaviest notebook AND room for the issue-#3 phase1 dataset
+    # download, while still failing fast vs GH's default 6 h.
+    timeout-minutes: 90
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
@@ -66,6 +72,17 @@ jobs:
           pip install -r torch-requirements.txt
           pip install -r requirements.txt
 
+      - name: Download spaCy en_core_web_sm model
+        # Needed by text_classification-agnews-spacy-mlp-pytorch and
+        # sentiment_classification-vader-mlp-pytorch. `pip install spacy` does NOT pull
+        # the language model — it's a separate download.
+        run: python -m spacy download en_core_web_sm
+
+      - name: Download NLTK vader_lexicon
+        # Needed by sentiment_classification-vader-mlp-pytorch. The notebook also has a
+        # lazy fallback download, but doing it here once is faster + offline-safe in CI.
+        run: python -c "import nltk; nltk.download('vader_lexicon', quiet=True)"
+
       - name: Verify nnx import
         run: python -c "import nnx; print(nnx.__file__)"
 
@@ -77,11 +94,29 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tier-a-notebooks
+          # All 21 Tier-A notebooks — keep in sync with Makefile TIER_A.
           path: |
             image_classification-mnist-ffnn-numpy/notebook.ipynb
             image_classification-mnist-ffnn-pytorch/notebook.ipynb
             node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb
             tabular_classification-iris-mlp-pytorch/notebook.ipynb
+            model_surgery-mnist-ffnn-pytorch/notebook.ipynb
+            quantization-mnist-ffnn-pytorch/notebook.ipynb
+            pruning-mnist-ffnn-pytorch/notebook.ipynb
+            knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb
+            text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb
+            peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb
+            dim_reduction-iris-autoencoder-pytorch/notebook.ipynb
+            tabular_regression-diabetes-mlp-pytorch/notebook.ipynb
+            diffusion-mnist-ddpm-pytorch/notebook.ipynb
+            moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb
+            clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb
+            link_prediction-karate-graphsage-pyg/notebook.ipynb
+            community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb
+            text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb
+            sentiment_classification-vader-mlp-pytorch/notebook.ipynb
+            preference_alignment-toy-dpo-pytorch/notebook.ipynb
+            self_supervised-fmnist-jepa-pytorch/notebook.ipynb
           retention-days: 7
 
   smoke-tier-b:

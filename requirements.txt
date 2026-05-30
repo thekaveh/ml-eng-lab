@@ -2,7 +2,6 @@ rich
 gitpython
 opencv-python
 glob2
-nltk
 spacy
 python-louvain
 gensim
@@ -38,6 +37,7 @@ scikit-learn
 tqdm  # direct: image_classification-mnist-ffnn-numpy/feed_fwd_nn.py training-loop progress bar
 nbformat  # direct: scripts/{verify_repo,edit_notebook_markdown,inject_smoke_test_cell}.py + tests/
 nltk  # direct: sentiment_classification-vader-mlp-pytorch/notebook.ipynb (SentimentIntensityAnalyzer)
+torchao>=0.17  # direct: quantization-mnist-ffnn-pytorch/notebook.ipynb (nnx.quantize_int8 + qat_train_step_factory)
 
 # NNx — local submodule, editable install
 -e ./nnx
