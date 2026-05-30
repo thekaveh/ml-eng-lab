@@ -67,6 +67,15 @@ This repo follows [Keep a Changelog](https://keepachangelog.com/). Date format: 
 - `.DS_Store` at repo root.
 
 ### Fixed
+- **Overnight maintenance pass 3 (`worktree-overnight-2026-05-30` branch)**:
+  - 3 per-task READMEs + 1 notebook narrative table still claimed `plotly` as a runtime dep. The Pass-2 deps trim removed `plotly` from `requirements.txt` (nothing imports it; `nnx.vis_utils` uses matplotlib, not plotly), but downstream docs weren't swept. Fixed `image_classification-mnist-ffnn-pytorch/README.md` §5 + `notebook.ipynb` cell 0 §1.4 table, `tabular_classification-iris-mlp-pytorch/README.md` §5, `node_classification-reddit-gnn-pyg/README.md` §5.
+  - `LICENSE` — copyright `2023 Kaveh` → `2023-2026 Kaveh Razavi` (matches `git config user.name` and today's year span).
+  - 3 tested-task READMEs (`image_classification-mnist-ffnn-pytorch`, `tabular_classification-iris-mlp-pytorch`, `node_classification-reddit-gnn-pyg`) gained an "Also verified via …" §4 paragraph linking the corresponding `tests/nnx_surface/test_*.py` module. Surfaces the test path readers previously had to discover by browsing `tests/`.
+  - `.dockerignore` (Pass-2 follow-up) gained 5 `.gitignore`-parity entries: `.DS_Store`, `.mypy_cache`, `.trunk`, `.vscode`, `docs/superpowers`. `docs/superpowers/` is sizable and was being unnecessarily copied into the dev image.
+  - `scripts/verify_repo.py:776` comment hyphenated: `Tier A/B/C` → `Tier-A/B/C` (one-character edit matching line 703 + the repo-wide convention).
+  - `dim_reduction-iris-autoencoder-pytorch/notebook.ipynb` §6.3 — final markdown was still framed as "Producer for candidate #8 (queued)" claiming an `NNRun.load(...)` checkpoint handoff. Companion README was reframed as "sibling, retrains inline" during Pass-1; the notebook's own §6.3 was missed. Now matches.
+  - `preference_alignment-toy-dpo-pytorch/notebook.ipynb` §1.2 — "~10 prompts" → "16 prompts" (PROMPTS list has 16; §3.3 and CHANGELOG both say 16).
+  - `CHANGELOG.md` [Unreleased] ### Changed Dockerfile bullet — softened from "unused NLTK / spaCy downloads dropped" to acknowledge the briefly-dropped-then-restored sequence cross-referenced against the third-round audit follow-up Fixed entry.
 - **Overnight maintenance pass 2 (`worktree-overnight-2026-05-30` branch)**:
   - `CONTRIBUTING.md:25` — internal link to the (unpopulated) submodule path `nnx/src/nnx/` was flagged Critical by the verify_repo crawler for any clone that skipped `git submodule update --init` (the common shallow-clone path). Reshaped to a GitHub URL pointing at `thekaveh/NNx`'s `src/nnx/` tree so the link is robust to submodule state.
   - `README.md` §2 Repository layout — the tree previously listed only 4 of the 21 active task folders. Collapsed to a single `<21 active task folders>` summary line pointing at §4.1 for the full list.
