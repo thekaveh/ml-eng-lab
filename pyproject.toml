@@ -19,3 +19,10 @@ ignore = [
     "E731",  # lambda assignment
     "E741",  # ambiguous var name
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Tier-C phase3 notebooks are locked to the pre-cleanup-baseline tag for the
+# E5 code-cell source-equality gate (scripts/verify_repo.py:_phase3_code_cells_unchanged).
+# Auto-fixing F401/F541/F811 in these would trip the gate, so suppress those
+# rules here only. E/W rules still apply.
+"node_classification-reddit-gnn-pyg/phase3-*.ipynb" = ["F401", "F541", "F811"]

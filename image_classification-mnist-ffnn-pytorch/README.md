@@ -41,12 +41,14 @@ make run-tier-a
 
 **Tier-A** (cheap, <5 min on CPU). Re-executed in CI on every PR.
 
+Also verified via [`tests/nnx_surface/test_image_classification_mnist_ffnn_pytorch.py`](../tests/nnx_surface/test_image_classification_mnist_ffnn_pytorch.py) — a fast NNx-surface contract test pinning the `NNModel` + `Nets.FEED_FWD` call shape. Runs in the CI `pytest-nnx-surface` job on every PR (`make test-nnx-surface` locally).
+
 ## 5. Dependencies
 
 - `nnx` (the submodule)
 - `torch` (≥ 2.0)
 - `torchvision`
-- `plotly`
+- `matplotlib` (via `nnx.vis_utils` — loss curves, confusion matrices)
 
 All installed by the genai-vanilla jupyterhub image or via the root `requirements.txt` + `torch-requirements.txt`.
 

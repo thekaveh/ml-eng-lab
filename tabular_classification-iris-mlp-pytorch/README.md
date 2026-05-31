@@ -39,14 +39,16 @@ Or via the Tier-A `make` target:
 make run-tier-a
 ```
 
-**Tier A** (cheap, <2 s of compute on CPU; <30 s wall-clock including loader setup). Re-executed in CI on every PR.
+**Tier-A** (cheap, <2 s of compute on CPU; <30 s wall-clock including loader setup). Re-executed in CI on every PR.
+
+Also verified via [`tests/nnx_surface/test_tabular_classification_iris_mlp_pytorch.py`](../tests/nnx_surface/test_tabular_classification_iris_mlp_pytorch.py) — a fast NNx-surface contract test pinning the `NNTabularDataset` → `FeedFwdNN` → `NNModel` call chain. Runs in the CI `pytest-nnx-surface` job on every PR (`make test-nnx-surface` locally).
 
 ## 5. Dependencies
 
 - `nnx` (the submodule)
 - `torch` (≥ 2.0)
 - `pandas`, `numpy`, `scikit-learn`
-- `seaborn`, `matplotlib`, `plotly`
+- `seaborn`, `matplotlib`
 
 All installed by the genai-vanilla jupyterhub image or via the root `requirements.txt` + `torch-requirements.txt`.
 

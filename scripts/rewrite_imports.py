@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 # Order matters. Longer/more-specific patterns FIRST so they win over
@@ -34,7 +35,7 @@ SIMPLE_MAPPINGS: list[tuple[str, str]] = [
 ]
 
 # Multi-import splits (old-style modules that combined classes now in separate files).
-SPLIT_PATTERNS: list[tuple[re.Pattern[str], callable]] = [
+SPLIT_PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], list[str]]]] = [
     # `from common.nn_model import NNModel, NNTrainParams` → two lines (modern paths)
     (
         re.compile(r"^(\s*)from common\.nn_model import NNModel,\s*NNTrainParams(\s*)$"),

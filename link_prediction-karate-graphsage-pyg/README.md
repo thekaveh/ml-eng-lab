@@ -38,7 +38,7 @@ Or via the Tier-A `make` target:
 make run-tier-a
 ```
 
-**Tier A** (cheap, ~5 s on CPU). Re-executed in CI on every PR. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell.
+**Tier-A** (cheap, ~5 s on CPU). Re-executed in CI on every PR. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell.
 
 ## 5. Dependencies
 

@@ -62,11 +62,13 @@ In the recommended runtime ([../docs/jupyterhub-integration.md](../docs/jupyterh
 
 **Never** run `papermill phase3-*.ipynb phase3-*.ipynb` (in place) — that destroys the preserved Aug-2023 training outputs.
 
+Also verified via [`tests/nnx_surface/test_node_classification_reddit_gnn_pyg.py`](../tests/nnx_surface/test_node_classification_reddit_gnn_pyg.py) — fast NNx-surface contract tests covering parametrized SAGE / CONV smoke-forward, `GraphAttNN(n_heads=...)` consolidation regression, and `NNParams.state()` round-trip. Runs in the CI `pytest-nnx-surface` job on every PR (`make test-nnx-surface` locally; GNN forward-pass cases skip cleanly without `pyg-lib` / `torch-sparse`).
+
 ## 5. Dependencies
 
 - `torch` (≥ 2.0) + `torch_geometric` + `torch_sparse`
 - `nnx` (the submodule — `Nets.FEED_FWD`, `Nets.GRAPH_CONV`, `Nets.GRAPH_SAGE`, `Nets.GRAPH_ATT`)
-- `networkx`, `community` (python-louvain), `pandas`, `seaborn`, `matplotlib`, `plotly`
+- `networkx`, `community` (python-louvain), `pandas`, `seaborn`, `matplotlib`
 - `numpy`, `scikit-learn`
 
 All available via the genai-vanilla jupyterhub image or via the root `requirements.txt` + `torch-requirements.txt`.

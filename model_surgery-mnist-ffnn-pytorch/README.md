@@ -35,10 +35,10 @@ In the recommended runtime ([../docs/jupyterhub-integration.md](../docs/jupyterh
 Or via the Tier-A `make` target:
 
 ```bash
-make run-tier-a   # re-runs this notebook plus the pytorch MNIST, GNN phase1, and iris MLP
+make run-tier-a   # re-runs this notebook in place, alongside the other Tier-A notebooks (see docs/env-setup.md §5)
 ```
 
-**Tier A** (cheap, ~45 s on CPU). Re-executed in CI on every PR. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell.
+**Tier-A** (cheap, ~45 s on CPU). Re-executed in CI on every PR. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell.
 
 ## 5. Dependencies
 

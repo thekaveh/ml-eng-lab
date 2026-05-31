@@ -130,7 +130,7 @@ _RUNTIME_ONLY_MODULES = frozenset({
     "matplotlib", "seaborn", "pandas", "sklearn", "scipy",
     "networkx", "community",
     "nnx",
-    "plotly", "tqdm", "rich",
+    "tqdm",
 })
 
 
@@ -629,11 +629,14 @@ def export_phase_b_candidates(repo: Path, out_path: Path) -> int:
             })
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps({
-        "schema_version": 1,
-        "candidate_count": len(candidates),
-        "candidates": candidates,
-    }, indent=2))
+    out_path.write_text(
+        json.dumps({
+            "schema_version": 1,
+            "candidate_count": len(candidates),
+            "candidates": candidates,
+        }, indent=2),
+        encoding="utf-8",
+    )
     return len(candidates)
 
 
@@ -770,7 +773,7 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                     ))
 
     # V7: every notebook scheduled in REQUIRED_SECTIONS that's also a
-    # papermill target (Tier A/B/C) must have a cell tagged 'parameters'.
+    # papermill target (Tier-A/B/C) must have a cell tagged 'parameters'.
     # Without the tag, `papermill -p NAME val` silently no-ops.
     for rel in REQUIRED_SECTIONS:
         nb = repo / rel
@@ -926,7 +929,7 @@ def main(argv: list[str] | None = None) -> int:
     out_text = json.dumps(payload, indent=2)
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(out_text)
+        args.out.write_text(out_text, encoding="utf-8")
     else:
         print(out_text)
 

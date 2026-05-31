@@ -48,15 +48,18 @@ TIER_C := \
 
 SMOKE_OUT := /tmp/ml-smoke
 
-.PHONY: help run-tier-a smoke-tier-b smoke-tier-c test verify
+.PHONY: help run-tier-a smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify
 
 help:
 	@echo "Targets:"
-	@echo "  run-tier-a    Re-execute Tier-A notebooks in place. CI runs this on every PR."
-	@echo "  smoke-tier-b  Papermill Tier-B notebooks to $(SMOKE_OUT)/ (preserves source outputs)."
-	@echo "  smoke-tier-c  Papermill Tier-C notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/."
-	@echo "  test          Run pytest on tests/ directory."
-	@echo "  verify        Run repo verifier (scripts/verify_repo.py --check all --fast)."
+	@echo "  run-tier-a        Re-execute Tier-A notebooks in place. CI runs this on every PR."
+	@echo "  smoke-tier-b      Papermill Tier-B notebooks to $(SMOKE_OUT)/ (preserves source outputs)."
+	@echo "  smoke-tier-c      Papermill Tier-C notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/."
+	@echo "  test              Run pytest on tests/ directory."
+	@echo "  test-nnx-surface  Run only tests/nnx_surface (matches the CI pytest-nnx-surface job)."
+	@echo "  lint              Run ruff check . using the [tool.ruff] config in pyproject.toml."
+	@echo "  nlp-assets        Download spaCy en_core_web_sm + NLTK vader_lexicon (needed by the 2 NLP Tier-A notebooks)."
+	@echo "  verify            Run repo verifier (scripts/verify_repo.py --check all --fast)."
 
 run-tier-a:
 	@for nb in $(TIER_A); do \
@@ -85,6 +88,16 @@ smoke-tier-c:
 
 test:
 	pytest tests/ -v
+
+test-nnx-surface:
+	pytest tests/nnx_surface -v
+
+lint:
+	ruff check .
+
+nlp-assets:
+	python -m spacy download en_core_web_sm
+	python -c "import nltk; nltk.download('vader_lexicon', quiet=True)"
 
 verify:
 	python scripts/verify_repo.py --check all --fast

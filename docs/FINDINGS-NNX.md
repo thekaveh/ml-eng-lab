@@ -49,7 +49,9 @@ DataLoader(
 )
 ```
 
-The `NNTabularDataset` docstring already says *"For regression, prefer to construct the DataLoaders yourself"* — so this is documented behavior, not a bug. Still worth a future `NNTabularDataset(task='regression' | 'classification', ...)` mode to make the recipe ergonomic.
+The `NNTabularDataset` docstring already says *"For regression, prefer to construct the DataLoaders yourself"* — so this is documented behavior, not a bug.
+
+**Suggested upstream fix**: add a `NNTabularDataset(task='regression' | 'classification', ...)` mode that conditionally skips the `torch.long` coercion when `task='regression'`. The current docstring already notes the limitation; the API just needs to grow the explicit knob so regression callers don't have to bypass the wrapper entirely.
 
 ### 1.4. `EarlyStopping(monitor=...)` default is `"val_edp.error"`, doesn't exist for regression EDPs
 
@@ -58,3 +60,16 @@ Surfaced by: `tabular_regression-diabetes-mlp-pytorch` (documented in §6, not a
 `EarlyStopping`'s default `monitor="val_edp.error"` works for classification (lower error = better). For regression the EDP has `loss` but no `error` field — `monitor="val_edp.loss"` must be passed explicitly. The error message at runtime is clear; the issue is that the default doesn't gracefully degrade.
 
 **Suggested upstream fix**: detect at construction whether the loss is regression-style (MSE, MAE) and default `monitor="val_edp.loss"` in that case.
+
+### 1.5. `NNRun.save()` prints an absolute path, leaking the maintainer's local layout
+
+Surfaced by: 14 of the 21 Tier-A notebooks carrying baked-in output text of the form `Run saved to /Users/kaveh/repos/ml-lab/.claude/worktrees/overnight-cleanup/runs/<hash>` from notebook outputs committed during the megamerge PR #5 build (an earlier worktree path no longer used). The post-merge `image_classification-mnist-ffnn-pytorch/notebook.ipynb` re-execution under the real repo root produced the simpler `/Users/kaveh/repos/ml-lab/<task>/runs/<hash>` form — still absolute, just less stale.
+
+`NNRun.save()` (in the nnx submodule's training infrastructure) emits a confirmation string with the absolute filesystem path of the saved run directory. Two related issues:
+
+1. **Maintainer-local path leak**: any committed notebook output carries the path from whatever machine + worktree last executed it. This is reproducibility noise (the path is meaningless to anyone else) and a minor privacy/security leak (it advertises the maintainer's `$HOME` layout).
+2. **No CI normalization on re-run**: next CI Tier-A re-execution will overwrite the leaked path with the GitHub-runner-local path (`/home/runner/work/ml-lab/ml-lab/...`), trading one absolute leak for another — not a fix.
+
+**Suggested upstream fix**: print a path relative to `cwd` (or to the notebook's parent), or just `Run saved to ./runs/<hash>`. Absolute path is fine in the saved metadata JSON; the human-facing print should be relative.
+
+**Workaround for ml-lab**: leave the baked-in outputs as-is — sweeping them now is futile until nnx's print is changed, since the next CI re-run regenerates the cell with a different absolute path. Once nnx is fixed, the next Tier-A papermill batch will normalize all 14 stale outputs in one go.
