@@ -175,4 +175,4 @@ def test_visutils_confusion_matrix_renders_for_tabular_predictions(tiny_tabular_
         title="test-only cm",
         normalize=False,
     )
-    assert fig is not None  # plotly.graph_objects.Figure
+    assert fig is not None  # matplotlib.figure.Figure
