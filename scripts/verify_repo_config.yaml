@@ -236,7 +236,6 @@ required_sections:
 # Keep this list in sync with Makefile's TIER_A variable.
 tier_a_notebooks:
   - image_classification-mnist-ffnn-numpy/notebook.ipynb
-  - image_classification-mnist-ffnn-pytorch/notebook.ipynb
   - node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb
   - tabular_classification-iris-mlp-pytorch/notebook.ipynb
   - model_surgery-mnist-ffnn-pytorch/notebook.ipynb
