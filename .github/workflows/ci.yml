@@ -48,7 +48,7 @@ jobs:
 
   tier-a-papermill:
     runs-on: ubuntu-latest
-    # 21 Tier-A notebooks. Cumulative ~7 min on a macOS M-series CPU but Linux
+    # 20 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7). Cumulative ~7 min on a macOS M-series CPU but Linux
     # GH Actions runners are ~3-4× slower for hand-coded numpy training
     # (image_classification-mnist-ffnn-numpy is the worst offender — observed
     # ~30 min on its own at PR-#5 HEAD edcab84). 90 min cap leaves headroom
@@ -99,10 +99,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tier-a-notebooks
-          # All 21 Tier-A notebooks — keep in sync with Makefile TIER_A.
+          # All 20 Tier-A notebooks — keep in sync with Makefile TIER_A.
+          # (image_classification-mnist-ffnn-pytorch moved to Tier-B per issue #7.)
           path: |
             image_classification-mnist-ffnn-numpy/notebook.ipynb
-            image_classification-mnist-ffnn-pytorch/notebook.ipynb
             node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb
             tabular_classification-iris-mlp-pytorch/notebook.ipynb
             model_surgery-mnist-ffnn-pytorch/notebook.ipynb

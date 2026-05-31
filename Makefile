@@ -13,7 +13,6 @@
 
 TIER_A := \
     image_classification-mnist-ffnn-numpy/notebook.ipynb \
-    image_classification-mnist-ffnn-pytorch/notebook.ipynb \
     node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
     tabular_classification-iris-mlp-pytorch/notebook.ipynb \
     model_surgery-mnist-ffnn-pytorch/notebook.ipynb \
@@ -35,6 +34,7 @@ TIER_A := \
     self_supervised-fmnist-jepa-pytorch/notebook.ipynb
 
 TIER_B := \
+    image_classification-mnist-ffnn-pytorch/notebook.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb \

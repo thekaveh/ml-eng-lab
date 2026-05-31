@@ -33,13 +33,13 @@ In the recommended runtime ([../docs/jupyterhub-integration.md](../docs/jupyterh
 # Run all cells.
 ```
 
-Or via the Tier-A `make` target:
+Or via the Tier-B smoke target (writes to `/tmp/`, preserves committed outputs):
 
 ```bash
-make run-tier-a
+make smoke-tier-b
 ```
 
-**Tier-A** (cheap, <5 min on CPU). Re-executed in CI on every PR.
+**Tier-B** (heavier; the full `[9 hidden_dims × 500 epochs]` sweep takes >90 min on the Linux GH runner, see issue #7). Runs in CI only on the weekly schedule (`0 7 * * 1`) or on PRs labeled `tier-b-smoke`, not on every PR. For local re-execution that refreshes committed outputs, open the notebook in Jupyter and run all cells (the make target writes to `/tmp/` to preserve the existing outputs).
 
 Also verified via [`tests/nnx_surface/test_image_classification_mnist_ffnn_pytorch.py`](../tests/nnx_surface/test_image_classification_mnist_ffnn_pytorch.py) — a fast NNx-surface contract test pinning the `NNModel` + `Nets.FEED_FWD` call shape. Runs in the CI `pytest-nnx-surface` job on every PR (`make test-nnx-surface` locally).
 
