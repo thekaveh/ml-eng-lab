@@ -21,7 +21,7 @@ This is the recommended path for **28 of the 29 ml-lab notebooks** — every Tie
 
 2. Open any ml-lab notebook locally in VS Code (it stays on your host filesystem).
 
-3. Point VS Code at the remote kernel — see [vscode-remote-access.md Mode 2](vscode-remote-access.md#2-mode-2--connect-to-remote-jupyter-server).
+3. Point VS Code at the remote kernel — see [vscode-remote-access.md Mode 2](vscode-remote-access.md#2-mode-2--connect-to-remote-jupyter-server-default).
 
 `import nnx` and every other top-level import resolves out of the box. Notebook outputs save back to the local `.ipynb` file because VS Code holds the file on the host.
 

@@ -7,9 +7,12 @@
 # Tier A is what CI runs on every PR. B and C are on-demand
 # (`make smoke-tier-b`, `make smoke-tier-c`).
 #
-# All targets assume papermill is on PATH and the notebooks' kernel
-# can import nnx (i.e., you ran scripts/setup-in-jupyter.sh in the
-# target environment, or have `pip install -e ./nnx` locally).
+# All targets assume papermill is on PATH and the notebooks' kernel can
+# import nnx. nnx is shipped natively in the genai-vanilla jupyterhub image
+# as of cbad341 (PR #26, 2026-06-02); locally, `pip install nnx-pytorch`
+# (or `pip install -e ./nnx` for the editable-dev workflow) gets the same.
+# scripts/setup-in-jupyter.sh is only needed for the editable-install
+# developer override inside the wrapper-and-bind-mount path.
 
 TIER_A := \
     image_classification-mnist-ffnn-numpy/notebook.ipynb \

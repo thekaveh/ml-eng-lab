@@ -38,16 +38,27 @@ Three ways to run these notebooks, in increasing order of "I want my own machine
 
 ### 3.1 genai-vanilla jupyterhub (recommended)
 
-This repo vendors `genai-vanilla` as a submodule (pinned to its `main`). The ml-specific compose override lives in `deploy/` and is applied via a wrapper script:
+As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the full ml-lab dep set (`nnx-pytorch` + 5 pip pkgs + 2 NLP model assets). Two paths, pick by need:
+
+**Default — standalone genai-vanilla + VS Code Mode 2** (works for 28 of 29 ml-lab notebooks):
+
+```bash
+cd ~/repos/genai-vanilla && ./start.sh
+# Open any ml-lab notebook locally in VS Code, then:
+# Cmd-Shift-P → Jupyter: Specify Jupyter Server for Connections →
+#   http://localhost:63081/?token=<JUPYTERHUB_TOKEN>
+```
+
+**Persistence variant — wrapper script + bind-mount** (required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook + host-side `./data/`/`./runs/` persistence):
 
 ```bash
 git submodule update --init --recursive
 scripts/start-jupyterhub.sh
-# Then attach VS Code or browse to http://localhost:63081
-docker exec -it <jupyterhub-container> /home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh   # one-time per container
+# Optional: docker exec -it <jupyterhub-container> /home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh
+#   (only if hacking on nnx — overrides the image's pip-installed nnx with editable install)
 ```
 
-See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) and [docs/vscode-remote-access.md](docs/vscode-remote-access.md).
+See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) (full two-path walkthrough) and [docs/vscode-remote-access.md](docs/vscode-remote-access.md).
 
 ### 3.2 Local Docker
 

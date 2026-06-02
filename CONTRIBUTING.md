@@ -51,11 +51,12 @@ Found an issue in the read-only `nnx` submodule? Append to [docs/FINDINGS-NNX.md
 
 ## 5. Running notebooks
 
-Primary runtime: the `genai-vanilla` stack vendored as a submodule at `vendor/genai-vanilla` (pinned to genai-vanilla's `main`).
+Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the image natively ships the full ml-lab dep set — for 28 of 29 ml-lab notebooks you can use the standalone path; the wrapper-and-bind-mount is only required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook + host-side data/runs persistence + nnx development.
 
-- Start via `scripts/start-jupyterhub.sh` (NOT `cd vendor/genai-vanilla && ./start.sh` — the override needs the wrapper to set env vars and `COMPOSE_FILE`).
-- Inside the running container, run `/home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh` once to pip install -e the nnx submodule.
-- See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) for the full setup.
+- **Default (standalone genai-vanilla)** — `cd ~/repos/genai-vanilla && ./start.sh`, then point VS Code Mode 2 at the token URL.
+- **Persistence variant (wrapper + bind-mount)** — `scripts/start-jupyterhub.sh` from the ml-lab repo root (NOT `cd vendor/genai-vanilla && ./start.sh` directly — the wrapper sets `ML_REPO_PATH` and `COMPOSE_FILE` to layer the override).
+- **nnx editable-install override** — `docker exec … setup-in-jupyter.sh` is the developer override for hacking on the `nnx` submodule. Skip unless you're actively editing `nnx/src/nnx/`.
+- Full two-path walkthrough: [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md).
 
 ### 5.1. One-time NLP-task setup
 
