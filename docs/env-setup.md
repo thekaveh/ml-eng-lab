@@ -4,27 +4,35 @@ Three paths, pick whichever fits the moment.
 
 ## 1. genai-vanilla jupyterhub (recommended)
 
-This repo vendors [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) as a git submodule at `vendor/genai-vanilla` (pinned to `main`). The ml-specific docker compose override lives in `deploy/genai-vanilla-jupyterhub.override.yml` and is applied via a wrapper script.
+As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the full ml-lab dep set — `nnx-pytorch` + `python-louvain` + `nltk` + `spacy` + `torchao` + `prettytable`, plus the `en_core_web_sm` spaCy model + `vader_lexicon` NLTK corpus baked at image-build time. Two paths, pick by need.
 
-### 1.1. One-time setup
+### 1.1. Default — standalone genai-vanilla + VS Code Mode 2
 
-```bash
-git submodule update --init --recursive
-```
-
-### 1.2. Each session
+Works for **28 of 29 ml-lab notebooks** (every Tier-A/B/C notebook except the from-scratch `image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder).
 
 ```bash
-scripts/start-jupyterhub.sh
+cd ~/repos/genai-vanilla && ./start.sh
 ```
 
-The first time a container is created (or after image rebuild), run inside it:
+Then open any ml-lab notebook locally in VS Code and `Cmd-Shift-P` → **Jupyter: Specify Jupyter Server for Connections** → `http://localhost:63081/?token=<JUPYTERHUB_TOKEN>`. See [vscode-remote-access.md](vscode-remote-access.md) Mode 2 for the token-retrieval detail.
+
+Trade-off: notebook code that does `pd.read_csv("./data/foo.csv")` or `NNRun.save()` writes to the kernel's CWD inside the container (`/home/jovyan/`), not to your host repo. Artifacts land in the `jupyterhub-data` named volume — opaque to `git status`, wiped by `docker volume rm`. Acceptable for Tier-A demos with small re-downloadable datasets; not acceptable when you want host-side persistence (see §1.2).
+
+### 1.2. Persistence variant — wrapper script + bind-mount
+
+Use when you want any of:
+- Datasets + `runs/` checkpoints to land on your host filesystem (visible in `git status`, survives `docker compose down -v`).
+- The from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` to work (sibling `.py` modules).
+- A workflow where you `git commit` notebook edits + dataset downloads from inside the container.
 
 ```bash
-docker exec -it <jupyterhub-container> /home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh
+git submodule update --init --recursive      # one-time
+scripts/start-jupyterhub.sh                  # each session
 ```
 
-This installs nnx editable so notebook imports resolve. See [jupyterhub-integration.md](jupyterhub-integration.md) for the details.
+The wrapper layers `deploy/genai-vanilla-jupyterhub.override.yml` onto the submodule's genai-vanilla compose, bind-mounting the repo at `/home/jovyan/work/ml-lab/`.
+
+`scripts/setup-in-jupyter.sh` is **optional** and only relevant when actively hacking on `nnx` — it overrides the image's pip-installed `nnx-pytorch` with an editable install pointing at the bind-mounted `nnx/` submodule. See [jupyterhub-integration.md](jupyterhub-integration.md) for the full two-path walkthrough.
 
 ## 2. Local Docker
 

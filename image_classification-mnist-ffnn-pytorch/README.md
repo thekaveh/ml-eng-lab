@@ -55,7 +55,7 @@ All installed by the genai-vanilla jupyterhub image or via the root `requirement
 ## 6. Known issues
 
 - `./data/` and `./runs/` are gitignored; first run downloads MNIST and creates a fresh runs directory.
-- If you see `ModuleNotFoundError: No module named 'nnx'` after a fresh container instance, run `../scripts/setup-in-jupyter.sh` once.
+- If you see `ModuleNotFoundError: No module named 'nnx'`, your jupyterhub image is pre-PR-#26 (pre-`cbad341`). Rebuild from a current genai-vanilla `main` (`docker compose build jupyterhub`), or run the §2 wrapper-and-bind-mount path with `../scripts/setup-in-jupyter.sh` for the editable-install override. See [`../docs/jupyterhub-integration.md`](../docs/jupyterhub-integration.md) §6.
 
 ## 7. Future work
 
