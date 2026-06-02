@@ -1,16 +1,43 @@
 # JupyterHub integration
 
-The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. That service's image is DS/ML-capable (PyTorch + PyG + Lightning baked in) as of `genai-vanilla@cb4d8f4`.
+The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), that image natively ships the full ml-lab dependency set:
 
-This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla), pinned to genai-vanilla's `main` branch. The ml-lab-specific docker compose override lives in this repo at [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml) and is layered onto the stack via a wrapper script ([`scripts/start-jupyterhub.sh`](../scripts/start-jupyterhub.sh)) that sets `COMPOSE_FILE` and invokes the submodule's `./start.sh`.
+- `nnx-pytorch` (installed as `nnx` — the PyTorch toolkit at [`thekaveh/NNx`](https://github.com/thekaveh/NNx))
+- `python-louvain`, `nltk`, `spacy`, `torchao`, `prettytable`
+- The `en_core_web_sm` spaCy model + the `vader_lexicon` NLTK corpus, downloaded at image-build time
 
-## 1. Why this layout
+For most workflows you do NOT need this repo's wrapper script, override file, or `setup-in-jupyter.sh`. Just start the standalone stack and connect from VS Code.
 
-The two repos have orthogonal release cycles. The submodule pin pulls a known-good genai-vanilla snapshot; the override file in ml-lab describes ml-lab's deployment needs. genai-vanilla's `main` stays clean — no ml-lab-specific files. Bumping the submodule is one command (`git submodule update --remote`).
+## 1. Default path: standalone genai-vanilla + VS Code Mode 2
 
-## 2. Setup
+This is the recommended path for **28 of the 29 ml-lab notebooks** — every Tier-A/B/C notebook except the from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access).
 
-Clone with submodules:
+1. Bring the stack up from a standalone clone of genai-vanilla:
+
+    ```bash
+    cd ~/repos/genai-vanilla
+    ./start.sh
+    ```
+
+2. Open any ml-lab notebook locally in VS Code (it stays on your host filesystem).
+
+3. Point VS Code at the remote kernel — see [vscode-remote-access.md Mode 2](vscode-remote-access.md#2-mode-2--connect-to-remote-jupyter-server).
+
+`import nnx` and every other top-level import resolves out of the box. Notebook outputs save back to the local `.ipynb` file because VS Code holds the file on the host.
+
+What this path does NOT give you: notebook code that does `pd.read_csv("./data/foo.csv")` or `NNRun.save()` writes to the container's CWD (`/home/jovyan/`), not to your host repo. Data/run artifacts land in the `jupyterhub-data` named volume — opaque to `git status` and lost on `docker volume rm`. For most Tier-A demos that's fine (small datasets, cheap to re-download). For long-running training where you want host-side persistence, see §2.
+
+## 2. Persistence path: wrapper script + bind-mount
+
+Use this when you want any of:
+
+- Datasets and `runs/` checkpoints to land on your host filesystem (visible in `git status`, survives `docker compose down -v`).
+- The from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` notebook to work (it imports sibling `.py` modules from its own folder).
+- A development workflow where you `git commit` notebook edits + dataset downloads from inside the container.
+
+This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla) and ships a wrapper script that layers an ml-lab override onto the standalone compose:
+
+### 2.1 Clone with submodules
 
 ```bash
 git clone --recurse-submodules https://github.com/thekaveh/ml-lab.git
@@ -18,13 +45,13 @@ git clone --recurse-submodules https://github.com/thekaveh/ml-lab.git
 git submodule update --init --recursive
 ```
 
-## 3. Run
+### 2.2 Run the wrapper
 
 ```bash
 scripts/start-jupyterhub.sh
 ```
 
-The wrapper sets `ML_REPO_PATH` (the ml-lab repo root) and `HOST_SSH_DIR` (defaults to `~/.ssh`), exports `COMPOSE_FILE` to layer the override onto genai-vanilla's base compose, and execs genai-vanilla's `./start.sh`. From the running container's perspective, the repo is at `/home/jovyan/work/ml-lab`.
+The wrapper sets `ML_REPO_PATH` (the ml-lab repo root) and `HOST_SSH_DIR` (defaults to `~/.ssh`), exports `COMPOSE_FILE` to layer [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml) onto genai-vanilla's base compose, and execs the submodule's `./start.sh`. The override bind-mounts `${ML_REPO_PATH}:/home/jovyan/work/ml-lab`, so from the running container's perspective, the repo is at `/home/jovyan/work/ml-lab/`.
 
 To run with custom paths:
 
@@ -32,17 +59,21 @@ To run with custom paths:
 HOST_SSH_DIR=/path/to/keys scripts/start-jupyterhub.sh
 ```
 
-## 4. One-time per container: install nnx editable
+## 3. nnx development: editable install override
+
+If you're hacking on `nnx` itself (editing source under `nnx/src/nnx/` and wanting changes to land in the running kernel without a `pip install` cycle), the image's pip-installed `nnx-pytorch` needs to be overridden with an editable install pointing at the bind-mounted submodule.
 
 ```bash
 docker exec -it <project>-jupyterhub /home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh
 ```
 
-Or attach with VS Code and run from the integrated terminal. The editable install persists in the named `jupyterhub-data` volume.
+This is a no-op for the default §1 path (no bind-mount → no nnx source on disk → script errors out). It only makes sense when you're running the §2 path AND actively editing nnx.
 
-## 5. Bumping the submodule
+For everyone else, the pip-installed nnx is what you want and this script is unnecessary.
 
-Standard submodule workflow:
+## 4. Submodule pin / bumping
+
+`vendor/genai-vanilla` pins a known-good commit on genai-vanilla's `main`. Standard submodule bump:
 
 ```bash
 cd vendor/genai-vanilla
@@ -54,13 +85,18 @@ git add vendor/genai-vanilla
 git commit -m "ml-lab: bump genai-vanilla submodule to <new-sha>"
 ```
 
-## 6. Tested against
+The submodule pin matters for the §2 path; the §1 path uses your standalone genai-vanilla checkout and is independent of the submodule.
 
-Submodule pinned to a commit on genai-vanilla `main` that includes the DS/ML-capable image (Phase 1, `cb4d8f4` or later).
+## 5. Tested against
 
-## 7. Common failure modes
+genai-vanilla `cbad341` (PR #26, 2026-06-02) or later — the first commit where the ml-lab dep set is baked into the jupyterhub image.
 
-- **`ModuleNotFoundError: No module named 'nnx'`** — `setup-in-jupyter.sh` wasn't run for this container instance.
-- **Submodule not found at vendor/genai-vanilla/** — run `git submodule update --init --recursive` at the repo root.
+## 6. Common failure modes
+
+- **`Could not find a version that satisfies the requirement nnx-pytorch`** during `docker compose build jupyterhub` — `nnx-pytorch` hasn't propagated to PyPI yet. Re-run the build after publication completes, or hold genai-vanilla at a pre-PR-26 commit and use the §2 + §3 path (wrapper + editable nnx).
+- **`ModuleNotFoundError: No module named 'nnx'`** in the §1 path — the image was built before genai-vanilla PR #26 (`cbad341`). Pull the latest genai-vanilla `main` and `docker compose build jupyterhub`.
+- **`ModuleNotFoundError: No module named 'nnx'`** in the §2 path — `setup-in-jupyter.sh` wasn't run for this container instance AND the image is pre-PR-26. Either upgrade genai-vanilla (preferred) or run the editable-install script.
+- **Submodule not found at `vendor/genai-vanilla/`** — run `git submodule update --init --recursive` at the repo root.
 - **`ML_REPO_PATH variable is not set`** during compose up — you ran `cd vendor/genai-vanilla && ./start.sh` directly instead of using the wrapper. Use `scripts/start-jupyterhub.sh`.
-- **Notebook hangs at first cell** — stack service didn't come up. Check `docker compose ps` (from inside `vendor/genai-vanilla/`).
+- **Relative-path reads/writes go to the wrong place** (notebook does `pd.read_csv("./data/foo.csv")` but the file is on your host) — you're on the §1 path. Switch to §2 if you want host-side persistence.
+- **Stack service didn't come up** — Check `docker compose ps` from inside `vendor/genai-vanilla/` (§2) or `~/repos/genai-vanilla/` (§1).
