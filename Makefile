@@ -19,7 +19,6 @@ TIER_A := \
     node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
     tabular_classification-iris-mlp-pytorch/notebook.ipynb \
     model_surgery-mnist-ffnn-pytorch/notebook.ipynb \
-    quantization-mnist-ffnn-pytorch/notebook.ipynb \
     pruning-mnist-ffnn-pytorch/notebook.ipynb \
     knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb \
     text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb \
@@ -38,6 +37,7 @@ TIER_A := \
 
 TIER_B := \
     image_classification-mnist-ffnn-pytorch/notebook.ipynb \
+    quantization-mnist-ffnn-pytorch/notebook.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb \
