@@ -63,7 +63,7 @@ Surfaced by: `tabular_regression-diabetes-mlp-pytorch` (documented in §6, not a
 
 ### 1.5. `NNRun.save()` prints an absolute path, leaking the maintainer's local layout
 
-Surfaced by: 14 of the 21 Tier-A notebooks carrying baked-in output text of the form `Run saved to /Users/kaveh/repos/ml-lab/.claude/worktrees/overnight-cleanup/runs/<hash>` from notebook outputs committed during the megamerge PR #5 build (an earlier worktree path no longer used). The post-merge `image_classification-mnist-ffnn-pytorch/notebook.ipynb` re-execution under the real repo root produced the simpler `/Users/kaveh/repos/ml-lab/<task>/runs/<hash>` form — still absolute, just less stale.
+Surfaced by: 14 of the 21 active task folders carrying baked-in output text of the form `Run saved to /Users/kaveh/repos/ml-lab/.claude/worktrees/overnight-cleanup/runs/<hash>` from notebook outputs committed during the megamerge PR #5 build (an earlier worktree path no longer used). At the time of writing all were Tier-A; mnist-pytorch and quantization-mnist-pytorch have since been moved to Tier-B (issues #7 and #10), but the baked-in leaked-path observation is independent of tier classification. The post-merge `image_classification-mnist-ffnn-pytorch/notebook.ipynb` re-execution under the real repo root produced the simpler `/Users/kaveh/repos/ml-lab/<task>/runs/<hash>` form — still absolute, just less stale.
 
 `NNRun.save()` (in the nnx submodule's training infrastructure) emits a confirmation string with the absolute filesystem path of the saved run directory. Two related issues:
 
@@ -72,4 +72,4 @@ Surfaced by: 14 of the 21 Tier-A notebooks carrying baked-in output text of the 
 
 **Suggested upstream fix**: print a path relative to `cwd` (or to the notebook's parent), or just `Run saved to ./runs/<hash>`. Absolute path is fine in the saved metadata JSON; the human-facing print should be relative.
 
-**Workaround for ml-lab**: leave the baked-in outputs as-is — sweeping them now is futile until nnx's print is changed, since the next CI re-run regenerates the cell with a different absolute path. Once nnx is fixed, the next Tier-A papermill batch will normalize all 14 stale outputs in one go.
+**Workaround for ml-lab**: leave the baked-in outputs as-is — sweeping them now is futile until nnx's print is changed, since the next CI re-run regenerates the cell with a different absolute path. Once nnx is fixed, the next Tier-A papermill batch will normalize the 14 stale outputs that are still in Tier-A; the two now-Tier-B notebooks will normalize on the next weekly `smoke-tier-b` cron run.
