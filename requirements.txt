@@ -18,7 +18,9 @@ torchao>=0.17  # direct: quantization-mnist-ffnn-pytorch/notebook.ipynb (nnx.qua
 pyyaml  # direct: scripts/verify_repo.py loads scripts/verify_repo_config.yaml via yaml.safe_load
 
 # NNx — local submodule, editable install. `[lm]` pulls tokenizers+datasets
-# for text_generation-tinyshakespeare-transformer-pytorch (NNTokenizerParams).
+# for the two notebooks that call train_bpe / NNTokenizerParams:
+# text_generation-tinyshakespeare-transformer-pytorch and
+# preference_alignment-toy-dpo-pytorch (issue #12).
 -e ./nnx[lm]
 
 # Notebook re-execution
