@@ -17,8 +17,9 @@ nltk  # direct: sentiment_classification-vader-mlp-pytorch/notebook.ipynb (Senti
 torchao>=0.17  # direct: quantization-mnist-ffnn-pytorch/notebook.ipynb (nnx.quantize_int8 + qat_train_step_factory)
 pyyaml  # direct: scripts/verify_repo.py loads scripts/verify_repo_config.yaml via yaml.safe_load
 
-# NNx — local submodule, editable install
--e ./nnx
+# NNx — local submodule, editable install. `[lm]` pulls tokenizers+datasets
+# for text_generation-tinyshakespeare-transformer-pytorch (NNTokenizerParams).
+-e ./nnx[lm]
 
 # Notebook re-execution
 papermill>=2.4
