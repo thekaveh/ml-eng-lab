@@ -40,7 +40,7 @@ Three ways to run these notebooks, in increasing order of "I want my own machine
 
 As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the full ml-lab dep set (`nnx-pytorch` + 5 pip pkgs + 2 NLP model assets). Two paths, pick by need:
 
-**Default — standalone genai-vanilla + VS Code Mode 2** (works for 28 of 29 ml-lab notebooks):
+**Default — standalone genai-vanilla + VS Code Mode 2** (works for 26 of 29 ml-lab notebooks; the two `[lm]`-extra notebooks — `text_generation-tinyshakespeare-transformer-pytorch` and `preference_alignment-toy-dpo-pytorch` — both call `train_bpe`/`NNTokenizerParams` and need the standalone image bumped to `nnx-pytorch[lm]` before they work on this path; jumps to 28/29 once that lands, tracked as a follow-up to issue #12):
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh
@@ -144,7 +144,7 @@ git clone --recurse-submodules <this repo>
 git submodule update --init --recursive
 ```
 
-The library is installed editable via `pip install -e ./nnx` (part of `requirements.txt`). Notebooks import via `from nnx.X import Y`.
+The library is installed editable via `pip install -e './nnx[lm]'` (part of `requirements.txt`). The `[lm]` extra pulls the BPE tokenizer + datasets backbone for the two notebooks that call `train_bpe`/`NNTokenizerParams` (`text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb` and `preference_alignment-toy-dpo-pytorch/notebook.ipynb`); without it both `ImportError` (issue #12). Notebooks import via `from nnx.X import Y`.
 
 To extend `nnx` for a new task:
 

@@ -8,7 +8,7 @@ As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image nativ
 
 ### 1.1. Default — standalone genai-vanilla + VS Code Mode 2
 
-Works for **28 of 29 ml-lab notebooks** (every Tier-A/B/C notebook except the from-scratch `image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder).
+Works for **26 of 29 ml-lab notebooks** (every Tier-A/B/C notebook except: (a) the from-scratch `image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder, and (b) the two notebooks that call `train_bpe`/`NNTokenizerParams` and need the `nnx[lm]` extra — `text_generation-tinyshakespeare-transformer-pytorch/` and `preference_alignment-toy-dpo-pytorch/`. The standalone genai-vanilla image currently bakes `nnx-pytorch` without extras; bumps to 28/29 once the upstream image picks up `nnx-pytorch[lm]`, tracked as a follow-up to issue #12).
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh

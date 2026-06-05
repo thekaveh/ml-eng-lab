@@ -9,7 +9,7 @@
 
 ## 2. Why this exists
 
-The nnx megamerge (#29) added a full decoder-only transformer fork: `TransformerNN` + `NNTransformerParams` + `Nets.TRANSFORMER` enum + `GenerativeNNModel.generate` + the `nnx.tokenizer` BPE trainer + the `nnx.generation` sampling stack (`RepetitionPenalty`, `TemperatureScaling`, `TopKFilter`, `TopPFilter`). This notebook is the first in-repo demo that walks every piece of that stack on a single self-contained corpus, on CPU, in under a minute. The result is *not* coherent Shakespeare — at 114 k params trained on 14 KB for 5 epochs, you get plausible-distribution gibberish — and that's the point. The notebook is a *correctness smoke test* + an executable reference for the transformer call chain. Real generation quality is a scale lever, discussed in §6.3.
+The nnx megamerge (thekaveh/NNx#29) added a full decoder-only transformer fork: `TransformerNN` + `NNTransformerParams` + `Nets.TRANSFORMER` enum + `GenerativeNNModel.generate` + the `nnx.tokenizer` BPE trainer + the `nnx.generation` sampling stack (`RepetitionPenalty`, `TemperatureScaling`, `TopKFilter`, `TopPFilter`). This notebook is the first in-repo demo that walks every piece of that stack on a single self-contained corpus, on CPU, in under a minute. The result is *not* coherent Shakespeare — at 114 k params trained on 14 KB for 5 epochs, you get plausible-distribution gibberish — and that's the point. The notebook is a *correctness smoke test* + an executable reference for the transformer call chain. Real generation quality is a scale lever, discussed in §6.3.
 
 ## 3. What's in the notebook
 
@@ -44,7 +44,7 @@ make run-tier-a
 - `nnx` (the submodule) — `TransformerNN`, `NNTransformerParams`, `GenerativeNNModel`, `train_bpe`, `NNTokenizerParams`, `TrainStepContext`, `NNEvaluationDataPoint`, `set_seed`.
 - `matplotlib` — loss trajectory plot.
 
-The `nnx.tokenizer` BPE trainer pulls in `tokenizers` (HuggingFace's Rust-backed BPE implementation) transitively via the nnx submodule's pyproject extras. The notebook itself doesn't import `tokenizers` directly.
+The `nnx.tokenizer` BPE trainer pulls in `tokenizers` (HuggingFace's Rust-backed BPE implementation) via nnx's `[lm]` extra — `requirements.txt` pins `-e ./nnx[lm]`, which resolves to `tokenizers>=0.20` + `datasets>=2.20` from the `[project.optional-dependencies] lm = [...]` block in `nnx/pyproject.toml`. The notebook itself doesn't import `tokenizers` directly.
 
 All in the root `requirements.txt` + `torch-requirements.txt`.
 

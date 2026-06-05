@@ -9,7 +9,7 @@
 
 ## 2. Why this exists
 
-DDPM (Ho et al., 2020) is the foundational diffusion-model recipe. The `nnx` megamerge (#29) ships the full stack: `NoiseSchedulers.LINEAR(T=...)` builds a `NoiseSchedule`; `DiffusionMLP(input_dim, hidden_dims, time_embed_dim)` is a denoiser that takes `(x_t, t)` and predicts ε; `diffusion_train_step_factory(schedule)` produces the noise-prediction `train_step_fn`; `sample(model, schedule, shape)` runs the reverse-diffusion loop. This notebook is the canonical in-repo demo of all four pieces working together on MNIST.
+DDPM (Ho et al., 2020) is the foundational diffusion-model recipe. The `nnx` megamerge (thekaveh/NNx#29) ships the full stack: `NoiseSchedulers.LINEAR(T=...)` builds a `NoiseSchedule`; `DiffusionMLP(input_dim, hidden_dims, time_embed_dim)` is a denoiser that takes `(x_t, t)` and predicts ε; `diffusion_train_step_factory(schedule)` produces the noise-prediction `train_step_fn`; `sample(model, schedule, shape)` runs the reverse-diffusion loop. This notebook is the canonical in-repo demo of all four pieces working together on MNIST.
 
 The model is *intentionally tiny* — a 3-layer MLP denoiser on flattened 784-D pixels, T=100 timesteps, 3 epochs on CPU. Generated samples are blurry and mode-mixed at this scale + budget; the point is the *pipeline* (schedule → train step → sampler), not the generation quality. §6.3 calls out the scale levers — swap `DiffusionMLP` for a U-Net and the same three calls produce a much better generator.
 
