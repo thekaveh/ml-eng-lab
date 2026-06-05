@@ -51,7 +51,7 @@ Found an issue in the read-only `nnx` submodule? Append to [docs/FINDINGS-NNX.md
 
 ## 5. Running notebooks
 
-Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the image natively ships the full ml-lab dep set — for 28 of 29 ml-lab notebooks you can use the standalone path; the wrapper-and-bind-mount is only required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook + host-side data/runs persistence + nnx development.
+Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the image natively ships the full ml-lab dep set — for 26 of 29 ml-lab notebooks you can use the standalone path; the wrapper-and-bind-mount is required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook, the two notebooks that need NNx's `[lm]` extra (`text_generation-tinyshakespeare-transformer-pytorch`, `preference_alignment-toy-dpo-pytorch`) until the upstream image picks up `nnx-pytorch[lm]` (follow-up to issue #12), host-side data/runs persistence, and nnx development.
 
 - **Default (standalone genai-vanilla)** — `cd ~/repos/genai-vanilla && ./start.sh`, then point VS Code Mode 2 at the token URL.
 - **Persistence variant (wrapper + bind-mount)** — `scripts/start-jupyterhub.sh` from the ml-lab repo root (NOT `cd vendor/genai-vanilla && ./start.sh` directly — the wrapper sets `ML_REPO_PATH` and `COMPOSE_FILE` to layer the override).

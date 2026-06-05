@@ -11,8 +11,10 @@
 # import nnx. nnx is shipped natively in the genai-vanilla jupyterhub image
 # as of cbad341 (PR #26, 2026-06-02); locally, `pip install 'nnx-pytorch[lm]'`
 # (or `pip install -e './nnx[lm]'` for the editable-dev workflow) gets the
-# same. The `[lm]` extra pulls tokenizers+datasets for the text_generation
-# Tier-A notebook (issue #12); without it NNTokenizerParams ImportErrors.
+# same. The `[lm]` extra pulls tokenizers+datasets for the two notebooks
+# that call train_bpe/NNTokenizerParams (text_generation-tinyshakespeare-...
+# and preference_alignment-toy-dpo-...) — issue #12. Without it those
+# notebooks ImportError at the first tokenizer call.
 # scripts/setup-in-jupyter.sh is only needed for the editable-install
 # developer override inside the wrapper-and-bind-mount path.
 
