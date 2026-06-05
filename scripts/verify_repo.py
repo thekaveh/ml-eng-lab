@@ -43,8 +43,7 @@ _CONFIG = _load_config()
 _active_task_dirs_raw = _CONFIG.get("active_task_dirs")
 if not _active_task_dirs_raw:
     raise RuntimeError(
-        "verify_repo_config.yaml is required; install PyYAML and ensure "
-        "the file exists."
+        "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
     )
 ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
 
@@ -63,8 +62,7 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = _required_sections_from_config()
 _tier_a_raw = _CONFIG.get("tier_a_notebooks")
 if not _tier_a_raw:
     raise RuntimeError(
-        "verify_repo_config.yaml is required; install PyYAML and ensure "
-        "the file exists."
+        "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
     )
 TIER_A_NOTEBOOKS = tuple(_tier_a_raw)
 
@@ -534,8 +532,11 @@ def _scan_source_for_comments(source: str, location_prefix: str) -> list[Finding
 
 
 def _iter_in_scope_code(repo: Path):
+    # verify_repo.py is the scanner itself; scanning its own source produces
+    # spurious C.state_the_what hits on its rule-matching helpers. The other
+    # scripts under scripts/ are in scope.
     for p in (repo / "scripts").glob("*.py"):
-        if p.name in ("verify_repo.py", "edit_notebook_markdown.py"):
+        if p.name == "verify_repo.py":
             continue
         yield p, _read_text(p)
     for d in ACTIVE_TASK_DIRS:

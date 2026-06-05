@@ -1,5 +1,8 @@
 .DS_Store
 
+# Claude Code harness scratch (worktree wrappers, scheduled-task locks, etc.)
+.claude/
+
 # Byte-compiled / optimized / DLL files
 **/__pycache__/
 *.py[cod]
