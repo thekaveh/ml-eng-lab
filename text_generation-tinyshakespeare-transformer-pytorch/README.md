@@ -44,7 +44,7 @@ make run-tier-a
 - `nnx` (the submodule) — `TransformerNN`, `NNTransformerParams`, `GenerativeNNModel`, `train_bpe`, `NNTokenizerParams`, `TrainStepContext`, `NNEvaluationDataPoint`, `set_seed`.
 - `matplotlib` — loss trajectory plot.
 
-The `nnx.tokenizer` BPE trainer pulls in `tokenizers` (HuggingFace's Rust-backed BPE implementation) transitively via the nnx submodule's pyproject extras. The notebook itself doesn't import `tokenizers` directly.
+The `nnx.tokenizer` BPE trainer pulls in `tokenizers` (HuggingFace's Rust-backed BPE implementation) via nnx's `[lm]` extra — `requirements.txt:22` pins `-e ./nnx[lm]`, which resolves to `tokenizers>=0.20` + `datasets>=2.20` from the `[project.optional-dependencies] lm = [...]` block in `nnx/pyproject.toml`. The notebook itself doesn't import `tokenizers` directly.
 
 All in the root `requirements.txt` + `torch-requirements.txt`.
 

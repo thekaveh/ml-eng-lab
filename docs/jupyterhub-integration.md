@@ -10,7 +10,7 @@ For most workflows you do NOT need this repo's wrapper script, override file, or
 
 ## 1. Default path: standalone genai-vanilla + VS Code Mode 2
 
-This is the recommended path for **28 of the 29 ml-lab notebooks** — every Tier-A/B/C notebook except the from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access).
+This is the recommended path for **27 of the 29 ml-lab notebooks** — every Tier-A/B/C notebook except (a) the from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access), and (b) `text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb` (whose `NNTokenizerParams` needs the `nnx[lm]` extra — the standalone genai-vanilla image currently bakes `nnx-pytorch` without extras; jumps back to 28/29 once the upstream image picks up `nnx-pytorch[lm]`, tracked as a follow-up to issue #12).
 
 1. Bring the stack up from a standalone clone of genai-vanilla:
 

@@ -45,7 +45,10 @@ if [ ! -d "$REPO_ROOT/nnx" ]; then
 fi
 
 echo "Overriding pip-installed nnx with editable install from $REPO_ROOT/nnx ..."
-pip install -e "$REPO_ROOT/nnx"
+# `[lm]` extra mirrors requirements.txt and keeps the text_generation Tier-A
+# notebook's `tokenizers`/`datasets` deps installed (issue #12). Without it,
+# the override silently strips those packages and re-trips NNTokenizerParams.
+pip install -e "$REPO_ROOT/nnx[lm]"
 
 echo
 echo "Verifying import..."
