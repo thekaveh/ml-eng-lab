@@ -10,6 +10,8 @@ This repo serves three overlapping purposes:
 - **Portfolio** — each task folder reads as a standalone demonstration of a technique.
 - **Educational resource** — notebooks include narrative explanations alongside code.
 
+**Paradigms covered** (see [§4.1](#41-active) for the per-task mapping): classical ML, GNNs (`pytorch-geometric` GraphSAGE / GCN / GAT), NLP (spaCy + NLTK pipelines, BPE tokenizer), transformer LM with sampling stack, diffusion (DDPM), preference alignment (DPO), self-supervised (I-JEPA), Mixture-of-Experts, PEFT (LoRA / DoRA), quantization (PTQ + QAT), pruning, knowledge distillation, model surgery (Net2Net), autoencoders, clustering.
+
 A shared PyTorch toolkit (`nnx`, included here as a git submodule) provides reusable training-loop, dataset, and visualization primitives that the notebooks consume. Library and tasks co-evolve: each new task lands its required `nnx` additions upstream first, then bumps the submodule pointer here. YAGNI applies — no speculative abstractions in `nnx`.
 
 ## 2. Repository layout
