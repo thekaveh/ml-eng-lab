@@ -45,6 +45,6 @@ class SoftmaxCrossEntropyLayer:
         assert dL_dA is not None
         assert dL_dA.ndim == 2
         assert dL_dA.shape[0] == self.Y.shape[0]
-        assert dL_dA.shape[1] == Consts.FEATURES_SIZE_OUT
+        assert dL_dA.shape[1] == self.feature_size
 
         return dL_dA

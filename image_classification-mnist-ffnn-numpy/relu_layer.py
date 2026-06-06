@@ -34,20 +34,20 @@ class ReluLayer:
         assert dL_dA is not None
         assert dL_dA.ndim == 2
         assert dL_dA.shape[0] == self.Z.shape[0]
-        assert dL_dA.shape[1] == Consts.FEATURES_SIZE_OUT
+        assert dL_dA.shape[1] == self.feature_size
 
         dA_dZ = Funcs.parametric_relu_prime(self.Z, Consts.PARAMETRIC_RELU_ALPHA)
 
         assert dA_dZ is not None
         assert dA_dZ.ndim == 2
         assert dA_dZ.shape[0] == self.Z.shape[0]
-        assert dA_dZ.shape[1] == Consts.FEATURES_SIZE_OUT
+        assert dA_dZ.shape[1] == self.feature_size
 
         dL_dZ = dL_dA * dA_dZ
 
         assert dL_dZ is not None
         assert dL_dZ.ndim == 2
         assert dL_dZ.shape[0] == self.Z.shape[0]
-        assert dL_dZ.shape[1] == Consts.FEATURES_SIZE_OUT
+        assert dL_dZ.shape[1] == self.feature_size
 
         return dL_dZ

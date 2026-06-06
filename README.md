@@ -10,6 +10,8 @@ This repo serves three overlapping purposes:
 - **Portfolio** — each task folder reads as a standalone demonstration of a technique.
 - **Educational resource** — notebooks include narrative explanations alongside code.
 
+**Paradigms covered** (see [§4.1](#41-active) for the per-task mapping): image classification (numpy from-scratch + PyTorch FFNN), tabular classification + regression, GNNs on graphs (`pytorch-geometric` GraphSAGE / GraphConv / GAT — node classification, link prediction, community detection), NLP (spaCy + NLTK pipelines, BPE tokenizer), transformer LM with sampling stack, diffusion (DDPM), preference alignment (DPO), self-supervised (I-JEPA), Mixture-of-Experts, PEFT (LoRA / DoRA), quantization (PTQ + QAT), pruning, knowledge distillation, model surgery (Net2Net), autoencoders, clustering.
+
 A shared PyTorch toolkit (`nnx`, included here as a git submodule) provides reusable training-loop, dataset, and visualization primitives that the notebooks consume. Library and tasks co-evolve: each new task lands its required `nnx` additions upstream first, then bumps the submodule pointer here. YAGNI applies — no speculative abstractions in `nnx`.
 
 ## 2. Repository layout
@@ -40,7 +42,7 @@ Three ways to run these notebooks, in increasing order of "I want my own machine
 
 As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the full ml-lab dep set (`nnx-pytorch` + 5 pip pkgs + 2 NLP model assets). Two paths, pick by need:
 
-**Default — standalone genai-vanilla + VS Code Mode 2** (works for 26 of 29 ml-lab notebooks; the two `[lm]`-extra notebooks — `text_generation-tinyshakespeare-transformer-pytorch` and `preference_alignment-toy-dpo-pytorch` — both call `train_bpe`/`NNTokenizerParams` and need the standalone image bumped to `nnx-pytorch[lm]` before they work on this path; jumps to 28/29 once that lands, tracked as a follow-up to issue #12):
+**Default — standalone genai-vanilla + VS Code Mode 2** (works for 26 of 29 ml-lab notebooks; the three exceptions: (a) `image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the wrapper-and-bind-mount §2 path below; (b) `text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb` and (c) `preference_alignment-toy-dpo-pytorch/notebook.ipynb` both call `train_bpe`/`NNTokenizerParams` and need the standalone image bumped to `nnx-pytorch[lm]` before they work on this path; coverage jumps to 28/29 once that lands, tracked as a follow-up to issue #12):
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh
