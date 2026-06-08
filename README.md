@@ -38,7 +38,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release history; per-folder docs are linked
 
 Three ways to run these notebooks, in increasing order of "I want my own machine to do the work."
 
-### 3.1 genai-vanilla jupyterhub (recommended)
+### 3.1. genai-vanilla jupyterhub (recommended)
 
 As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the full ml-lab dep set (`nnx-pytorch` + 5 pip pkgs + 2 NLP model assets). Two paths, pick by need:
 
@@ -62,7 +62,7 @@ scripts/start-jupyterhub.sh
 
 See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) (full two-path walkthrough) and [docs/vscode-remote-access.md](docs/vscode-remote-access.md).
 
-### 3.2 Local Docker
+### 3.2. Local Docker
 
 ```bash
 docker build -t ml-lab .
@@ -71,12 +71,14 @@ docker run -p 8888:8888 -v "$(pwd):/home/jovyan/work" --shm-size=4g ml-lab
 
 `--shm-size=4g` is the minimum for the GNN notebooks; see [docs/env-setup.md](docs/env-setup.md) §2 for more.
 
-### 3.3 Local venv
+### 3.3. Local venv
 
 ```bash
+git submodule update --init --recursive
 python -m venv .venv && source .venv/bin/activate
 pip install -r torch-requirements.txt
 pip install -r requirements.txt
+make nlp-assets  # one-time spaCy + NLTK assets used by the 2 NLP Tier-A notebooks
 jupyter lab
 ```
 
@@ -84,7 +86,7 @@ See [docs/env-setup.md](docs/env-setup.md) for environment details.
 
 ## 4. Tasks
 
-### 4.1 Active
+### 4.1. Active
 
 | Folder | Task | Dataset | Model | Framework |
 |---|---|---|---|---|
@@ -112,13 +114,13 @@ See [docs/env-setup.md](docs/env-setup.md) for environment details.
 
 > **Tip:** GitHub may show "Unable to render code block" on output cells with large matplotlib PNGs. [Browse this repo on nbviewer](https://nbviewer.org/github/thekaveh/ml-lab/tree/main/) for full rendering of any notebook.
 
-### 4.2 Archived
+### 4.2. Archived
 
 | Folder | Task | Dataset | Model | Framework |
 |---|---|---|---|---|
 | [archive/codexglue_summarization/](archive/codexglue_summarization/) | Code summarization (22 experiments) | CodeXGLUE | Transformers | HuggingFace |
 
-### 4.3 Planned
+### 4.3. Planned
 
 See [§8 Roadmap](#8-roadmap).
 
@@ -199,7 +201,7 @@ The README is the entry point; the items below are the hub's index of secondary 
 
 ### 10.2. Environment + runtimes
 
-- [docs/env-setup.md](docs/env-setup.md) — environment variables, Python version, Tier mapping.
+- [docs/env-setup.md](docs/env-setup.md) — the three setup paths (jupyterhub / Docker / venv), GPU notes, Tier mapping.
 - [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) — primary runtime (vendored `genai-vanilla` JupyterHub stack).
 - [docs/vscode-remote-access.md](docs/vscode-remote-access.md) — VS Code remote-attach modes.
 

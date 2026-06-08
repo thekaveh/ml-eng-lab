@@ -5,7 +5,7 @@
 - **Task:** Link prediction — given a partially-observed graph, predict which missing edges are most likely to actually exist.
 - **Dataset:** Zachary's Karate Club (1977) via `torch_geometric.datasets.KarateClub` — 34 nodes (members), 78 undirected friendship edges, 34-D one-hot identity features.
 - **Model:** 2-layer GraphSAGE encoder (`SAGEConv` 34→32→16) + dot-product edge scorer (`σ(z_u · z_v)`).
-- **Framework:** PyTorch + PyTorch Geometric. **No `nnx`** — the link-prediction loop is small enough that the `nnx.NNModel.train` scaffolding doesn't pay back.
+- **Framework:** PyTorch + PyTorch Geometric. **Minimal `nnx`** — only `nnx.set_seed(0)` for global RNG; the link-prediction loop is small enough that the `nnx.NNModel.train` scaffolding doesn't pay back.
 
 ## 2. Why this exists
 

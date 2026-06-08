@@ -61,4 +61,4 @@ All in the root `requirements.txt` + `torch-requirements.txt`.
 - **Link-prediction is the wrong proxy task for community detection on Karate.** GraphSAGE trained with the link-prediction BCE learns to place *connected* nodes near each other; that's not the same as placing *within-community* nodes near each other. Better proxies (GRACE / BGRL / DiffPool) explicitly push apart between-community-but-connected pairs. Out of scope here.
 - **KMeans `n_clusters=4` is given.** Louvain discovers the number of communities; GraphSAGE + KMeans needs `k`. Pre-specifying `k=4` (matching ground truth) is the most charitable setup for the GNN.
 - **No `nnx.NNModel.train` scaffolding** — same reasoning as the link-prediction sibling: the loop is ~15 lines and the heavier infra doesn't pay back at this scale.
-- **`community` (python-louvain) is in `requirements.txt`** but optional in the verifier env — phase1 of the reddit-gnn task already imports it. This task inherits the same dep.
+- **`community` (python-louvain) is an unconditional dep in `requirements.txt`.** phase1 of the reddit-gnn task already imports it, so this task adds no new pin.
