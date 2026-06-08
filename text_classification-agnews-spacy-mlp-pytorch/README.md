@@ -51,7 +51,7 @@ make run-tier-a
 - `numpy` — feature matrix.
 - `matplotlib` — confusion-matrix heatmap.
 
-`spacy` and `python-louvain` are already in the root `requirements.txt`; the `en_core_web_sm` model download is the only extra step.
+`spacy` is already in the root `requirements.txt`; the `en_core_web_sm` model download is the only extra step.
 
 ## 6. Known issues
 

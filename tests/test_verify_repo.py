@@ -83,10 +83,17 @@ def test_structure_s7_no_pycache_tracked():
 
 
 def test_docs_d1_known_notebooks_have_required_sections():
+    """All tracked notebooks must have their REQUIRED_SECTIONS H1s present.
+
+    Regression guard: if a future edit deletes / reorders an H1 in a tracked
+    notebook listed in REQUIRED_SECTIONS, D1.missing_sections fires here.
+    Also catches D1.missing_notebook if a listed file gets renamed without
+    updating the config.
+    """
     r = run_verify("--check", "docs", "--fast")
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
-    # Skeleton/initial: just assert the check ran.
-    assert "docs" in data["summary"]["checks_run"]
+    d1 = [f for f in data["findings"] if f["id"].startswith("D1.")]
+    assert d1 == [], f"D1 reported issues: {d1}"
 
 
 def test_docs_d8_terminology_consistency_known_canonicals():

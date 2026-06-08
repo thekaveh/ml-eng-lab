@@ -35,7 +35,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r torch-requirements.txt
           pip install -r requirements.txt
-          pip install ruff
+          pip install 'ruff>=0.9,<1.0'
 
       - name: Lint (ruff check)
         run: make lint

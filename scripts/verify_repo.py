@@ -3,7 +3,8 @@
 
 Runs four orthogonal checks (structure, execution, docs, comments) and emits
 machine-readable findings JSON + a human-readable report. Exit code 0 = no
-findings; nonzero = findings present (count in stderr).
+error-severity findings (warnings are allowed and reported but don't fail
+the run); 1 = at least one error finding (counts on stderr).
 """
 from __future__ import annotations
 
@@ -852,7 +853,7 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
     return result
 
 
-CHECKS: dict[str, Callable[[Path, bool], CheckResult]] = {
+CHECKS: dict[str, Callable[..., CheckResult]] = {
     "structure": check_structure,
     "docs": check_docs,
     "comments": check_comments,

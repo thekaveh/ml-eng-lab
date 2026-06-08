@@ -1,4 +1,4 @@
-# Root pyproject.toml — for tooling (ruff, pre-commit) only.
+# Root pyproject.toml — for ruff configuration only.
 # The ml-lab repo is NOT pip-installable as a package itself. Each task folder
 # is a self-contained set of notebooks; library code lives in the nnx submodule.
 

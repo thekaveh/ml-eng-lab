@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Inject a `parameters`-tagged SMOKE_TEST cell at the top of each notebook.
 
-Idempotent: if a parameters cell with SMOKE_TEST already exists, skips the file.
+Idempotent: if any code cell tagged `parameters` already exists, skips the file
+(the existing tag is treated as the SMOKE_TEST hook regardless of its source).
 
 Usage:
     python scripts/inject_smoke_test_cell.py NOTEBOOK [...]

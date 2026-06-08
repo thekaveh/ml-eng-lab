@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 train_loader = DataLoader(ds.train_loader.dataset, batch_size=128, shuffle=True)
 ```
 
-**Suggested upstream fix**: make `NNDataset(... , batch_size=N)` accept an explicit override, or default to a smaller batch (256 or 512) so the train loader is per-batch granular by default. The current default is "whole train set" which is a very surprising default for anything that uses `train_step_fn=`.
+**Upstream fix landed (partial)**: `nnx.NNDataset` now accepts a `batch_sizes: tuple[Optional[int], Optional[int], Optional[int]] = (None, None, None)` constructor arg (`nnx/src/nnx/nn/dataset/nn_dataset.py:24`), so the cleaner form is `NNDataset(..., batch_sizes=(128, None, None))`. The four affected notebooks still use the older `DataLoader(...dataset, batch_size=128)` bypass; they can be migrated to the `batch_sizes=` form at any time without changing recorded outputs (the resolved batch_size is identical). The default — `None` per slot → whole-split batch — is unchanged upstream, so the underlying "surprising default" critique still stands for new tasks; the workaround just has a less invasive form now.
 
 ### 1.2. `nnx.deepen` is function-preserving only for `Activations.RELU`
 

@@ -6,8 +6,8 @@ from consts import Consts
 class LinearLayer:
     def __init__(
         self
-        , W: np.matrix = None
-        , b: np.matrix = None
+        , W: np.ndarray = None
+        , b: np.ndarray = None
         , feature_size_out: int = Consts.FEATURES_SIZE_OUT
         , feature_size_in: int = Consts.FEATURES_SIZE_IN
     ):
@@ -41,7 +41,7 @@ class LinearLayer:
             np.testing.assert_almost_equal(np.linalg.norm(self.b), 1)
 
     # X: nxm -> Z: nxc
-    def forward(self, X: np.matrix):
+    def forward(self, X: np.ndarray):
         assert X is not None
         assert X.ndim == 2
         assert X.shape[1] == self.feature_size_in
@@ -58,7 +58,7 @@ class LinearLayer:
         return Z
 
     # dL_dZ: nxc -> (dW: cxm, db: cx1)
-    def backward(self, dL_dZ: np.matrix):
+    def backward(self, dL_dZ: np.ndarray):
         n = self.X.shape[0]
 
         assert dL_dZ is not None

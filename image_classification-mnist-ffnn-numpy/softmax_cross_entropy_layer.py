@@ -13,7 +13,7 @@ class SoftmaxCrossEntropyLayer:
         self.feature_size = feature_size
 
     # A: nxc -> Y_hat: nxc, (Y: nxc, Y_hat: nxc) -> L
-    def forward(self, A: np.matrix, Y: np.matrix):
+    def forward(self, A: np.ndarray, Y: np.ndarray):
         assert A is not None
         assert A.ndim == 2
         assert A.shape[1] == self.feature_size

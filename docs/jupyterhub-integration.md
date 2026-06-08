@@ -37,7 +37,7 @@ Use this when you want any of:
 
 This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla) and ships a wrapper script that layers an ml-lab override onto the standalone compose:
 
-### 2.1 Clone with submodules
+### 2.1. Clone with submodules
 
 ```bash
 git clone --recurse-submodules https://github.com/thekaveh/ml-lab.git
@@ -45,7 +45,7 @@ git clone --recurse-submodules https://github.com/thekaveh/ml-lab.git
 git submodule update --init --recursive
 ```
 
-### 2.2 Run the wrapper
+### 2.2. Run the wrapper
 
 ```bash
 scripts/start-jupyterhub.sh
