@@ -852,7 +852,7 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
     return result
 
 
-CHECKS: dict[str, Callable[[Path, bool], CheckResult]] = {
+CHECKS: dict[str, Callable[..., CheckResult]] = {
     "structure": check_structure,
     "docs": check_docs,
     "comments": check_comments,
