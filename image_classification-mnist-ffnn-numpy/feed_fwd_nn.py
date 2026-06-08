@@ -109,24 +109,19 @@ class FeedFwdNN:
         return np.array(iteration_data)
 
     def _validate(self):
+        # Reuse self.L1/L2/L3 directly: validation runs only after the
+        # train-step backward pass has consumed cached activations, so
+        # overwriting them via a fresh forward is harmless and avoids
+        # per-call layer-object construction inside the training loop.
         loss_vals = []
-
-        L1_val = LinearLayer(
-            W=self.L1.W
-            , b=self.L1.b
-            , feature_size_in=self.feature_size_in
-            , feature_size_out=self.feature_size_out
-        )
-        L2_val = ReluLayer(feature_size=self.feature_size_out)
-        L3_val = SoftmaxCrossEntropyLayer(feature_size=self.feature_size_out)
 
         for I in Utils.mini_batchify(self.I_val, self.mini_batch_size):
             X = self.X_val[I]
             Y = self.Y_val[I]
 
-            A1 = L1_val.forward(X)
-            A2 = L2_val.forward(A1)
-            L_val = L3_val.forward(A2, Y)
+            A1 = self.L1.forward(X)
+            A2 = self.L2.forward(A1)
+            L_val = self.L3.forward(A2, Y)
 
             loss_vals.append(L_val)
 

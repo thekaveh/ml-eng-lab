@@ -13,7 +13,7 @@ class ReluLayer:
         self.feature_size = feature_size
 
     # Z: nxc -> A: nxc
-    def forward(self, Z: np.matrix):
+    def forward(self, Z: np.ndarray):
         assert Z is not None
         assert Z.ndim == 2
         assert Z.shape[1] == self.feature_size
@@ -30,7 +30,7 @@ class ReluLayer:
         return A
 
     # dL_dA: nxc -> dL_dZ: nxc
-    def backward(self, dL_dA: np.matrix):
+    def backward(self, dL_dA: np.ndarray):
         assert dL_dA is not None
         assert dL_dA.ndim == 2
         assert dL_dA.shape[0] == self.Z.shape[0]

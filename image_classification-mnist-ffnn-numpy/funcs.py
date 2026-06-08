@@ -13,7 +13,7 @@ class Funcs:
     smce_prime = staticmethod(lambda Y, Y_hat: Y_hat - Y)
 
     @staticmethod
-    def softmax(A: np.matrix) -> np.matrix:
+    def softmax(A: np.ndarray) -> np.ndarray:
         assert A is not None
         assert A.ndim == 2
 
