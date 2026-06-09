@@ -39,7 +39,7 @@ Or via the Tier-B smoke target (writes to `/tmp/`, preserves committed outputs):
 make smoke-tier-b
 ```
 
-**Tier-B** (heavier; the full `[9 hidden_dims × 500 epochs]` sweep takes >90 min on the Linux GH runner, see issue #7). Runs in CI only on the weekly schedule (`0 7 * * 1`) or on PRs labeled `tier-b-smoke`, not on every PR. For local re-execution that refreshes committed outputs, open the notebook in Jupyter and run all cells (the make target writes to `/tmp/` to preserve the existing outputs).
+**Tier-B** (heavier; the full `[9 hidden_dims × 500 epochs]` sweep takes >90 min on the Linux GH runner, see issue #7). `make smoke-tier-b` writes a **`SMOKE_TEST=1` reduced sweep** (`[1 hidden_dims × 1 dropout × 2 epochs]`, ~5 min on CPU) to `/tmp/` to preserve the committed full-sweep outputs. Runs in CI only on the weekly schedule (`0 7 * * 1`) or on PRs labeled `tier-b-smoke`, not on every PR. For local re-execution that refreshes the committed full-sweep outputs, open the notebook in Jupyter and run all cells.
 
 Also verified via [`tests/nnx_surface/test_image_classification_mnist_ffnn_pytorch.py`](../tests/nnx_surface/test_image_classification_mnist_ffnn_pytorch.py) — a fast NNx-surface contract test pinning the `NNModel` + `Nets.FEED_FWD` call shape. Runs in the CI `pytest-nnx-surface` job on every PR (`make test-nnx-surface` locally).
 
