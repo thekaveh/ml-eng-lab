@@ -60,7 +60,7 @@ SMOKE_OUT := /tmp/ml-smoke
 help:
 	@echo "Targets:"
 	@echo "  run-tier-a        Re-execute Tier-A notebooks in place. CI runs this on every PR."
-	@echo "  smoke-tier-b      Papermill Tier-B notebooks to $(SMOKE_OUT)/ (preserves source outputs)."
+	@echo "  smoke-tier-b      Papermill Tier-B notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/ (preserves source outputs)."
 	@echo "  smoke-tier-c      Papermill Tier-C notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/."
 	@echo "  test              Run pytest on tests/ directory."
 	@echo "  test-nnx-surface  Run only tests/nnx_surface (matches the CI pytest-nnx-surface job)."
@@ -81,7 +81,7 @@ smoke-tier-b:
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && papermill --kernel python3 "$$base" "$$out") || exit 1; \
+		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
 
 smoke-tier-c:

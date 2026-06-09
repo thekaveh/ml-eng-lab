@@ -131,7 +131,7 @@ Notebooks are tiered by execution cost:
 | Tier | What it is | Re-run policy |
 |---|---|---|
 | **A** | Cheap (<5 min) | `make run-tier-a` re-runs and refreshes outputs. Verified in CI on every PR. Tier-A notebooks also accept a `SMOKE_TEST` papermill parameter (default `0` = full run). |
-| **B** | Moderate (model-selection sweeps) | Original outputs preserved. `make smoke-tier-b` writes to `/tmp/`. |
+| **B** | Moderate (model-selection sweeps) | Original outputs preserved. `make smoke-tier-b` runs `SMOKE_TEST=1` on parameterized notebooks (the two mnist Tier-B notebooks shrink their sweep) + the hardcoded sweep on the rest, writing to `/tmp/`. |
 | **C** | Expensive (main GPU training) | Historical Aug-2023 GPU training-run outputs preserved as artifact. `make smoke-tier-c` runs CPU with `SMOKE_TEST=1` to validate the pipeline without overwriting outputs. |
 
 See [docs/env-setup.md](docs/env-setup.md) for the tier mapping.
