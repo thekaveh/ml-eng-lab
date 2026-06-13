@@ -1,6 +1,6 @@
 import numpy as np
 
-from funcs import Funcs
+from funcs import softmax, cross_entropy, smce_prime
 from consts import Consts
 
 class SoftmaxCrossEntropyLayer:
@@ -25,7 +25,7 @@ class SoftmaxCrossEntropyLayer:
 
         self.Y = Y
 
-        Y_hat = Funcs.softmax(A)
+        Y_hat = softmax(A)
 
         assert Y_hat is not None
         assert Y_hat.ndim == 2
@@ -34,13 +34,13 @@ class SoftmaxCrossEntropyLayer:
 
         self.Y_hat = Y_hat
 
-        L = Funcs.cross_entropy(Y, Y_hat)
+        L = cross_entropy(Y, Y_hat)
 
         return L
 
     # (Y: nxc, Y_hat: nxc) -> dL_dA: nxc
     def backward(self):
-        dL_dA = Funcs.smce_prime(self.Y, self.Y_hat)
+        dL_dA = smce_prime(self.Y, self.Y_hat)
 
         assert dL_dA is not None
         assert dL_dA.ndim == 2

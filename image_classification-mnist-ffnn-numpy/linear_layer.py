@@ -1,6 +1,6 @@
 import numpy as np
 
-from funcs import Funcs
+from funcs import linear
 from consts import Consts
 
 class LinearLayer:
@@ -18,7 +18,7 @@ class LinearLayer:
         self.feature_size_out = feature_size_out
 
         if W is not None:
-            self.W = np.ndarray.copy(W)
+            self.W = W.copy()
         else:
             self.W = np.random.standard_normal(size=(feature_size_out, feature_size_in))
             self.W = self.W / np.linalg.norm(self.W)
@@ -30,7 +30,7 @@ class LinearLayer:
             np.testing.assert_almost_equal(np.linalg.norm(self.W), 1)
 
         if b is not None:
-            self.b = np.ndarray.copy(b)
+            self.b = b.copy()
         else:
             self.b = np.random.standard_normal(size=feature_size_out)
             self.b = self.b / np.linalg.norm(self.b)
@@ -48,7 +48,7 @@ class LinearLayer:
 
         self.X = X
 
-        Z = Funcs.linear(self.X, self.W, self.b)
+        Z = linear(self.X, self.W, self.b)
 
         assert Z is not None
         assert Z.ndim == 2
