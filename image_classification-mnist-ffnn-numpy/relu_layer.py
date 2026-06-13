@@ -1,6 +1,6 @@
 import numpy as np
 
-from funcs import Funcs
+from funcs import parametric_relu, parametric_relu_prime
 from consts import Consts
 
 class ReluLayer:
@@ -20,7 +20,7 @@ class ReluLayer:
 
         self.Z = Z
 
-        A = Funcs.parametric_relu(Z, Consts.PARAMETRIC_RELU_ALPHA)
+        A = parametric_relu(Z, Consts.PARAMETRIC_RELU_ALPHA)
 
         assert A is not None
         assert A.ndim == 2
@@ -36,7 +36,7 @@ class ReluLayer:
         assert dL_dA.shape[0] == self.Z.shape[0]
         assert dL_dA.shape[1] == self.feature_size
 
-        dA_dZ = Funcs.parametric_relu_prime(self.Z, Consts.PARAMETRIC_RELU_ALPHA)
+        dA_dZ = parametric_relu_prime(self.Z, Consts.PARAMETRIC_RELU_ALPHA)
 
         assert dA_dZ is not None
         assert dA_dZ.ndim == 2
