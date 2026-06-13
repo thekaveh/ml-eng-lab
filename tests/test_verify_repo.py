@@ -227,8 +227,13 @@ def test_e7_papermill_params_tag_check():
 
 def _load_verify_module():
     import importlib.util
+    if "verify_repo" in sys.modules:
+        return sys.modules["verify_repo"]
     spec = importlib.util.spec_from_file_location("verify_repo", SCRIPT)
     mod = importlib.util.module_from_spec(spec)
+    # @dataclass field resolution needs the module findable in sys.modules,
+    # otherwise field-class lookup raises AttributeError on a NoneType.
+    sys.modules["verify_repo"] = mod
     spec.loader.exec_module(mod)
     return mod
 
