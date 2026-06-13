@@ -225,6 +225,24 @@ def test_e7_papermill_params_tag_check():
         assert f["severity"] == "warning"
 
 
+def _load_verify_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("verify_repo", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_run_helper_timeout_returns_rc_124():
+    """_run must catch subprocess.TimeoutExpired and surface rc=124 + a
+    diagnostic stderr suffix, so a hung make target produces a clean Finding
+    instead of an uncaught traceback."""
+    verify_repo = _load_verify_module()
+    rc, stdout, stderr = verify_repo._run(["sleep", "5"], REPO, timeout=1)
+    assert rc == 124, f"expected rc=124 on timeout, got {rc} (stdout={stdout!r}, stderr={stderr!r})"
+    assert "timed out after 1s" in stderr
+
+
 def test_s7_forbidden_toplevel_detects_resurrected_common():
     """S7.forbidden_toplevel fires if common/ ever comes back."""
     fake_dir = REPO / "common"

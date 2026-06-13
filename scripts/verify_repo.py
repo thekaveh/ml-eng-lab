@@ -642,8 +642,14 @@ def export_phase_b_candidates(repo: Path, out_path: Path) -> int:
     return len(candidates)
 
 
-def _run(cmd: list[str], cwd: Path) -> tuple[int, str, str]:
-    proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
+    try:
+        proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired as e:
+        # rc=124 mirrors GNU `timeout(1)`: callers already branch on rc != 0
+        # to surface a Finding, so a hung make target produces a clean
+        # error rather than crashing the verifier.
+        return 124, e.stdout or "", (e.stderr or "") + f"\n[verify_repo] timed out after {timeout}s"
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -730,21 +736,24 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                 ),
             ))
         else:
-            rc, _, err = _run(["make", "run-tier-a"], repo)
+            # Timeouts mirror the CI caps in .github/workflows/ci.yml
+            # (tier-a-papermill 90 min, smoke-tier-b/c 180 min each). Without
+            # local caps a hung papermill cell blocks the verifier indefinitely.
+            rc, _, err = _run(["make", "run-tier-a"], repo, timeout=5400)
             if rc != 0:
                 result.findings.append(Finding(
                     id="E1.tier_a_failed", check="execution", severity="error",
                     location="Makefile:run-tier-a",
                     message=f"failed: {err.strip()[-300:]}",
                 ))
-            rc, _, err = _run(["make", "smoke-tier-b"], repo)
+            rc, _, err = _run(["make", "smoke-tier-b"], repo, timeout=10800)
             if rc != 0:
                 result.findings.append(Finding(
                     id="E2.tier_b_smoke_failed", check="execution", severity="error",
                     location="Makefile:smoke-tier-b",
                     message=f"failed: {err.strip()[-300:]}",
                 ))
-            rc, _, err = _run(["make", "smoke-tier-c"], repo)
+            rc, _, err = _run(["make", "smoke-tier-c"], repo, timeout=10800)
             if rc != 0:
                 result.findings.append(Finding(
                     id="E3.tier_c_smoke_failed", check="execution", severity="error",
