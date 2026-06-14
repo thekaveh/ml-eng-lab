@@ -36,7 +36,7 @@ def _load_config() -> dict:
             "verify_repo_config.yaml is required; install PyYAML and ensure "
             "the file exists."
         )
-    return _yaml.safe_load(CONFIG_PATH.read_text()) or {}
+    return _yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
 
 
 _CONFIG = _load_config()
