@@ -1,6 +1,3 @@
-[submodule "nnx"]
-	path = nnx
-	url = https://github.com/thekaveh/NNx.git
 [submodule "vendor/genai-vanilla"]
 	path = vendor/genai-vanilla
 	url = https://github.com/thekaveh/genai-vanilla.git
