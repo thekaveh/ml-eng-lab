@@ -5,7 +5,7 @@
 - **Task:** 3-class sentiment classification (negative / neutral / positive).
 - **Dataset:** Embedded 60-review corpus (20 per class), tiled 4× → 240 reviews. Movie + product + restaurant + miscellaneous factual reviews.
 - **Models:** VADER (rule-based, NLTK's `SentimentIntensityAnalyzer`) vs `nnx.NNModel` MLP (spaCy lemmatize → 100-token BoW → 32-hidden classifier).
-- **Framework:** PyTorch (via [`nnx`](../nnx)) + NLTK + spaCy + sklearn.
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) + NLTK + spaCy + sklearn.
 
 ## 2. Why this exists
 
@@ -46,7 +46,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch` — autograd + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `set_seed`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `set_seed`.
 - `nltk` — `SentimentIntensityAnalyzer`. The `vader_lexicon` is downloaded lazily by §2.1 if not already present (cached after first run).
 - `spacy` — tokenizer + lemmatizer (`en_core_web_sm`, same as `text_classification-agnews-spacy-mlp-pytorch/`).
 - `scikit-learn` — split + accuracy + classification_report + confusion_matrix.

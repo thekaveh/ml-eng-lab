@@ -5,7 +5,7 @@ pandas-DataFrame → DataLoader wrapper that landed in the 21-commit
 nnx hop) alongside the same `FeedFwdNN` + `NNModel` core used in
 `image_classification-mnist-ffnn-pytorch`.
 
-If this test fails after a `nnx` submodule pointer bump, the bump
+If this test fails after a `thekaveh-nnx` version upgrade, the bump
 broke something the iris notebook depends on. The test asserts the
 *shape* of the call chain (build datasets via DataFrame → build params
 → instantiate model → 1-epoch train → predict → unpack PredictResult →

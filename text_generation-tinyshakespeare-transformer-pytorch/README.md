@@ -5,7 +5,7 @@
 - **Task:** Autoregressive language modeling — train a tiny decoder-only transformer on a Shakespeare-style corpus, then sample text generations.
 - **Dataset:** ~7 KB of Shakespeare embedded inline (lines from *Romeo & Juliet*, *Hamlet*, *Macbeth*, *Julius Caesar*, *As You Like It*), tiled 8× for training-loop size + BPE frequency.
 - **Model:** `nnx.TransformerNN` via `Nets.TRANSFORMER` (decoder-only, RoPE positional, tied embeddings) — `n_layers=2`, `d_model=64`, `n_heads=4`, `max_seq_len=32`, ~114 k parameters.
-- **Framework:** PyTorch (via [`nnx`](../nnx)) — exercises the megamerge transformer fork end-to-end.
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) — exercises the megamerge transformer fork end-to-end.
 
 ## 2. Why this exists
 
@@ -41,10 +41,10 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch` — tensors + autograd.
-- `nnx` (the submodule) — `TransformerNN`, `NNTransformerParams`, `GenerativeNNModel`, `train_bpe`, `NNTokenizerParams`, `TrainStepContext`, `NNEvaluationDataPoint`, `set_seed`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `TransformerNN`, `NNTransformerParams`, `GenerativeNNModel`, `train_bpe`, `NNTokenizerParams`, `TrainStepContext`, `NNEvaluationDataPoint`, `set_seed`.
 - `matplotlib` — loss trajectory plot.
 
-The `nnx.tokenizer` BPE trainer pulls in `tokenizers` (HuggingFace's Rust-backed BPE implementation) via nnx's `[lm]` extra — `requirements.txt` pins `-e ./nnx[lm]`, which resolves to `tokenizers>=0.20` + `datasets>=2.20` from the `[project.optional-dependencies] lm = [...]` block in `nnx/pyproject.toml`. The notebook itself doesn't import `tokenizers` directly.
+The `nnx.tokenizer` BPE trainer pulls in `tokenizers` (HuggingFace's Rust-backed BPE implementation) via nnx's `[lm]` extra — `requirements.txt` pins `thekaveh-nnx[lm]==0.2.0`, which resolves to `tokenizers>=0.20` + `datasets>=2.20` from the `[project.optional-dependencies] lm = [...]` block in `thekaveh/NNx`'s `pyproject.toml`. The notebook itself doesn't import `tokenizers` directly.
 
 All in the root `requirements.txt` + `torch-requirements.txt`.
 

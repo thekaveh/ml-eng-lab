@@ -5,7 +5,7 @@
 - **Task:** Toy DPO (Direct Preference Optimization, Rafailov et al., 2023) preference alignment.
 - **Dataset:** 16 hand-written `(prompt, chosen, rejected)` triplets — cheerful chosen, gloomy rejected.
 - **Model:** Tiny `TransformerNN` (`d_model=16`, `n_layers=2`, `n_heads=2`, `max_seq_len=64`) — both `ref_model` (frozen) and `policy` (trained).
-- **Framework:** PyTorch (via [`nnx`](../nnx)) — exercises the megamerge DPO + preference-dataset stack end-to-end.
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) — exercises the megamerge DPO + preference-dataset stack end-to-end.
 
 ## 2. Why this exists
 
@@ -50,11 +50,11 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch` — autograd + tensors.
-- `nnx` (the submodule) — `GenerativeNNModel`, `TransformerNN`, `NNTransformerParams`, `NNTokenizerParams`, `train_bpe`, `NNPreferenceDataset`, `dpo_train_step_factory`, `set_seed`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `GenerativeNNModel`, `TransformerNN`, `NNTransformerParams`, `NNTokenizerParams`, `train_bpe`, `NNPreferenceDataset`, `dpo_train_step_factory`, `set_seed`.
 - `matplotlib` — DPO loss trajectory plot.
 - `prettytable` — before/after gap table.
 
-All in the root `requirements.txt` + `torch-requirements.txt`. The `tokenizers` package (HuggingFace's Rust-backed BPE) is pulled in via nnx's `[lm]` extra — `requirements.txt` pins `-e ./nnx[lm]` (issue #12).
+All in the root `requirements.txt` + `torch-requirements.txt`. The `tokenizers` package (HuggingFace's Rust-backed BPE) is pulled in via nnx's `[lm]` extra — `requirements.txt` pins `thekaveh-nnx[lm]==0.2.0` (issue #12).
 
 ## 6. Known issues
 

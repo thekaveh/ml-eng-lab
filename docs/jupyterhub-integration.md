@@ -1,16 +1,16 @@
 # JupyterHub integration
 
-The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), that image natively ships the full ml-lab dependency set:
+The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), that image natively ships the ml-lab dependency set:
 
-- `nnx-pytorch` (installed as `nnx` — the PyTorch toolkit at [`thekaveh/NNx`](https://github.com/thekaveh/NNx))
 - `python-louvain`, `nltk`, `spacy`, `torchao`, `prettytable`
 - The `en_core_web_sm` spaCy model + the `vader_lexicon` NLTK corpus, downloaded at image-build time
+- nnx — the image's pip layer currently installs the now-defunct `nnx-pytorch[lm]` distribution name. ml-lab switched to the PyPI-stable `thekaveh-nnx[lm]==0.2.0` on 2026-06-14; the genai-vanilla image needs a coordinated upstream bump (see §6 failure mode and the 2026-06-14 entry in `CHANGELOG.md`).
 
-For most workflows you do NOT need this repo's wrapper script, override file, or `setup-in-jupyter.sh`. Just start the standalone stack and connect from VS Code.
+For most workflows you do NOT need this repo's wrapper script or override file — just start the standalone stack and connect from VS Code.
 
 ## 1. Default path: standalone genai-vanilla + VS Code Mode 2
 
-This is the recommended path for **26 of the 29 ml-lab notebooks** — every Tier-A/B/C notebook except (a) the from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access), and (b) the two notebooks that call `train_bpe`/`NNTokenizerParams` and need the `nnx[lm]` extra — `text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb` and `preference_alignment-toy-dpo-pytorch/notebook.ipynb`. The standalone genai-vanilla image currently bakes `nnx-pytorch` without extras; jumps to 28/29 once the upstream image picks up `nnx-pytorch[lm]`, tracked as a follow-up to issue #12.
+This is the recommended path for **most ml-lab notebooks** — the exception being the from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access, and needs the §2 path). Until the genai-vanilla image bumps its baked `nnx-pytorch` name to `thekaveh-nnx[lm]==0.2.0`, the standalone path also requires a per-session manual fix (`docker exec ... pip install thekaveh-nnx[lm]==0.2.0` inside the running jupyterhub container) for notebooks that import `nnx`.
 
 1. Bring the stack up from a standalone clone of genai-vanilla:
 
@@ -61,15 +61,13 @@ HOST_SSH_DIR=/path/to/keys scripts/start-jupyterhub.sh
 
 ## 3. nnx development: editable install override
 
-If you're hacking on `nnx` itself (editing source under `nnx/src/nnx/` and wanting changes to land in the running kernel without a `pip install` cycle), the image's pip-installed `nnx-pytorch` needs to be overridden with an editable install pointing at the bind-mounted submodule.
+If you're hacking on `nnx` itself (editing source on your host and wanting changes to land in the running kernel without a `pip install` cycle), clone [`thekaveh/NNx`](https://github.com/thekaveh/NNx) anywhere outside the ml-lab tree, then bind-mount your clone into the running container alongside ml-lab (extend `deploy/genai-vanilla-jupyterhub.override.yml` with a second volume) and:
 
 ```bash
-docker exec -it <project>-jupyterhub /home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh
+docker exec -it <project>-jupyterhub pip install -e /home/jovyan/work/NNx[lm]
 ```
 
-This is a no-op for the default §1 path (no bind-mount → no nnx source on disk → script errors out). It only makes sense when you're running the §2 path AND actively editing nnx.
-
-For everyone else, the pip-installed nnx is what you want and this script is unnecessary.
+For everyone else, the PyPI-installed `thekaveh-nnx` (or, once the image bumps, the pre-baked layer) is what you want and this override is unnecessary.
 
 ## 4. Submodule pin / bumping
 
@@ -93,9 +91,8 @@ genai-vanilla `cbad341` (PR #26, 2026-06-02) or later — the first commit where
 
 ## 6. Common failure modes
 
-- **`Could not find a version that satisfies the requirement nnx-pytorch`** during `docker compose build jupyterhub` — `nnx-pytorch` hasn't propagated to PyPI yet. Re-run the build after publication completes, or hold genai-vanilla at a pre-PR-26 commit and use the §2 + §3 path (wrapper + editable nnx).
-- **`ModuleNotFoundError: No module named 'nnx'`** in the §1 path — the image was built before genai-vanilla PR #26 (`cbad341`). Pull the latest genai-vanilla `main` and `docker compose build jupyterhub`.
-- **`ModuleNotFoundError: No module named 'nnx'`** in the §2 path — `setup-in-jupyter.sh` wasn't run for this container instance AND the image is pre-PR-26. Either upgrade genai-vanilla (preferred) or run the editable-install script.
+- **`Could not find a version that satisfies the requirement nnx-pytorch`** during `docker compose build jupyterhub` — the `nnx-pytorch` PyPI name was retired on 2026-06-14 in favor of `thekaveh-nnx`. The image needs an upstream bump to `pip install thekaveh-nnx[lm]==0.2.0`. Until then, the workaround is to `docker exec` into the running container and `pip install thekaveh-nnx[lm]==0.2.0` per-session.
+- **`ModuleNotFoundError: No module named 'nnx'`** in the §1 path — the image was built before genai-vanilla PR #26 (`cbad341`) OR before the image bumps to `thekaveh-nnx[lm]`. Pull the latest genai-vanilla `main` and `docker compose build jupyterhub`.
 - **Submodule not found at `vendor/genai-vanilla/`** — run `git submodule update --init --recursive` at the repo root.
 - **`ML_REPO_PATH variable is not set`** during compose up — you ran `cd vendor/genai-vanilla && ./start.sh` directly instead of using the wrapper. Use `scripts/start-jupyterhub.sh`.
 - **Relative-path reads/writes go to the wrong place** (notebook does `pd.read_csv("./data/foo.csv")` but the file is on your host) — you're on the §1 path. Switch to §2 if you want host-side persistence.

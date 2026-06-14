@@ -5,7 +5,7 @@
 - **Task:** Node classification on a large social-network graph.
 - **Dataset:** Reddit2 (PyTorch Geometric). 232,965 nodes, 23,213,838 edges, 602-dim node features, 41 classes (subreddit communities).
 - **Models:** Feed-forward NN (baseline), GraphConv (GCN), GraphSAGE, Graph Attention (GAT) — comparison study via PyTorch Geometric.
-- **Framework:** PyTorch + PyG (via [`nnx`](../nnx)).
+- **Framework:** PyTorch + PyG (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)).
 
 ## 2. Why this exists
 
@@ -67,7 +67,7 @@ Also verified via [`tests/nnx_surface/test_node_classification_reddit_gnn_pyg.py
 ## 5. Dependencies
 
 - `torch` (≥ 2.0) + `torch_geometric` + `torch_sparse`
-- `nnx` (the submodule — `Nets.FEED_FWD`, `Nets.GRAPH_CONV`, `Nets.GRAPH_SAGE`, `Nets.GRAPH_ATT`)
+- `nnx` (PyPI: `thekaveh-nnx` — `Nets.FEED_FWD`, `Nets.GRAPH_CONV`, `Nets.GRAPH_SAGE`, `Nets.GRAPH_ATT`)
 - `networkx`, `community` (python-louvain), `pandas`, `seaborn`, `matplotlib`
 - `numpy`, `scikit-learn`
 

@@ -48,7 +48,7 @@ if not _active_task_dirs_raw:
     )
 ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
 
-VERIFY_ONLY_DIRS = ("archive", "nnx", "vendor")
+VERIFY_ONLY_DIRS = ("archive", "vendor")
 
 
 def _required_sections_from_config() -> dict[str, tuple[str, ...]]:
@@ -248,7 +248,7 @@ def check_structure(repo: Path) -> CheckResult:
 
     _COMMON_IMPORT_RE = re.compile(r"^\s*(?:from\s+common(?:\.\w+)*\s+import\b|import\s+common(?:\.\w+)*)")
     for path in tracked:
-        if path.startswith(("tests/", "archive/", "nnx/", "vendor/")):
+        if path.startswith(("tests/", "archive/", "vendor/")):
             continue
         full = repo / path
         if not full.is_file():

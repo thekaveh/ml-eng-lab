@@ -1,6 +1,6 @@
 """NNx-surface contract test for image_classification-mnist-ffnn-pytorch/notebook.ipynb.
 
-If this test fails after a `nnx` submodule pointer bump, the bump broke
+If this test fails after a `thekaveh-nnx` version upgrade, the bump broke
 something the MNIST FFNN notebook depends on. Test asserts the *shape*
 of the call chain (build params → instantiate model → 1-batch train →
 predict), not the convergence behavior.

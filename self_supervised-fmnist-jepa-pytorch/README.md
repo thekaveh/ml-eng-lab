@@ -5,7 +5,7 @@
 - **Task:** Self-supervised representation learning (I-JEPA — Image Joint-Embedding Predictive Architecture) + frozen-encoder linear probe.
 - **Dataset:** Fashion-MNIST (28×28 grayscale, 10 apparel classes) via `nnx.NNDataset`.
 - **Model:** `nnx.ViTNN` (`image_size=28`, `patch_size=4`, `in_channels=1`, `d_model=64`, `n_layers=2`, `n_heads=4`) — ~103k params; `nnx.JEPAPredictor` — ~30k params.
-- **Framework:** PyTorch (via [`nnx`](../nnx)) — exercises the megamerge JEPA + ViT stack end-to-end.
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) — exercises the megamerge JEPA + ViT stack end-to-end.
 
 ## 2. Why this exists
 
@@ -45,7 +45,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch`, `torchvision` — Fashion-MNIST + tensors.
-- `nnx` (the submodule) — `ViTNN`, `JEPAPredictor`, `build_target_encoder`, `jepa_train_step_factory`, `random_block_mask`, `NNModel`, `NNDataset`, `set_seed`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `ViTNN`, `JEPAPredictor`, `build_target_encoder`, `jepa_train_step_factory`, `random_block_mask`, `NNModel`, `NNDataset`, `set_seed`.
 - `matplotlib` — pretrain loss + probe accuracy curves.
 - `prettytable` — summary table.
 

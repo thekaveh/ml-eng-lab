@@ -1,6 +1,8 @@
-# NNx submodule findings
+# NNx (`thekaveh-nnx`) findings
 
-Issues found by the verify_repo.py loop in the `./nnx` submodule. These are
+> **Note (2026-06-14)**: ml-lab switched from a git submodule at `./nnx` to the `thekaveh-nnx` PyPI distribution. Source paths cited below (e.g. `nnx/src/nnx/nn/dataset/nn_dataset.py:24`) refer to the upstream [`thekaveh/NNx`](https://github.com/thekaveh/NNx) repo, not a local submodule.
+
+Issues found by the verify_repo.py loop in the `nnx` (PyPI: `thekaveh-nnx`) library. These are
 NOT fixed by this loop (per spec §1.3); they are surfaced here for an upstream
 PR follow-up to [thekaveh/NNx](https://github.com/thekaveh/NNx).
 
@@ -65,7 +67,7 @@ Surfaced by: `tabular_regression-diabetes-mlp-pytorch` (documented in §6, not a
 
 Surfaced by: 17 of the 21 active task folders carrying baked-in output text of the form `Run saved to /Users/kaveh/...`. Three historical worktree shapes show up in the leaks (verified 2026-06-04 via `grep -l '/Users/kaveh' **/notebook.ipynb`): (a) 15 notebooks pin the now-defunct `.claude/worktrees/overnight-cleanup/runs/<hash>` path from the megamerge PR #5 build; (b) `tabular_classification-iris-mlp-pytorch/notebook.ipynb` pins an even older `.claude/worktrees/updating-NNx-references-and-adding-notebook-testing/...` worktree path; (c) `image_classification-mnist-ffnn-numpy/notebook.ipynb` pins `/Users/kaveh/repos/ml/...` from before the repo was renamed `ml` → `ml-lab`. mnist-pytorch and quantization-mnist-pytorch have since been moved to Tier-B (issues #7 and #10) but the leaked-path observation is independent of tier classification. The post-merge `image_classification-mnist-ffnn-pytorch/notebook.ipynb` re-execution under the real repo root produced the simpler `/Users/kaveh/repos/ml-lab/<task>/runs/<hash>` form — still absolute, just less stale; it has since been re-cleaned and no longer appears in the leak list.
 
-`NNRun.save()` (in the nnx submodule's training infrastructure) emits a confirmation string with the absolute filesystem path of the saved run directory. Two related issues:
+`NNRun.save()` (in nnx's training infrastructure) emits a confirmation string with the absolute filesystem path of the saved run directory. Two related issues:
 
 1. **Maintainer-local path leak**: any committed notebook output carries the path from whatever machine + worktree last executed it. This is reproducibility noise (the path is meaningless to anyone else) and a minor privacy/security leak (it advertises the maintainer's `$HOME` layout).
 2. **No CI normalization on re-run**: next CI Tier-A re-execution will overwrite the leaked path with the GitHub-runner-local path (`/home/runner/work/ml-lab/ml-lab/...`), trading one absolute leak for another — not a fix.

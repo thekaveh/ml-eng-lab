@@ -5,7 +5,7 @@
 - **Task:** Weight pruning — magnitude-based sparsity sweep.
 - **Dataset:** MNIST handwritten digits via `nnx.NNDataset`.
 - **Model:** `nnx.FeedFwdNN` (`Nets.FEED_FWD`), `Activations.RELU`, `hidden_dims=[256, 128]`.
-- **Framework:** PyTorch (via [`nnx`](../nnx)). 2:4 semi-structured sparsity is mentioned but not exercised (requires CUDA + Ampere+).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)). 2:4 semi-structured sparsity is mentioned but not exercised (requires CUDA + Ampere+).
 
 ## 2. Why this exists
 
@@ -43,7 +43,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch`, `torchvision` — MNIST + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNDataset`, `nnx.prune.magnitude_prune`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNDataset`, `nnx.prune.magnitude_prune`.
 - `matplotlib` — Pareto curve.
 - `prettytable` — comparison table.
 

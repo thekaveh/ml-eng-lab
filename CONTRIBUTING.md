@@ -5,7 +5,7 @@ A short guide for adding new task folders and modifying shared code in this lab.
 ## 1. Conventions
 
 - This is a notebook-driven ML lab. Each top-level folder is a self-contained task (`[task]-[dataset]-[model]-[framework]`). The flat top-level layout is intentional — don't introduce a `tasks/` subdirectory or family-prefixed dirs (`vision/`, `nlp/`, …).
-- Shared library code lives in the **`nnx` submodule** at `./nnx` → [`thekaveh/NNx`](https://github.com/thekaveh/NNx). Notebooks import via `from nnx.X import Y`. Do not reintroduce a local `common/` directory — `scripts/verify_repo.py` enforces this via `S7.forbidden_toplevel`.
+- Shared library code lives in **`thekaveh-nnx`** — the PyTorch toolkit installed from PyPI ([source: `thekaveh/NNx`](https://github.com/thekaveh/NNx)), pinned in `requirements.txt` to `thekaveh-nnx[lm]==0.2.0` (since 2026-06-14). Notebooks import via `from nnx.X import Y`. Do not reintroduce a local `common/` directory — `scripts/verify_repo.py` enforces this via `S7.forbidden_toplevel`.
 - The `archive/` directory holds preserved-as-is experiments. Read-only.
 - New notebooks should include a top markdown cell stating purpose and dataset, plus the canonical §1–§6 hierarchy (Overview / Setup / Data / Model / Training / Evaluation & Results). Phase-1 exploration notebooks use a variant: §1, §2, §3 Dataset deep-dive.
 
@@ -22,8 +22,8 @@ A short guide for adding new task folders and modifying shared code in this lab.
 
 Convention: top-level folder named `[task]-[dataset]-[model]-[framework]/`.
 
-1. Survey [`nnx/src/nnx/`](https://github.com/thekaveh/NNx/tree/main/src/nnx) for reusable primitives.
-2. Identify gaps. If you need new primitives, **land them in [`thekaveh/NNx`](https://github.com/thekaveh/NNx) first** (branch in `./nnx`, commit, push), then bump the submodule pointer here.
+1. Survey [`thekaveh/NNx`'s `src/nnx/`](https://github.com/thekaveh/NNx/tree/main/src/nnx) for reusable primitives.
+2. Identify gaps. If you need new primitives, **land them in [`thekaveh/NNx`](https://github.com/thekaveh/NNx) first** (open a PR upstream), wait for the next NNx PyPI release, then bump `requirements.txt`'s `thekaveh-nnx` version pin here.
 3. Scaffold the new task folder with a `README.md` (use [`node_classification-reddit-gnn-pyg/README.md`](node_classification-reddit-gnn-pyg/README.md) as template) and notebook(s). At the top of §3 "What's in the notebook(s)", include the nbviewer tip — GitHub's notebook renderer chokes on cells with large embedded matplotlib PNGs:
 
    ```markdown
@@ -39,23 +39,22 @@ Convention: top-level folder named `[task]-[dataset]-[model]-[framework]/`.
 
 ## 4. Modifying shared code
 
-- **`nnx/` is a submodule.** Don't bump the submodule pointer here without a corresponding upstream commit on `thekaveh/NNx`. Workflow:
-  1. `cd nnx && git checkout -b your-feature`
-  2. Make your change in the submodule, add a test, commit, push.
-  3. Open and merge an upstream PR.
-  4. `cd nnx && git pull && cd .. && git add nnx && git commit`.
+- **`thekaveh-nnx` is a PyPI dep.** Don't bump the `requirements.txt` pin without a corresponding upstream release on [`thekaveh/NNx`](https://github.com/thekaveh/NNx). Workflow:
+  1. Open a PR against `thekaveh/NNx` with the new feature + a smoke test.
+  2. After merge, wait for the next NNx PyPI release (or, for editable iteration: clone `thekaveh/NNx` outside the ml-lab tree and `pip install -e <path>[lm]` into your venv).
+  3. Bump `thekaveh-nnx[lm]==X.Y.Z` in ml-lab's `requirements.txt` to the new version; open a PR here. Tier-A papermill CI re-runs every notebook against the new version.
 - **`vendor/genai-vanilla/` is vendored.** Don't edit it directly. The ml-specific compose override lives in [`deploy/`](deploy/) — never commit override files inside `vendor/genai-vanilla/`.
 - **`archive/` is read-only.** Preserved Aug-2023 work.
 
-Found an issue in the read-only `nnx` submodule? Append to [docs/FINDINGS-NNX.md](docs/FINDINGS-NNX.md). Same for `vendor/genai-vanilla`: [docs/FINDINGS-VENDOR.md](docs/FINDINGS-VENDOR.md).
+Found an issue in the `thekaveh-nnx` library? Append to [docs/FINDINGS-NNX.md](docs/FINDINGS-NNX.md) (and open an upstream issue at [`thekaveh/NNx`](https://github.com/thekaveh/NNx/issues)). Same for `vendor/genai-vanilla`: [docs/FINDINGS-VENDOR.md](docs/FINDINGS-VENDOR.md).
 
 ## 5. Running notebooks
 
-Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the image natively ships the full ml-lab dep set — for 26 of 29 ml-lab notebooks you can use the standalone path; the wrapper-and-bind-mount is required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook, the two notebooks that need NNx's `[lm]` extra (`text_generation-tinyshakespeare-transformer-pytorch`, `preference_alignment-toy-dpo-pytorch`) until the upstream image picks up `nnx-pytorch[lm]` (follow-up to issue #12), host-side data/runs persistence, and nnx development.
+Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the image natively ships the ml-lab dep set + the 2 NLP model assets. The image currently bakes the now-defunct `nnx-pytorch[lm]` PyPI name; a coordinated upstream bump to `thekaveh-nnx[lm]==0.2.0` is needed before the standalone path covers every notebook on a fresh build (tracked as a follow-up to the 2026-06-14 PyPI migration). The wrapper-and-bind-mount is required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook and for host-side data/runs persistence.
 
 - **Default (standalone genai-vanilla)** — `cd ~/repos/genai-vanilla && ./start.sh`, then point VS Code Mode 2 at the token URL.
 - **Persistence variant (wrapper + bind-mount)** — `scripts/start-jupyterhub.sh` from the ml-lab repo root (NOT `cd vendor/genai-vanilla && ./start.sh` directly — the wrapper sets `ML_REPO_PATH` and `COMPOSE_FILE` to layer the override).
-- **nnx editable-install override** — `docker exec … setup-in-jupyter.sh` is the developer override for hacking on the `nnx` submodule. Skip unless you're actively editing `nnx/src/nnx/`.
+- **Editable-iteration on NNx itself** — clone `thekaveh/NNx` outside the ml-lab tree, then `pip install -e <path>[lm]` into your venv to override the PyPI install. No in-repo override script.
 - Full two-path walkthrough: [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md).
 
 ### 5.1. One-time NLP-task setup

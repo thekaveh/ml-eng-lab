@@ -5,7 +5,7 @@
 - **Task:** Generative modeling — train a tiny DDPM (Denoising Diffusion Probabilistic Model) on MNIST and sample new digits.
 - **Dataset:** MNIST handwritten digits via `nnx.NNDataset`.
 - **Model:** `nnx.DiffusionMLP(input_dim=784, hidden_dims=[256, 256], time_embed_dim=32)` — ~477 k parameters. Operates on flattened pixels (no U-Net).
-- **Framework:** PyTorch (via [`nnx`](../nnx)) — exercises the megamerge diffusion stack end-to-end.
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) — exercises the megamerge diffusion stack end-to-end.
 
 ## 2. Why this exists
 
@@ -43,7 +43,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch`, `torchvision` — MNIST + tensors.
-- `nnx` (the submodule) — `DiffusionMLP`, `NoiseSchedulers`, `diffusion_train_step_factory`, `sample`, `NNModel`, `NNDataset`, `set_seed`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `DiffusionMLP`, `NoiseSchedulers`, `diffusion_train_step_factory`, `sample`, `NNModel`, `NNDataset`, `set_seed`.
 - `matplotlib` — sample grid rendering.
 
 All in the root `requirements.txt` + `torch-requirements.txt`.

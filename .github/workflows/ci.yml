@@ -15,10 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
-        with:
-          submodules: recursive
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -28,7 +26,6 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             torch-requirements.txt
-            nnx/pyproject.toml
 
       - name: Install dependencies
         run: |
@@ -56,10 +53,8 @@ jobs:
     # download, while still failing fast vs GH's default 6 h.
     timeout-minutes: 90
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
-        with:
-          submodules: recursive
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -69,7 +64,6 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             torch-requirements.txt
-            nnx/pyproject.toml
 
       - name: Install dependencies
         run: |
@@ -134,10 +128,8 @@ jobs:
       || github.event_name == 'schedule'
       || contains(github.event.pull_request.labels.*.name, 'tier-b-smoke')
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
-        with:
-          submodules: recursive
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -147,7 +139,6 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             torch-requirements.txt
-            nnx/pyproject.toml
 
       - name: Install dependencies
         run: |
@@ -163,10 +154,8 @@ jobs:
     timeout-minutes: 180
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v5
-        with:
-          submodules: recursive
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -176,7 +165,6 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             torch-requirements.txt
-            nnx/pyproject.toml
 
       - name: Install dependencies
         run: |

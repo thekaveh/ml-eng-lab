@@ -5,7 +5,7 @@
 - **Task:** Mixture-of-Experts (MoE) classification with sparse expert routing + load-balancing aux loss.
 - **Dataset:** Fashion-MNIST (10 apparel classes, 28×28 grayscale) via `nnx.NNDataset`.
 - **Model:** `FeedFwdNN` subclass (`MoEClassifier`) whose first hidden layer is `nnx.MoELinear(in=784, out=128, num_experts=4, top_k=2)`. ~406k total params (router 3k + 4 experts × ~100k + classifier head 1.3k).
-- **Framework:** PyTorch (via [`nnx`](../nnx)).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)).
 
 ## 2. Why this exists
 
@@ -43,7 +43,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch`, `torchvision` — Fashion-MNIST + tensors.
-- `nnx` (the submodule) — `MoELinear`, `moe_train_step_factory`, `NNModel`, `NNDataset`, `FeedFwdNN`, `set_seed`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `MoELinear`, `moe_train_step_factory`, `NNModel`, `NNDataset`, `FeedFwdNN`, `set_seed`.
 - `matplotlib` — expert-utilization bar chart.
 - `prettytable` — parameter breakdown + aux-loss tables.
 

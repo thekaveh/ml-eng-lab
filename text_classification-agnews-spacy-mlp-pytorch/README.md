@@ -5,7 +5,7 @@
 - **Task:** 4-class topic classification (World / Sports / Business / Sci-Tech) — AG-News style.
 - **Dataset:** Embedded ~80 hand-written news-headline corpus (20/class), tiled 4× for training-set size + vocabulary coverage. AG-News-style 4-topic split; **not** the full AG-News (which would require a network download).
 - **Model:** spaCy tokenizer + bag-of-words featurizer + `nnx.NNModel` MLP (`vocab_size → 64 → 4`).
-- **Framework:** PyTorch (via [`nnx`](../nnx)) + spaCy + sklearn.
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) + spaCy + sklearn.
 
 ## 2. Why this exists
 
@@ -45,7 +45,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch` — autograd + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `set_seed`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `set_seed`.
 - `spacy` — tokenizer + lemmatizer. The package itself is in the root `requirements.txt`; the `en_core_web_sm` model is a separate download and is installed by CI via a dedicated step (`python -m spacy download en_core_web_sm`). For local development run that command once after `pip install -r requirements.txt`.
 - `scikit-learn` — train/test split, accuracy + classification_report + confusion_matrix.
 - `numpy` — feature matrix.

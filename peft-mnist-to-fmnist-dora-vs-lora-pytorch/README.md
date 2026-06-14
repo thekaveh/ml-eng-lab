@@ -5,7 +5,7 @@
 - **Task:** Parameter-efficient fine-tuning (PEFT) — cross-task adaptation via LoRA and DoRA at the same rank.
 - **Datasets:** MNIST (pretrain) → Fashion-MNIST (adapt). Both 28×28 grayscale, 10 classes — same `input_dim=784`, `output_dim=10` so no architecture surgery is needed.
 - **Model:** `nnx.FeedFwdNN` (`Nets.FEED_FWD`), `Activations.RELU`, `hidden_dims=[128, 64]`.
-- **Framework:** PyTorch (via [`nnx`](../nnx)).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)).
 
 ## 2. Why this exists
 
@@ -45,7 +45,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch`, `torchvision` — MNIST + Fashion-MNIST + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNDataset`, `apply_lora_to`, `apply_dora_to`, `save_lora_weights`, `load_lora_weights`, `LoRALinear`, `DoRALinear`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNDataset`, `apply_lora_to`, `apply_dora_to`, `save_lora_weights`, `load_lora_weights`, `LoRALinear`, `DoRALinear`.
 - `prettytable` — comparison table.
 
 All in the root `requirements.txt` + `torch-requirements.txt`.
