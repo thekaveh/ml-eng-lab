@@ -36,7 +36,7 @@ def _load_config() -> dict:
             "verify_repo_config.yaml is required; install PyYAML and ensure "
             "the file exists."
         )
-    return _yaml.safe_load(CONFIG_PATH.read_text()) or {}
+    return _yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
 
 
 _CONFIG = _load_config()
@@ -550,6 +550,15 @@ def _iter_in_scope_code(repo: Path):
             continue
         for ci, cell in enumerate(doc.cells):
             if cell.cell_type != "code":
+                continue
+            # Papermill `parameters`-tagged cells carry convention-bound
+            # boilerplate (see scripts/inject_smoke_test_cell.py). Their
+            # leading comments document the papermill -p invocation
+            # contract — they're documentation, not state-the-what hits.
+            # Same self-exclusion principle as the verify_repo.py skip
+            # above.
+            tags = cell.get("metadata", {}).get("tags") or []
+            if "parameters" in tags:
                 continue
             marker = nb.with_name(f"{nb.name}#cell[{ci}]")
             yield marker, cell.source
