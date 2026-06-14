@@ -12,7 +12,7 @@ This repo serves three overlapping purposes:
 
 **Paradigms covered** (see [§4.1](#41-active) for the per-task mapping): image classification (numpy from-scratch + PyTorch FFNN), tabular classification + regression, GNNs on graphs (`pytorch-geometric` GraphSAGE / GraphConv / GAT — node classification, link prediction, community detection), NLP (spaCy + NLTK pipelines, BPE tokenizer), transformer LM with sampling stack, diffusion (DDPM), preference alignment (DPO), self-supervised (I-JEPA), Mixture-of-Experts, PEFT (LoRA / DoRA), quantization (PTQ + QAT), pruning, knowledge distillation, model surgery (Net2Net), autoencoders, clustering.
 
-A shared PyTorch toolkit (`nnx`, included here as a git submodule) provides reusable training-loop, dataset, and visualization primitives that the notebooks consume. Library and tasks co-evolve: each new task lands its required `nnx` additions upstream first, then bumps the submodule pointer here. YAGNI applies — no speculative abstractions in `nnx`.
+A shared PyTorch toolkit (`nnx`, [`thekaveh-nnx`](https://pypi.org/project/thekaveh-nnx/) on PyPI) provides reusable training-loop, dataset, and visualization primitives that the notebooks consume. Library and tasks co-evolve: each new task lands its required `nnx` additions upstream first ([`thekaveh/NNx`](https://github.com/thekaveh/NNx)), then ml-lab bumps the pinned version here. YAGNI applies — no speculative abstractions in `nnx`.
 
 ## 2. Repository layout
 
@@ -23,10 +23,10 @@ ml-lab/
 ├── CHANGELOG.md                               (release notes)
 ├── Makefile                                   (papermill tier targets)
 ├── docs/                                      (env, jupyterhub, vscode-remote, FINDINGS-NNX, FINDINGS-VENDOR)
+├── requirements.txt + torch-requirements.txt  (pip deps; thekaveh-nnx[lm]==0.2.0)
 ├── scripts/                                   (start, setup, verify, helpers)
 ├── deploy/                                    (genai-vanilla compose override)
 ├── tests/                                     (pytest: nnx_surface contract + verifier + helpers)
-├── nnx/                                       (git submodule → thekaveh/NNx)
 ├── vendor/genai-vanilla/                      (git submodule, JupyterHub stack)
 ├── archive/                                   (preserved-as-is experiments)
 └── <21 active task folders>                   ([task]-[dataset]-[model]-[framework]/ — full list in §4.1)
@@ -40,9 +40,9 @@ Three ways to run these notebooks, in increasing order of "I want my own machine
 
 ### 3.1. genai-vanilla jupyterhub (recommended)
 
-As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the full ml-lab dep set (`nnx-pytorch` + 5 pip pkgs + 2 NLP model assets). Two paths, pick by need:
+As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the ml-lab dep set + the 2 NLP model assets. The image bakes the now-defunct `nnx-pytorch[lm]` PyPI name; a coordinated upstream bump to `thekaveh-nnx[lm]==0.2.0` is needed before this path covers every notebook on a fresh build (tracked as a follow-up to the 2026-06-14 PyPI migration). Two paths, pick by need:
 
-**Default — standalone genai-vanilla + VS Code Mode 2** (works for 26 of 29 ml-lab notebooks; the three exceptions: (a) `image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the wrapper-and-bind-mount §2 path below; (b) `text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb` and (c) `preference_alignment-toy-dpo-pytorch/notebook.ipynb` both call `train_bpe`/`NNTokenizerParams` and need the standalone image bumped to `nnx-pytorch[lm]` before they work on this path; coverage jumps to 28/29 once that lands, tracked as a follow-up to issue #12):
+**Default — standalone genai-vanilla + VS Code Mode 2** (works once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`; one exception remains regardless: `image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the wrapper-and-bind-mount §2 path below):
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh
@@ -54,10 +54,8 @@ cd ~/repos/genai-vanilla && ./start.sh
 **Persistence variant — wrapper script + bind-mount** (required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook + host-side `./data/`/`./runs/` persistence):
 
 ```bash
-git submodule update --init --recursive
+git submodule update --init --recursive   # one-time, for vendor/genai-vanilla
 scripts/start-jupyterhub.sh
-# Optional: docker exec -it <jupyterhub-container> /home/jovyan/work/ml-lab/scripts/setup-in-jupyter.sh
-#   (only if hacking on nnx — overrides the image's pip-installed nnx with editable install)
 ```
 
 See [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) (full two-path walkthrough) and [docs/vscode-remote-access.md](docs/vscode-remote-access.md).
@@ -74,10 +72,9 @@ docker run -p 8888:8888 -v "$(pwd):/home/jovyan/work" --shm-size=4g ml-lab
 ### 3.3. Local venv
 
 ```bash
-git submodule update --init --recursive
 python -m venv .venv && source .venv/bin/activate
 pip install -r torch-requirements.txt
-pip install -r requirements.txt
+pip install -r requirements.txt   # pulls thekaveh-nnx[lm]==0.2.0 from PyPI
 make nlp-assets  # one-time spaCy + NLTK assets used by the 2 NLP Tier-A notebooks
 jupyter lab
 ```
@@ -138,31 +135,22 @@ See [docs/env-setup.md](docs/env-setup.md) for the tier mapping.
 
 ## 6. NNx library
 
-Throughout this README, `NNx` refers to the [GitHub project](https://github.com/thekaveh/NNx); the importable Python package is lowercase `nnx`.
+Throughout this README, `NNx` refers to the [GitHub project](https://github.com/thekaveh/NNx); the importable Python package is lowercase `nnx`; the PyPI distribution is [`thekaveh-nnx`](https://pypi.org/project/thekaveh-nnx/).
 
-The shared toolkit lives as a git submodule at [`./nnx`](./nnx) → [`thekaveh/NNx`](https://github.com/thekaveh/NNx). Clone with submodules:
-
-```bash
-git clone --recurse-submodules <this repo>
-# or if already cloned:
-git submodule update --init --recursive
-```
-
-The library is installed editable via `pip install -e './nnx[lm]'` (part of `requirements.txt`). The `[lm]` extra pulls the BPE tokenizer + datasets backbone for the two notebooks that call `train_bpe`/`NNTokenizerParams` (`text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb` and `preference_alignment-toy-dpo-pytorch/notebook.ipynb`); without it both `ImportError` (issue #12). Notebooks import via `from nnx.X import Y`.
+The library is consumed via PyPI — `thekaveh-nnx[lm]==0.2.0` is pinned in `requirements.txt` (since 2026-06-14, replacing the prior git-submodule editable install). The `[lm]` extra pulls the BPE tokenizer + datasets backbone for the two notebooks that call `train_bpe`/`NNTokenizerParams` (`text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb` and `preference_alignment-toy-dpo-pytorch/notebook.ipynb`); without it both `ImportError` (issue #12). Notebooks import via `from nnx.X import Y` exactly as before — only the distribution name and install mechanism changed.
 
 To extend `nnx` for a new task:
 
-1. Branch in the submodule: `cd nnx && git checkout -b feature-name`.
-2. Add the feature plus a smoke test, commit, push to `thekaveh/NNx`.
-3. From the ml-lab repo: `cd nnx && git pull && cd .. && git add nnx`.
-4. Commit the submodule pointer bump in ml-lab.
+1. Open a PR against [`thekaveh/NNx`](https://github.com/thekaveh/NNx) with the new feature + a smoke test.
+2. After merge, wait for the next NNx release cut (or, for editable iteration during the design phase: clone `thekaveh/NNx` outside the ml-lab tree and `pip install -e <path-to-clone>[lm]` into your venv).
+3. Bump the pinned version in `requirements.txt` here (e.g. `thekaveh-nnx[lm]==0.2.1`); open a PR. Tier-A papermill CI re-runs every notebook against the new version — same validation discipline as the prior submodule-pointer-bump workflow.
 
 ## 7. Repository conventions
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow. Key points:
 
 - Each top-level folder is a self-contained task (`[task]-[dataset]-[model]-[framework]`). No `tasks/` subdirectory.
-- Shared library code lives in `nnx/`, not a local `common/`.
+- Shared library code lives in `nnx` (the PyPI-installed `thekaveh-nnx` package), not a local `common/`.
 - Notebooks are saved with executed cells (outputs included) for active tasks.
 - Tier-C notebooks have their Aug-2023 outputs preserved; never re-execute them in place.
 - `archive/` is read-only.
@@ -205,10 +193,10 @@ The README is the entry point; the items below are the hub's index of secondary 
 - [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) — primary runtime (vendored `genai-vanilla` JupyterHub stack).
 - [docs/vscode-remote-access.md](docs/vscode-remote-access.md) — VS Code remote-attach modes.
 
-### 10.3. Submodule issue sinks
+### 10.3. Issue sinks for external code
 
-- [docs/FINDINGS-NNX.md](docs/FINDINGS-NNX.md) — issue log for the `nnx` submodule (append findings here; do not edit nnx directly via this repo).
-- [docs/FINDINGS-VENDOR.md](docs/FINDINGS-VENDOR.md) — same, for `vendor/genai-vanilla`.
+- [docs/FINDINGS-NNX.md](docs/FINDINGS-NNX.md) — issue log for the `thekaveh-nnx` library (append findings here; do not edit nnx directly via this repo — fixes land upstream at [`thekaveh/NNx`](https://github.com/thekaveh/NNx)).
+- [docs/FINDINGS-VENDOR.md](docs/FINDINGS-VENDOR.md) — same, for the `vendor/genai-vanilla` submodule.
 
 ### 10.4. Archive
 

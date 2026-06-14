@@ -4,11 +4,11 @@ Three paths, pick whichever fits the moment.
 
 ## 1. genai-vanilla jupyterhub (recommended)
 
-As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the full ml-lab dep set — `nnx-pytorch` + `python-louvain` + `nltk` + `spacy` + `torchao` + `prettytable`, plus the `en_core_web_sm` spaCy model + `vader_lexicon` NLTK corpus baked at image-build time. Two paths, pick by need.
+As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the ml-lab dep set — `python-louvain` + `nltk` + `spacy` + `torchao` + `prettytable`, plus the `en_core_web_sm` spaCy model + `vader_lexicon` NLTK corpus baked at image-build time. The image's pip layer currently installs the now-defunct `nnx-pytorch[lm]` distribution name (replaced by `thekaveh-nnx` on PyPI as of 2026-06-14); a coordinated upstream bump is tracked as a follow-up. Two paths, pick by need.
 
 ### 1.1. Default — standalone genai-vanilla + VS Code Mode 2
 
-Works for **26 of 29 ml-lab notebooks** (every Tier-A/B/C notebook except: (a) the from-scratch `image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder, and (b) the two notebooks that call `train_bpe`/`NNTokenizerParams` and need the `nnx[lm]` extra — `text_generation-tinyshakespeare-transformer-pytorch/` and `preference_alignment-toy-dpo-pytorch/`. The standalone genai-vanilla image currently bakes `nnx-pytorch` without extras; bumps to 28/29 once the upstream image picks up `nnx-pytorch[lm]`, tracked as a follow-up to issue #12).
+Once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`, this path covers every ml-lab Tier-A/B/C notebook except the from-scratch `image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder and needs the §1.2 wrapper-and-bind-mount path. Until then, the path covers the subset of notebooks that don't touch the nnx import surface (limited; mostly the from-scratch numpy task isn't one of them).
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh
@@ -26,13 +26,11 @@ Use when you want any of:
 - A workflow where you `git commit` notebook edits + dataset downloads from inside the container.
 
 ```bash
-git submodule update --init --recursive      # one-time
+git submodule update --init --recursive      # one-time, for vendor/genai-vanilla
 scripts/start-jupyterhub.sh                  # each session
 ```
 
-The wrapper layers `deploy/genai-vanilla-jupyterhub.override.yml` onto the submodule's genai-vanilla compose, bind-mounting the repo at `/home/jovyan/work/ml-lab/`.
-
-`scripts/setup-in-jupyter.sh` is **optional** and only relevant when actively hacking on `nnx` — it overrides the image's pip-installed `nnx-pytorch` with an editable install pointing at the bind-mounted `nnx/` submodule. See [jupyterhub-integration.md](jupyterhub-integration.md) for the full two-path walkthrough.
+The wrapper layers `deploy/genai-vanilla-jupyterhub.override.yml` onto the `vendor/genai-vanilla` submodule's compose, bind-mounting the repo at `/home/jovyan/work/ml-lab/`. See [jupyterhub-integration.md](jupyterhub-integration.md) for the full two-path walkthrough.
 
 ## 2. Local Docker
 
@@ -52,8 +50,7 @@ Notes:
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r torch-requirements.txt
-pip install -r requirements.txt
-git submodule update --init --recursive    # if not done at clone time
+pip install -r requirements.txt              # pulls thekaveh-nnx[lm]==0.2.0 from PyPI
 
 # One-time downloads for the two Tier-A NLP tasks (text_classification-agnews-spacy-mlp
 # and sentiment_classification-vader-mlp). pip install doesn't pull these.
