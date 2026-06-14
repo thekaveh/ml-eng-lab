@@ -28,3 +28,8 @@ papermill>=2.4
 
 # Local test runner (CONTRIBUTING §2 "make test" / "pytest tests/")
 pytest
+
+# Linter — `make lint` invokes `ruff check .` and the CI `pytest-nnx-surface`
+# job pins the same range. Pinned here so a clean `pip install -r requirements.txt`
+# leaves `make lint` working without a second install step.
+ruff>=0.9,<1.0

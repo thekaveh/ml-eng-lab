@@ -1,12 +1,12 @@
 # Root pyproject.toml — for ruff configuration only.
 # The ml-lab repo is NOT pip-installable as a package itself. Each task folder
-# is a self-contained set of notebooks; library code lives in the nnx submodule.
+# is a self-contained set of notebooks; library code lives in `thekaveh-nnx`,
+# installed from PyPI via requirements.txt (as of 2026-06-14 PyPI migration).
 
 [tool.ruff]
 line-length = 120
 target-version = "py311"
 exclude = [
-    "nnx/",                                 # submodule has its own ruff config
     "archive/",                             # preserved as-is
     ".venv/",
     "vendor/",
