@@ -5,7 +5,7 @@
 - **Task:** Regression — predict a continuous target.
 - **Dataset:** sklearn `load_diabetes` (442 patients × 10 numeric features, target = disease-progression score 1 year after baseline).
 - **Models:** `sklearn.LinearRegression`, `sklearn.KNeighborsRegressor(k=5)`, `nnx` MLP small `[8]`, `nnx` MLP deep `[32, 16]`.
-- **Framework:** PyTorch (via [`nnx`](../nnx)) + sklearn.
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) + sklearn.
 
 ## 2. Why this exists
 
@@ -43,7 +43,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch` — autograd + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `Losses.MEAN_SQUARED_ERROR`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `Losses.MEAN_SQUARED_ERROR`.
 - `scikit-learn` — diabetes loader, `LinearRegression`, `KNeighborsRegressor`, `StandardScaler`, metrics.
 - `pandas` — feature describe.
 - `matplotlib` — predicted-vs-actual + residual plots.

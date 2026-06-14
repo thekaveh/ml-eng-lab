@@ -5,7 +5,7 @@
 - **Task:** Image classification.
 - **Dataset:** MNIST handwritten digits.
 - **Model:** Feed-forward neural network — using `nnx.FeedFwdNN`.
-- **Framework:** PyTorch (via [`nnx`](../nnx)).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)).
 
 ## 2. Why this exists
 
@@ -45,7 +45,7 @@ Also verified via [`tests/nnx_surface/test_image_classification_mnist_ffnn_pytor
 
 ## 5. Dependencies
 
-- `nnx` (the submodule)
+- `nnx` (PyPI: `thekaveh-nnx`)
 - `torch` (≥ 2.0)
 - `torchvision`
 - `matplotlib` (via `nnx.vis_utils` — loss curves, confusion matrices)

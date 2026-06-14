@@ -3,7 +3,7 @@
 This package contains tiny, fast tests that pin the *call shapes* and
 data-contract of the small subset of nnx primitives that the task notebooks
 depend on (`NNModel`, `NNParams`, `NNTabularDataset`, etc.). They exist to
-catch nnx submodule bumps that would silently break the notebooks.
+catch `thekaveh-nnx` version upgrades that would silently break the notebooks.
 
 Coverage is intentionally narrow: only tasks whose notebooks exercise a
 distinct nnx call-shape get a sibling test module here. Tasks that use nnx

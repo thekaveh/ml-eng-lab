@@ -5,7 +5,7 @@
 - **Task:** Unsupervised clustering — KMeans on raw 4-D iris features vs on a 2-D autoencoder latent.
 - **Dataset:** Iris (`sklearn.datasets.load_iris`, 150 samples × 4 features × 3 species).
 - **Models:** `sklearn.KMeans(n_clusters=3)` on raw features and on the AE latent; AE = `FeedFwdNN(input_dim=4, output_dim=4, hidden_dims=[2])` trained with `nnx.NNModel.train(train_step_fn=autoencoder_step)`.
-- **Framework:** PyTorch (via [`nnx`](../nnx)) + sklearn.
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) + sklearn.
 
 ## 2. Why this exists
 
@@ -45,7 +45,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch` — autograd + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `train_step_fn`, `NNEvaluationDataPoint`, `set_seed`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `train_step_fn`, `NNEvaluationDataPoint`, `set_seed`.
 - `scikit-learn` — iris loader, `KMeans`, `adjusted_rand_score`, `normalized_mutual_info_score`, `MinMaxScaler`, `PCA` (for raw-feature 2-D projection in §6.2).
 - `matplotlib` — 2×2 scatter grid.
 - `prettytable` — comparison table.

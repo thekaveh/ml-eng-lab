@@ -5,7 +5,7 @@
 - **Task:** Multi-class tabular classification.
 - **Dataset:** Iris (150 samples × 4 features × 3 classes; `sklearn.datasets.load_iris`).
 - **Model:** Feed-forward neural network — using `nnx.FeedFwdNN`.
-- **Framework:** PyTorch (via [`nnx`](../nnx)).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)).
 
 ## 2. Why this exists
 
@@ -45,7 +45,7 @@ Also verified via [`tests/nnx_surface/test_tabular_classification_iris_mlp_pytor
 
 ## 5. Dependencies
 
-- `nnx` (the submodule)
+- `nnx` (PyPI: `thekaveh-nnx`)
 - `torch` (≥ 2.0)
 - `pandas`, `numpy`, `scikit-learn`
 - `seaborn`, `matplotlib`

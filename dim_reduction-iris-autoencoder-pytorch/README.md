@@ -5,7 +5,7 @@
 - **Task:** Dimensionality reduction — project 4-D iris features to a 2-D latent and visualize species separation.
 - **Dataset:** Iris (`sklearn.datasets.load_iris`, 150 samples × 4 features × 3 species).
 - **Models:** PCA (sklearn baseline) + two autoencoder variants — shallow `[2]`-bottleneck and deeper symmetric `[3, 2, 3]`.
-- **Framework:** PyTorch (via [`nnx`](../nnx)) + sklearn (PCA + LogisticRegression linear probe).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) + sklearn (PCA + LogisticRegression linear probe).
 
 ## 2. Why this exists
 
@@ -45,7 +45,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch` — autograd + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `TrainStepContext`, `NNEvaluationDataPoint`, `set_seed`, `train_step_fn` hook.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNTrainParams`, `TrainStepContext`, `NNEvaluationDataPoint`, `set_seed`, `train_step_fn` hook.
 - `scikit-learn` — iris loader, PCA, `LogisticRegression` linear probe, `MinMaxScaler`.
 - `pandas` — per-species summary stats.
 - `matplotlib` — latent scatter plots.

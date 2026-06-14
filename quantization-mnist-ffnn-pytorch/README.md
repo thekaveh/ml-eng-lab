@@ -5,7 +5,7 @@
 - **Task:** Model quantization — post-training (PTQ) vs quantization-aware training (QAT).
 - **Dataset:** MNIST handwritten digits via `nnx.NNDataset`, same constants as the sibling pytorch-MNIST task.
 - **Model:** `nnx.FeedFwdNN` (`Nets.FEED_FWD`) with `Activations.RELU`; hidden widths `[128, 64]` (multiples of 32 so 8da4w's int4 groupsize fits cleanly).
-- **Framework:** PyTorch (via [`nnx`](../nnx)) + `torchao` (PTQ + QAT backend).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)) + `torchao` (PTQ + QAT backend).
 
 ## 2. Why this exists
 
@@ -46,7 +46,7 @@ make smoke-tier-b
 ## 5. Dependencies
 
 - `torch`, `torchvision` — MNIST + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNDataset`, `quantize_int8`, `qat_train_step_factory`, `QATLifecycleCallback`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNDataset`, `quantize_int8`, `qat_train_step_factory`, `QATLifecycleCallback`.
 - `torchao>=0.17` — PTQ + QAT backend. Opt-in via `nnx[quantize]`; the surface notebook degrades gracefully (skipped tests) when it isn't installed.
 - `prettytable` — comparison table rendering.
 

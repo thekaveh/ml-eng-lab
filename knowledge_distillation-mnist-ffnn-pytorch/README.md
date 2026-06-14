@@ -5,7 +5,7 @@
 - **Task:** Knowledge distillation — born-again (self-distillation) training.
 - **Dataset:** MNIST handwritten digits via `nnx.NNDataset`.
 - **Model:** `nnx.FeedFwdNN` (`Nets.FEED_FWD`), `Activations.RELU`, `hidden_dims=[128, 64]`.
-- **Framework:** PyTorch (via [`nnx`](../nnx)).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)).
 
 ## 2. Why this exists
 
@@ -43,7 +43,7 @@ make run-tier-a
 ## 5. Dependencies
 
 - `torch`, `torchvision` — MNIST + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNDataset`, `born_again_train`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNDataset`, `born_again_train`.
 - `prettytable` — comparison tables.
 
 All in the root `requirements.txt` + `torch-requirements.txt`.

@@ -5,7 +5,7 @@
 - **Task:** Function-preserving model surgery (architectural edits to a *trained* model).
 - **Dataset:** MNIST handwritten digits (60k train, 10k test, 28×28 grayscale) — same `nnx.NNDataset` wrapper as the sibling `image_classification-mnist-ffnn-pytorch` task.
 - **Model:** Feed-forward neural network via `nnx.FeedFwdNN` + `Nets.FEED_FWD`, with **ReLU** activation (`nnx.deepen`'s identity-init insertion is function-preserving only for ReLU — see §6 *Known issues* + the notebook's §4 *Model*).
-- **Framework:** PyTorch (via [`nnx`](../nnx)).
+- **Framework:** PyTorch (via [`thekaveh-nnx`](https://github.com/thekaveh/NNx)).
 
 ## 2. Why this exists
 
@@ -43,7 +43,7 @@ make run-tier-a   # re-runs this notebook in place, alongside the other Tier-A n
 ## 5. Dependencies
 
 - `torch`, `torchvision` — MNIST data + tensors.
-- `nnx` (the submodule) — `FeedFwdNN`, `NNModel`, `NNDataset`, `widen`, `deepen`, `Activations.RELU`.
+- `nnx` (PyPI: `thekaveh-nnx`) — `FeedFwdNN`, `NNModel`, `NNDataset`, `widen`, `deepen`, `Activations.RELU`.
 - `prettytable` — comparison table.
 
 All in the root `requirements.txt` + `torch-requirements.txt`.
