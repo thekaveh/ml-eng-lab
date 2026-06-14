@@ -551,6 +551,15 @@ def _iter_in_scope_code(repo: Path):
         for ci, cell in enumerate(doc.cells):
             if cell.cell_type != "code":
                 continue
+            # Papermill `parameters`-tagged cells carry convention-bound
+            # boilerplate (see scripts/inject_smoke_test_cell.py). Their
+            # leading comments document the papermill -p invocation
+            # contract — they're documentation, not state-the-what hits.
+            # Same self-exclusion principle as the verify_repo.py skip
+            # above.
+            tags = cell.get("metadata", {}).get("tags") or []
+            if "parameters" in tags:
+                continue
             marker = nb.with_name(f"{nb.name}#cell[{ci}]")
             yield marker, cell.source
 

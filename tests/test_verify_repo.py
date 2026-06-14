@@ -146,6 +146,40 @@ def test_comments_phase_a_skips_explanatory_comments(tmp_path):
         fake.unlink(missing_ok=True)
 
 
+def test_comments_phase_a_skips_parameters_tagged_cells(tmp_path):
+    """C.state_the_what must skip papermill `parameters`-tagged cells.
+
+    Their boilerplate (per scripts/inject_smoke_test_cell.py) carries lines
+    like `# Set via: papermill -p SMOKE_TEST 1 in.ipynb out.ipynb` that
+    document the papermill invocation contract — not state-the-what hits
+    on the next code line. Same self-exclusion principle as the
+    verify_repo.py-as-scanner skip.
+    """
+    import nbformat
+    name = f"_temp_{tmp_path.name}_params.ipynb"
+    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    nb = nbformat.v4.new_notebook()
+    cell = nbformat.v4.new_code_cell(
+        # Comment matches the `^# (initialize|init|set|assign)` rule; without
+        # the parameters tag the C check would flag this. The tag must
+        # suppress that.
+        "# Set via: papermill -p X 1 in.ipynb out.ipynb\nX = 0\n"
+    )
+    cell.metadata["tags"] = ["parameters"]
+    nb.cells = [cell]
+    nbformat.write(nb, str(fake))
+    try:
+        r = run_verify("--check", "comments", "--fast")
+        data = json.loads(r.stdout) if r.stdout else {"findings": []}
+        hits = [
+            f for f in data["findings"]
+            if f["check"] == "comments" and name in f["location"]
+        ]
+        assert not hits, f"parameters-tagged cell falsely flagged: {hits}"
+    finally:
+        fake.unlink(missing_ok=True)
+
+
 def test_execution_fast_mode_skips_e1_e2_e3():
     """In --fast mode, slow targets (E1-E3) must not be invoked."""
     r = run_verify("--check", "execution", "--fast")
