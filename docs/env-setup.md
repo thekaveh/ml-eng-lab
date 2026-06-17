@@ -65,13 +65,31 @@ Caveats:
 - macOS Apple Silicon: PyG wheels for `arm64` are not always available at that index. If pip falls back to source builds, expect ~15 min compile time and Xcode CLT installed.
 - The `docker build`/`docker run` path in §2 above bakes the spaCy + NLTK downloads into the image, so the venv-only path above is the only one that needs them done manually. See [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §5.1 for the same instructions in the contributor workflow.
 
-## 4. GPU notes
+## 4. GitHub Codespaces (zero-click cloud dev)
+
+Click **Code → Codespaces → Create codespace on main** on github.com/thekaveh/ml-lab. The repo ships [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) which declaratively defines the runtime:
+
+- **Base image**: `mcr.microsoft.com/devcontainers/python:3.11-bookworm` (Python 3.11, matches the version pin in `.python-version` + CI).
+- **`postCreateCommand`**: `make codespace-setup` — runs `pip install -r torch-requirements.txt && pip install -r requirements.txt && make nlp-assets` in the same order CI uses. ~2-3 min one-time per Codespace.
+- **VS Code extensions** preinstalled: `ms-python.python`, `ms-toolsai.jupyter` + `jupyter-cell-tags` (makes the papermill `parameters` tag visible) + `jupyter-keymap` + `jupyter-renderers`.
+- **Repo location**: `/workspaces/ml-lab` — auto-cloned, persistent across kernel restarts within the Codespace. The `image_classification-mnist-ffnn-numpy` notebook's sibling `.py` imports resolve here natively.
+
+**Editor choice**: open notebooks in the browser-based VS Code that Codespaces ships with, or set JupyterLab as your default editor at [github.com/settings/codespaces → Editor preference → JupyterLab](https://github.com/settings/codespaces) for single-click access.
+
+**Caveats**:
+- **GPU**: deprecated 2025-08-29 (Azure NCv3 retirement); see §5 below. Notebooks here run on CPU only.
+- **Quantization notebook**: still won't run — same `torch.int1` / `torch==2.4.1` incompatibility documented in its task README.
+- **Persistence**: `./data/` and `./runs/` content is lost when the Codespace is deleted. Commit anything you want to keep.
+
+See [README.md §3.4](../README.md#34-github-codespaces-zero-click-cloud-dev) for the full motivation + scenario list (why this path exists alongside the 3 above, what it does and doesn't solve).
+
+## 5. GPU notes
 
 The current setup is CPU-only. No GPU image variant is shipped. For GPU training:
 - Tier-C GNN notebooks were originally trained on GPU (Aug 2023 outputs preserved).
 - For new GPU runs, use a cloud GPU box with `torch.cuda` available, or set up a separate GPU-enabled jupyterhub variant (out of scope here).
 
-## 5. Tier mapping
+## 6. Tier mapping
 
 The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` variables) and `scripts/verify_repo_config.yaml` (`tier_a_notebooks`). The lists below are mirrored from there; if they drift, the Makefile + YAML win.
 

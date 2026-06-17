@@ -55,6 +55,7 @@ Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #2
 - **Default (standalone genai-vanilla)** — `cd ~/repos/genai-vanilla && ./start.sh`, then point VS Code Mode 2 at the token URL.
 - **Persistence variant (wrapper + bind-mount)** — `scripts/start-jupyterhub.sh` from the ml-lab repo root (NOT `cd vendor/genai-vanilla && ./start.sh` directly — the wrapper sets `ML_REPO_PATH` and `COMPOSE_FILE` to layer the override).
 - **Editable-iteration on NNx itself** — clone `thekaveh/NNx` outside the ml-lab tree, then `pip install -e <path>[lm]` into your venv to override the PyPI install. No in-repo override script.
+- **Zero-click cloud dev (GitHub Codespaces)** — `Code → Codespaces → Create codespace on main` on github.com/thekaveh/ml-lab. `.devcontainer/devcontainer.json`'s `postCreateCommand` runs `make codespace-setup` (full pip install + NLP assets, ~2-3 min one-time). See [README.md §3.4](README.md#34-github-codespaces-zero-click-cloud-dev) for the motivation + scenario list (and the GPU + persistence caveats).
 - Full two-path walkthrough: [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md).
 
 ### 5.1. One-time NLP-task setup
