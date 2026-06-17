@@ -95,9 +95,10 @@ The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` varia
   - `sentiment_classification-vader-mlp-pytorch/notebook.ipynb`
   - `preference_alignment-toy-dpo-pytorch/notebook.ipynb`
   - `self_supervised-fmnist-jepa-pytorch/notebook.ipynb`
-- **Tier-B** (`make smoke-tier-b`, on-demand + weekly cron, passes `-p SMOKE_TEST 1` so the two parameterized mnist notebooks shrink their sweep; the 4 phase2 reddit notebooks run their hardcoded sweep; writes to /tmp):
+- **Tier-B** (`make smoke-tier-b`, on-demand + weekly cron, passes `-p SMOKE_TEST 1` so the parameterized mnist-pytorch notebook shrinks its sweep; the 4 phase2 reddit notebooks run their hardcoded sweep; writes to /tmp):
   - `image_classification-mnist-ffnn-pytorch/notebook.ipynb` (full `[9 hidden_dims × 500 epochs]` sweep — `~17 min macOS / >90 min Linux`; moved out of Tier-A per [issue #7](https://github.com/thekaveh/ml-lab/issues/7))
-  - `quantization-mnist-ffnn-pytorch/notebook.ipynb` (torchao ≥ 0.9.0 — the earliest version with `Int8WeightOnlyConfig` — references `torch.int1` at import time, which requires `torch ≥ 2.5`; ml-lab pins `torch==2.4.1` for genai-vanilla image-parity. Moved out of Tier-A per [issue #10](https://github.com/thekaveh/ml-lab/issues/10).)
   - `node_classification-reddit-gnn-pyg/phase2-model-selection-notebook{1,2,3,4}.ipynb`
+- **Manual-only** (excluded from Tier-A/B/C; cannot run in ml-lab's pinned environment):
+  - `quantization-mnist-ffnn-pytorch/notebook.ipynb` (torchao ≥ 0.9.0 — the earliest version with `Int8WeightOnlyConfig` — references `torch.int1` at import time, which requires `torch ≥ 2.5`; ml-lab pins `torch==2.4.1` for genai-vanilla image-parity. Was Tier-A until 2026-06-02 (#10), Tier-B until 2026-06-16 (`Makefile` TIER_B header comment explains the cron-failure-driven removal). Run locally under `torch>=2.5` + `torchao>=0.17`.)
 - **Tier-C** (`make smoke-tier-c`, on-demand, writes to /tmp):
   - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook{,2,3,4}.ipynb`

@@ -38,11 +38,24 @@ TIER_A := \
 
 TIER_B := \
     image_classification-mnist-ffnn-pytorch/notebook.ipynb \
-    quantization-mnist-ffnn-pytorch/notebook.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb \
     node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb
+
+# quantization-mnist-ffnn-pytorch/notebook.ipynb was previously the 2nd entry
+# above. Removed 2026-06-16 after the weekly smoke-tier-b cron failed at the
+# quantization import: `torchao>=0.17` (requirements.txt pin, smallest version
+# exposing nnx.quantize_int8's `Int8WeightOnlyConfig` API) references
+# `torch.int1` at module load; `torch.int1` was added in torch 2.5; ml-lab
+# pins `torch==2.4.1` for genai-vanilla image-parity (see torch-requirements.txt
+# + issue #10). No torchao version satisfies both nnx's API requirement AND
+# the torch 2.4.1 import surface, so the notebook cannot execute under
+# CI's pinned environment. Notebook stays in the repo as a manual-only task
+# (run locally under a `torch>=2.5` env). The Tier-B move (PR #11) was made
+# under the assumption the weekly cron would still exercise it — that turned
+# out to be wrong; removing it here unblocks the 5 remaining Tier-B notebooks
+# the cron was supposed to cover.
 
 TIER_C := \
     node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb \

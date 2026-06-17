@@ -63,6 +63,32 @@ def test_main_returns_2_when_no_argv():
     assert "Usage" in r.stderr
 
 
+def test_smoke_cell_source_is_papermill_2_7_parser_friendly():
+    """Regression guard: SMOKE_CELL_SOURCE must not put trailing comments on
+    assignment lines.
+
+    Papermill 2.7.0 switched to AST-based parameter-cell parsing; lines of the
+    form `NAME = 0  # 1 = ...` (assignment with a trailing comment that itself
+    contains `=`) trip its parser and emit "Unable to parse line N" + "Passed
+    unknown parameter: SMOKE_TEST" warnings on every smoke-tier-{b,c} run.
+    2026-06-15 weekly cron surfaced this. Comments must live on their own lines
+    above the assignment.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("inject_smoke_test_cell", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    for line in mod.SMOKE_CELL_SOURCE:
+        s = line.rstrip("\n").rstrip()
+        if not s or s.lstrip().startswith("#"):
+            continue
+        # Assignment line. Must NOT have an inline trailing comment.
+        assert "#" not in s, (
+            f"SMOKE_CELL_SOURCE assignment has trailing comment "
+            f"(papermill 2.7+ can't parse): {line!r}"
+        )
+
+
 def test_missing_file_is_skipped_not_fatal(tmp_path):
     real = tmp_path / "real.ipynb"
     _make_notebook(real, with_params=False)

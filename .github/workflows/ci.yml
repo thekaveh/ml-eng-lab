@@ -44,7 +44,7 @@ jobs:
 
   tier-a-papermill:
     runs-on: ubuntu-latest
-    # 19 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch moved to Tier-B per issue #10). Cumulative ~7 min on a macOS M-series CPU but Linux
+    # 19 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch originally moved to Tier-B per issue #10, then removed from TIER_B on 2026-06-16 after the weekly cron confirmed it cannot run in CI's pinned env — manual-only now). Cumulative ~7 min on a macOS M-series CPU but Linux
     # GH Actions runners are ~3-4× slower for hand-coded numpy training
     # (image_classification-mnist-ffnn-numpy is the worst offender — observed
     # ~30 min on its own at PR-#5 HEAD edcab84). 90 min cap leaves headroom
@@ -94,9 +94,13 @@ jobs:
           name: tier-a-notebooks
           # All 19 Tier-A notebooks — keep in sync with Makefile TIER_A.
           # (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch
-          # moved to Tier-B per issue #10 — torchao>=0.17 (the requirements.txt
-          # pin) imports `torch.int1` at module load, which was added in torch
-          # 2.5; ml-lab pins torch==2.4.1 for genai-vanilla image-parity.)
+          # originally moved to Tier-B per issue #10 — torchao>=0.17 (the
+          # requirements.txt pin) imports `torch.int1` at module load, which
+          # was added in torch 2.5; ml-lab pins torch==2.4.1 for genai-vanilla
+          # image-parity. The Tier-B move turned out insufficient — the notebook
+          # still cannot run in CI's pinned env — so it was removed from
+          # Makefile TIER_B on 2026-06-16 and is now a manual-only task. See
+          # Makefile TIER_B section for full rationale.)
           path: |
             image_classification-mnist-ffnn-numpy/notebook.ipynb
             node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb
