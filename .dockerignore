@@ -1,5 +1,6 @@
 .git
 .github
+.devcontainer
 .claude
 .assistant-cache
 .pytest_cache
