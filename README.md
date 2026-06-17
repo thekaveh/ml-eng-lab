@@ -36,7 +36,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release history; per-folder docs are linked
 
 ## 3. Quick start
 
-Three ways to run these notebooks, in increasing order of "I want my own machine to do the work."
+Four ways to run these notebooks, in increasing order of "I want my own machine to do the work."
 
 ### 3.1. genai-vanilla jupyterhub (recommended)
 
@@ -80,6 +80,33 @@ jupyter lab
 ```
 
 See [docs/env-setup.md](docs/env-setup.md) for environment details.
+
+### 3.4. GitHub Codespaces (zero-click cloud dev)
+
+Click **Code → Codespaces → Create codespace on main** on [github.com/thekaveh/ml-lab](https://github.com/thekaveh/ml-lab). After ~2-3 minutes of one-time dep install you have a browser-based VS Code (or JupyterLab — see below) with all 21 active notebooks runnable.
+
+**Why this path was added.** The §3.1 / §3.2 / §3.3 paths each require ~10-15 minutes of first-time setup on a new machine (Docker pulls, `git submodule update --init --recursive` for `vendor/genai-vanilla`, `pip install -r` against two requirements files, `make nlp-assets` predownloads for spaCy + NLTK). They also each have a coupling cost: §3.1 depends on the genai-vanilla image's pip layer staying in sync with ml-lab's `requirements.txt` (the [`nnx-pytorch[lm]` → `thekaveh-nnx[lm]==0.2.0` follow-up](CHANGELOG.md) is a long-running example of what happens when it drifts); §3.2 and §3.3 require local Docker / a working venv on the dev's machine. Codespaces eliminates both: the `.devcontainer/devcontainer.json` declaratively bakes the install recipe (so the dep set is auto-synced to `requirements.txt` + `torch-requirements.txt` at session start with no image-rebuild loop), and the repo is auto-cloned into `/workspaces/ml-lab` inside the container.
+
+**Scenarios this supports**:
+- Onboarding a new contributor — they click "Create codespace" and have a working env in ~2-3 minutes, no local install at all.
+- Running a notebook on a beefier machine without local install (the smallest Codespace machine is 2-core / 8 GB RAM — comparable to a low-end laptop, sufficient for every Tier-A notebook; bump to 4-core / 16 GB if any Tier-B sweep feels slow).
+- Quick demo / drive-by experiment without polluting the local Python env.
+- The `image_classification-mnist-ffnn-numpy/notebook.ipynb` edge case (it imports sibling `.py` modules from its own folder) works natively — Codespaces clones the repo into the container's `/workspaces/ml-lab`, so the kernel sees those files without needing the §3.1 wrapper-and-bind-mount path's `scripts/start-jupyterhub.sh`.
+
+**Scenarios this does NOT support**:
+- GPU workloads — GitHub deprecated GPU Codespaces 2025-08-29 (Azure NCv3 retirement). The few GPU-benefiting notebooks (heaviest is `self_supervised-fmnist-jepa-pytorch`) still run on CPU here, just slowly; for real GPU you want a separate path (Modal `function.spawn`, a self-hosted GPU box behind Jupyter Enterprise Gateway, or Vertex AI Workbench / Colab Enterprise).
+- Data persistence across Codespace deletions — anything written to `./data/` or `./runs/` is gone when the Codespace is deleted (Codespaces are intended to be cheap and disposable). Commit any results you want to keep, or use Codespaces' "prebuild" feature if dep install time becomes a bottleneck.
+- The quantization-mnist-ffnn-pytorch notebook still won't run here — it has the same `torch.int1` vs `torch==2.4.1` incompatibility documented in its task README (manual-only).
+
+**How to use**:
+
+1. On [github.com/thekaveh/ml-lab](https://github.com/thekaveh/ml-lab) → green **Code** button → **Codespaces** tab → **Create codespace on main**.
+2. Wait ~2-3 min for `postCreateCommand` to run `make codespace-setup` (= pip install both requirements files + `make nlp-assets`). Progress is visible in the terminal panel.
+3. Open any notebook. You can either:
+   - **Stay in VS Code (browser)** — the Jupyter / Python extensions are preinstalled per the devcontainer config; works for all 21 notebooks.
+   - **Switch to JupyterLab** — click the dropdown next to "Open" on github.com → choose JupyterLab. To make JupyterLab the single-click default for all your codespaces, go to [github.com/settings/codespaces → Editor preference → JupyterLab](https://github.com/settings/codespaces).
+
+See [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) for the exact image + extension set, and [`Makefile`](Makefile) `codespace-setup` target for the install recipe (which is also the single source of truth for the §3.2 Docker + §3.3 venv paths). Free-tier Codespaces (60 core-hours/month on personal accounts, 90 on Pro) is enough for typical solo-maintainer usage.
 
 ## 4. Tasks
 
