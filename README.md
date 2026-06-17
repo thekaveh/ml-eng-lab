@@ -216,7 +216,7 @@ The README is the entry point; the items below are the hub's index of secondary 
 
 ### 10.2. Environment + runtimes
 
-- [docs/env-setup.md](docs/env-setup.md) — the three setup paths (jupyterhub / Docker / venv), GPU notes, Tier mapping.
+- [docs/env-setup.md](docs/env-setup.md) — the four setup paths (jupyterhub / Docker / venv / Codespaces), GPU notes, Tier mapping.
 - [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) — primary runtime (vendored `genai-vanilla` JupyterHub stack).
 - [docs/vscode-remote-access.md](docs/vscode-remote-access.md) — VS Code remote-attach modes.
 

@@ -1,6 +1,6 @@
 # Environment setup
 
-Three paths, pick whichever fits the moment.
+Four paths, pick whichever fits the moment.
 
 ## 1. genai-vanilla jupyterhub (recommended)
 
@@ -81,7 +81,7 @@ Click **Code → Codespaces → Create codespace on main** on github.com/thekave
 - **Quantization notebook**: still won't run — same `torch.int1` / `torch==2.4.1` incompatibility documented in its task README.
 - **Persistence**: `./data/` and `./runs/` content is lost when the Codespace is deleted. Commit anything you want to keep.
 
-See [README.md §3.4](../README.md#34-github-codespaces-zero-click-cloud-dev) for the full motivation + scenario list (why this path exists alongside the 3 above, what it does and doesn't solve).
+See [README.md §3.4](../README.md#34-github-codespaces-zero-click-cloud-dev) for the full motivation + scenario list (why this 4th path exists alongside §1 / §2 / §3, what it does and doesn't solve).
 
 ## 5. GPU notes
 
