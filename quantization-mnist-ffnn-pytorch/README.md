@@ -35,13 +35,13 @@ In the recommended runtime ([../docs/jupyterhub-integration.md](../docs/jupyterh
 # Open the notebook in VS Code attached to the container, or in browser jupyter.
 ```
 
-Or via the Tier-B smoke target (writes to `/tmp/`, preserves committed outputs):
+Or manually (the only path in ml-lab's pinned env — see the next paragraph for why):
 
 ```bash
-make smoke-tier-b
+papermill --kernel python3 quantization-mnist-ffnn-pytorch/notebook.ipynb /tmp/out.ipynb
 ```
 
-**Tier-B** (cheap on CPU — ~30 s — but blocked from per-PR CI by a torchao ↔ torch version conflict). `torchao>=0.9.0` (the earliest version exposing the `Int8WeightOnlyConfig` API `nnx.quantize_int8` calls) references `torch.int1` at import time. `torch.int1` was added in `torch 2.5`. ml-lab pins `torch==2.4.1` for genai-vanilla image-parity. Until either the torch pin is bumped or torchao's `Int8WeightOnlyConfig` API stabilizes a backcompat path, this notebook runs only via the weekly `smoke-tier-b` cron schedule (or PR label `tier-b-smoke`), not on every PR. See [issue #10](https://github.com/thekaveh/ml-lab/issues/10) for full context. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell.
+**Manual-only** (was Tier-B from 2026-06-02 to 2026-06-16, then removed from `Makefile` TIER_B after the weekly cron failed). `torchao>=0.9.0` (the earliest version exposing the `Int8WeightOnlyConfig` API `nnx.quantize_int8` calls) references `torch.int1` at import time. `torch.int1` was added in `torch 2.5`. ml-lab pins `torch==2.4.1` for genai-vanilla image-parity. **No torchao version satisfies both nnx's API requirement AND the torch 2.4.1 import surface**, so the notebook cannot execute under CI's pinned environment regardless of tier. The 2026-06-15 weekly `smoke-tier-b` cron confirmed this (`AttributeError: module 'torch' has no attribute 'int1'`). To run locally, install `torch>=2.5` + `torchao>=0.17` in a side-env. See [issue #10](https://github.com/thekaveh/ml-lab/issues/10) for full context. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell.
 
 ## 5. Dependencies
 
