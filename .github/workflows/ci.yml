@@ -44,7 +44,7 @@ jobs:
 
   tier-a-papermill:
     runs-on: ubuntu-latest
-    # 19 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch moved to Tier-B per issue #10). Cumulative ~7 min on a macOS M-series CPU but Linux
+    # 19 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch originally moved to Tier-B per issue #10, then removed from TIER_B on 2026-06-16 after the weekly cron confirmed it cannot run in CI's pinned env — manual-only now). Cumulative ~7 min on a macOS M-series CPU but Linux
     # GH Actions runners are ~3-4× slower for hand-coded numpy training
     # (image_classification-mnist-ffnn-numpy is the worst offender — observed
     # ~30 min on its own at PR-#5 HEAD edcab84). 90 min cap leaves headroom
