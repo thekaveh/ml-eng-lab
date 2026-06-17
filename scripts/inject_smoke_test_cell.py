@@ -15,10 +15,20 @@ from pathlib import Path
 SMOKE_CELL_SOURCE = [
     "# Papermill parameters cell. Default values used when run interactively.\n",
     "# Set via: papermill -p SMOKE_TEST 1 in.ipynb out.ipynb\n",
-    "SMOKE_TEST = 0          # 1 = run a tiny smoke version of this notebook\n",
-    "SMOKE_TEST_EPOCHS = 1   # max epochs when SMOKE_TEST=1\n",
-    "SMOKE_TEST_SUBSET = 256 # max samples when SMOKE_TEST=1\n",
+    "# SMOKE_TEST: 1 = run a tiny smoke version of this notebook\n",
+    "SMOKE_TEST = 0\n",
+    "# SMOKE_TEST_EPOCHS: max epochs when SMOKE_TEST=1\n",
+    "SMOKE_TEST_EPOCHS = 1\n",
+    "# SMOKE_TEST_SUBSET: max samples when SMOKE_TEST=1\n",
+    "SMOKE_TEST_SUBSET = 256\n",
 ]
+# NOTE: comments must be on their own lines, NOT trailing the assignments.
+# Papermill 2.7.0 switched to AST-based parameter-cell parsing; the older
+# "SMOKE_TEST = 0  # 1 = run smoke" trailing-comment form trips its parser
+# (the second `=` inside the comment confuses the assignment detector) and
+# emits "Unable to parse line N" + "Passed unknown parameter: SMOKE_TEST"
+# warnings on every smoke-tier-{b,c} run. 2026-06-15 weekly cron surfaced
+# this. Comments-on-their-own-lines is the parser-friendly form.
 
 
 def has_parameters_cell(nb: dict) -> bool:
