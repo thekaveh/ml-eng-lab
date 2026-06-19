@@ -27,12 +27,15 @@ actually fires, so a green suite means "checked", not "vacuously passed".
 """
 from __future__ import annotations
 
+import ast
+import inspect
 import json
 import re
 from pathlib import Path
 
 import pytest
 
+import nnx
 from nnx.utils import Utils
 from nnx.vis_utils import VisUtils
 
@@ -206,3 +209,99 @@ def test_transient_path_guard_catches_leak():
                      "text": ["Run saved to /Users/x/.claude/worktrees/wt/runs/abc\n"]}],
     })
     assert find_transient_paths(bad)
+
+
+# --- nnx constructor signature-completeness guard ----------------------------
+#
+# The Utils->VisUtils break wasn't the only thing the nnx 0.2.0 migration left
+# stranded: NNOptimParams gained a required keyword-only `momentum` arg, so seven
+# notebooks calling NNOptimParams(name=, max_lr=, weight_decay=) raised TypeError
+# at execution. Attribute-surface scanning can't see that — this guard parses
+# each code cell's AST and checks every call to an nnx `NN*` constructor supplies
+# all of that constructor's required keyword-only params (resolved live from the
+# real nnx signatures, so it tracks future signature changes). Calls with
+# positional args or **kwargs unpacking are skipped (not statically resolvable).
+
+
+def _nnx_required_kwonly_params() -> dict[str, set[str]]:
+    out: dict[str, set[str]] = {}
+    for name in dir(nnx):
+        obj = getattr(nnx, name)
+        if not (inspect.isclass(obj) and name.startswith("NN")):
+            continue
+        try:
+            sig = inspect.signature(obj.__init__)
+        except (ValueError, TypeError):
+            continue
+        out[name] = {
+            pname for pname, p in sig.parameters.items()
+            if p.kind is p.KEYWORD_ONLY and p.default is p.empty and pname != "self"
+        }
+    return out
+
+
+def _called_name(node: ast.Call) -> str | None:
+    f = node.func
+    if isinstance(f, ast.Attribute):
+        return f.attr
+    if isinstance(f, ast.Name):
+        return f.id
+    return None
+
+
+def find_signature_violations(nb: dict, required: dict[str, set[str]]) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        # drop ipython magics / shell-escapes that aren't valid python
+        lines = [ln for ln in "".join(cell.get("source", [])).splitlines()
+                 if not ln.lstrip().startswith(("%", "!"))]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            name = _called_name(node)
+            if name not in required:
+                continue
+            if node.args or any(kw.arg is None for kw in node.keywords):
+                continue  # positional / **kwargs — can't statically verify
+            provided = {kw.arg for kw in node.keywords}
+            missing = required[name] - provided
+            if missing:
+                out.append(f"code_cell[{idx}]: {name}(...) missing required kwarg(s) {sorted(missing)}")
+    return out
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_nnx_constructor_calls_supply_required_kwargs(nb_path: Path):
+    required = _nnx_required_kwonly_params()
+    assert required.get("NNOptimParams"), "expected NNOptimParams to have required keyword-only params"
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_signature_violations(nb, required)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls an nnx constructor with missing required kwarg(s):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+def test_signature_guard_catches_missing_momentum():
+    required = _nnx_required_kwonly_params()
+    assert "momentum" in required["NNOptimParams"], "fixture assumes momentum is required"
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["p = NNOptimParams(name=Optims.ADAM, max_lr=1e-2, weight_decay=5e-4)\n"],
+        "outputs": [],
+    })
+    assert find_signature_violations(bad, required)
+
+
+def test_signature_guard_allows_complete_call():
+    required = _nnx_required_kwonly_params()
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["p = NNOptimParams(name=Optims.ADAM, max_lr=1e-2, weight_decay=5e-4, momentum=(0.9, 0.999))\n"],
+        "outputs": [],
+    })
+    assert not find_signature_violations(good, required)
