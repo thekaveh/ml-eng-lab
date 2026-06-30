@@ -416,3 +416,93 @@ def test_nnrun_load_best_guard_allows_real_id_load():
         "outputs": [],
     })
     assert not find_nnrun_load_best(good)
+
+
+# --- VisUtils call-signature guard (nnx plotting-API drift) -------------------
+#
+# The plotting helpers on `nnx.vis_utils.VisUtils` are a recurring source of
+# silent drift: a wide nnx version bump renames/removes a kwarg (e.g.
+# `scatter_plot(figsize=)` → `fig_size=`), and the only callers that hit it are
+# the smoke-only Tier-B/C node-classification notebooks, which the per-PR
+# papermill tier never executes — so the `TypeError` only surfaces on the weekly
+# cron (or never, if an earlier cell already crashes). This AST guard validates
+# every `VisUtils.<m>(...)` call's keyword-arg NAMES against the live signature,
+# so a renamed/removed kwarg fails on every PR. (It can't check positional
+# structure like `yss_legend`'s (group_labels, line_labels) tuple — that's a
+# value shape, not a kwarg name.)
+
+
+def _visutils_method_params() -> dict[str, set[str]]:
+    out: dict[str, set[str]] = {}
+    for name in dir(VisUtils):
+        if name.startswith("_"):
+            continue
+        obj = getattr(VisUtils, name)
+        if not callable(obj):
+            continue
+        try:
+            sig = inspect.signature(obj)
+        except (ValueError, TypeError):
+            continue
+        # Skip methods that accept **kwargs — their kwarg set is unbounded.
+        if any(p.kind is p.VAR_KEYWORD for p in sig.parameters.values()):
+            continue
+        out[name] = {p.name for p in sig.parameters.values() if p.name != "self"}
+    return out
+
+
+def find_visutils_kwarg_violations(nb: dict, params: dict[str, set[str]]) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        lines = [ln for ln in "".join(cell.get("source", [])).splitlines()
+                 if not ln.lstrip().startswith(("%", "!"))]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            f = node.func
+            if not (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id == "VisUtils"):
+                continue
+            if f.attr not in params:
+                continue
+            provided = {kw.arg for kw in node.keywords if kw.arg}
+            bad = provided - params[f.attr]
+            if bad:
+                out.append(f"code_cell[{idx}]: VisUtils.{f.attr}(...) invalid kwarg(s) {sorted(bad)}")
+    return out
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_visutils_calls_use_valid_kwargs(nb_path: Path):
+    params = _visutils_method_params()
+    assert params.get("multi_line_plot"), "expected VisUtils.multi_line_plot to resolve a signature"
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_visutils_kwarg_violations(nb, params)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls VisUtils with invalid kwarg(s):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+def test_visutils_guard_catches_bad_kwarg():
+    params = _visutils_method_params()
+    assert "figsize" not in params.get("scatter_plot", set()), "fixture assumes scatter_plot uses fig_size, not figsize"
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["VisUtils.scatter_plot(vm=vm, figsize=(25, 20))\n"],
+        "outputs": [],
+    })
+    assert find_visutils_kwarg_violations(bad, params)
+
+
+def test_visutils_guard_allows_valid_kwargs():
+    params = _visutils_method_params()
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["VisUtils.scatter_plot(vm=vm, fig_size=(25, 20))\n", "VisUtils.multi_line_plot(x=x, yss=y, title=t, yss_legend=g, x_axis_label='a', y_axis_label='b')\n"],
+        "outputs": [],
+    })
+    assert not find_visutils_kwarg_violations(good, params)
