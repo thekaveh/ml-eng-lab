@@ -240,6 +240,86 @@ def _nnx_required_kwonly_params() -> dict[str, set[str]]:
     return out
 
 
+def _nnx_ctor_accepted_params() -> dict[str, set[str]]:
+    """All accepted kwarg names per top-level nnx `NN*` constructor, resolved
+    live from the INSTALLED nnx. Classes whose ``__init__`` accepts ``**kwargs``
+    are omitted (their kwarg set is unbounded → can't validate).
+
+    NOTE: this resolves against whatever nnx is installed, so a kwarg that
+    exists only in a local *dev* checkout but not in the released
+    ``thekaveh-nnx`` PyPI build will pass locally and FAIL in CI — which is
+    exactly the point: it converts dev-vs-release drift (e.g. an unreleased
+    ``NNGraphDataset(seed=)``) into a fast pytest-nnx-surface failure instead of
+    a slow smoke-tier-b/c crash.
+    """
+    out: dict[str, set[str]] = {}
+    for name in dir(nnx):
+        obj = getattr(nnx, name)
+        if not (inspect.isclass(obj) and name.startswith("NN")):
+            continue
+        try:
+            sig = inspect.signature(obj.__init__)
+        except (ValueError, TypeError):
+            continue
+        if any(p.kind is p.VAR_KEYWORD for p in sig.parameters.values()):
+            continue
+        out[name] = {pname for pname, p in sig.parameters.items() if pname != "self"}
+    return out
+
+
+def find_nnx_unknown_kwargs(nb: dict, accepted: dict[str, set[str]]) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        lines = [ln for ln in "".join(cell.get("source", [])).splitlines()
+                 if not ln.lstrip().startswith(("%", "!"))]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            name = _called_name(node)
+            if name not in accepted:
+                continue
+            if any(kw.arg is None for kw in node.keywords):
+                continue  # **kwargs unpacking — can't statically resolve
+            bad = {kw.arg for kw in node.keywords if kw.arg} - accepted[name]
+            if bad:
+                out.append(f"code_cell[{idx}]: {name}(...) unknown kwarg(s) {sorted(bad)} (not in installed nnx signature)")
+    return out
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_nnx_constructor_calls_use_known_kwargs(nb_path: Path):
+    accepted = _nnx_ctor_accepted_params()
+    assert accepted.get("NNGraphDataset"), "expected NNGraphDataset to resolve a signature"
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_nnx_unknown_kwargs(nb, accepted)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls an nnx constructor with a kwarg absent from the "
+        f"installed nnx (dev-vs-release drift?):\n  " + "\n  ".join(violations)
+    )
+
+
+def test_nnx_unknown_kwarg_guard_catches_bad_kwarg():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["d = NNGraphDataset(ds_class=R, n_neighbors=[2], totally_made_up_kwarg=1)\n"],
+        "outputs": [],
+    })
+    assert find_nnx_unknown_kwargs(bad, {"NNGraphDataset": {"ds_class", "n_neighbors", "n_workers", "transform", "batch_sizes", "root_dir"}})
+
+
+def test_nnx_unknown_kwarg_guard_allows_real_kwargs():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["d = NNGraphDataset(ds_class=R, n_neighbors=[2], n_workers=4, transform=t)\n"],
+        "outputs": [],
+    })
+    assert not find_nnx_unknown_kwargs(good, {"NNGraphDataset": {"ds_class", "n_neighbors", "n_workers", "transform", "batch_sizes", "root_dir"}})
+
+
 def _called_name(node: ast.Call) -> str | None:
     f = node.func
     if isinstance(f, ast.Attribute):
@@ -305,3 +385,204 @@ def test_signature_guard_allows_complete_call():
         "outputs": [],
     })
     assert not find_signature_violations(good, required)
+
+
+# --- v0.2.0 stale-API guards (nnx usage-conformance review, 2026-06-29) -------
+#
+# The nnx 0.2.0 data model removed the flat per-iteration metric fields and the
+# snapshot fields from the intermediate data point, and `NNModel.train` returns
+# a single `NNRun` (no tuple to unpack). Seven node-classification notebooks
+# (phase2 nb1-3, phase3 nb1-4) plus the image_classification baseline still
+# referenced the stale shapes — `idp.train_loss` / `idp.val_error` raise
+# `AttributeError`, and `NNRun.load("best")` is not the v0.2.0 idiom (load
+# takes a real run id; the BEST checkpoint is reached via
+# `NNCheckpoint.load(run=<id>, type=Checkpoints.BEST)` or `run.checkpoints()`).
+# These execution-free scans catch the stale shapes on EVERY PR — the phase2/3
+# notebooks live in the smoke-only Tier-B/C lanes, so the papermill tiers don't
+# exercise them on a normal PR.
+
+# Attribute access of a removed flat IDP metric field (NOT the nested
+# `train_edp.loss` / `val_edp.error` form). The leading `.` requires attribute
+# access; the trailing `\b` keeps `train_loss_history`-style names from matching.
+_STALE_IDP_FIELD_RE = re.compile(
+    r"\.(train_loss|train_error|val_loss|val_error|snapshot_x|snapshot_y_hat|snapshot_y)\b"
+)
+# `NNRun.load("best")` / `NNRun.load('best')` — `"best"` is not a run id.
+_NNRUN_LOAD_BEST_RE = re.compile(r"""NNRun\.load\(\s*["']best["']""")
+
+
+def find_stale_idp_fields(nb: dict) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        for line in _live_lines(cell):
+            for m in _STALE_IDP_FIELD_RE.finditer(line):
+                out.append(f"code_cell[{idx}]: .{m.group(1)} (removed; use train_edp/val_edp.<loss|error>)")
+    return out
+
+
+def find_nnrun_load_best(nb: dict) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        for line in _live_lines(cell):
+            if _NNRUN_LOAD_BEST_RE.search(line):
+                out.append(f"code_cell[{idx}]: NNRun.load(\"best\") (use NNCheckpoint.load(run=<id>, type=Checkpoints.BEST))")
+    return out
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_no_stale_flat_idp_fields(nb_path: Path):
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_stale_idp_fields(nb)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} accesses removed flat IDP/snapshot field(s):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_no_nnrun_load_best(nb_path: Path):
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_nnrun_load_best(nb)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls NNRun.load(\"best\"):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+def test_stale_idp_guard_catches_flat_fields():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["losses = [idp.train_loss for idp in run.idps]\n", "e = min(run.idps, key=lambda i: i.val_error).val_error\n"],
+        "outputs": [],
+    })
+    assert len(find_stale_idp_fields(bad)) >= 2
+
+
+def test_stale_idp_guard_allows_nested_form_and_similar_names():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "losses = [idp.train_edp.loss for idp in run.idps]\n",
+            "errs = [i.val_edp.error for i in run.idps if i.val_edp is not None]\n",
+            "history = run.train_loss_history\n",  # different attr — must NOT match
+        ],
+        "outputs": [],
+    })
+    assert not find_stale_idp_fields(good)
+
+
+def test_stale_idp_guard_ignores_commented_snapshot_block():
+    commented = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["# if idp.snapshot_y_hat is None: continue  (legacy, removed)\n"],
+        "outputs": [],
+    })
+    assert not find_stale_idp_fields(commented)
+
+
+def test_nnrun_load_best_guard_catches_call():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["for c in NNRun.load(\"best\").checkpoints():\n", "    pass\n"],
+        "outputs": [],
+    })
+    assert find_nnrun_load_best(bad)
+
+
+def test_nnrun_load_best_guard_allows_real_id_load():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["run = NNRun.load(top_runs[0].id)\n", "ckpt = NNCheckpoint.load(run=top_runs[0].id, type=Checkpoints.BEST)\n"],
+        "outputs": [],
+    })
+    assert not find_nnrun_load_best(good)
+
+
+# --- VisUtils call-signature guard (nnx plotting-API drift) -------------------
+#
+# The plotting helpers on `nnx.vis_utils.VisUtils` are a recurring source of
+# silent drift: a wide nnx version bump renames/removes a kwarg (e.g.
+# `scatter_plot(figsize=)` → `fig_size=`), and the only callers that hit it are
+# the smoke-only Tier-B/C node-classification notebooks, which the per-PR
+# papermill tier never executes — so the `TypeError` only surfaces on the weekly
+# cron (or never, if an earlier cell already crashes). This AST guard validates
+# every `VisUtils.<m>(...)` call's keyword-arg NAMES against the live signature,
+# so a renamed/removed kwarg fails on every PR. (It can't check positional
+# structure like `yss_legend`'s (group_labels, line_labels) tuple — that's a
+# value shape, not a kwarg name.)
+
+
+def _visutils_method_params() -> dict[str, set[str]]:
+    out: dict[str, set[str]] = {}
+    for name in dir(VisUtils):
+        if name.startswith("_"):
+            continue
+        obj = getattr(VisUtils, name)
+        if not callable(obj):
+            continue
+        try:
+            sig = inspect.signature(obj)
+        except (ValueError, TypeError):
+            continue
+        # Skip methods that accept **kwargs — their kwarg set is unbounded.
+        if any(p.kind is p.VAR_KEYWORD for p in sig.parameters.values()):
+            continue
+        out[name] = {p.name for p in sig.parameters.values() if p.name != "self"}
+    return out
+
+
+def find_visutils_kwarg_violations(nb: dict, params: dict[str, set[str]]) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        lines = [ln for ln in "".join(cell.get("source", [])).splitlines()
+                 if not ln.lstrip().startswith(("%", "!"))]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            f = node.func
+            if not (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id == "VisUtils"):
+                continue
+            if f.attr not in params:
+                continue
+            provided = {kw.arg for kw in node.keywords if kw.arg}
+            bad = provided - params[f.attr]
+            if bad:
+                out.append(f"code_cell[{idx}]: VisUtils.{f.attr}(...) invalid kwarg(s) {sorted(bad)}")
+    return out
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_visutils_calls_use_valid_kwargs(nb_path: Path):
+    params = _visutils_method_params()
+    assert params.get("multi_line_plot"), "expected VisUtils.multi_line_plot to resolve a signature"
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_visutils_kwarg_violations(nb, params)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls VisUtils with invalid kwarg(s):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+def test_visutils_guard_catches_bad_kwarg():
+    params = _visutils_method_params()
+    assert "figsize" not in params.get("scatter_plot", set()), "fixture assumes scatter_plot uses fig_size, not figsize"
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["VisUtils.scatter_plot(vm=vm, figsize=(25, 20))\n"],
+        "outputs": [],
+    })
+    assert find_visutils_kwarg_violations(bad, params)
+
+
+def test_visutils_guard_allows_valid_kwargs():
+    params = _visutils_method_params()
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["VisUtils.scatter_plot(vm=vm, fig_size=(25, 20))\n", "VisUtils.multi_line_plot(x=x, yss=y, title=t, yss_legend=g, x_axis_label='a', y_axis_label='b')\n"],
+        "outputs": [],
+    })
+    assert not find_visutils_kwarg_violations(good, params)
