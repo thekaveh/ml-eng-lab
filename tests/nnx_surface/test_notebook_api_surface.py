@@ -305,3 +305,114 @@ def test_signature_guard_allows_complete_call():
         "outputs": [],
     })
     assert not find_signature_violations(good, required)
+
+
+# --- v0.2.0 stale-API guards (nnx usage-conformance review, 2026-06-29) -------
+#
+# The nnx 0.2.0 data model removed the flat per-iteration metric fields and the
+# snapshot fields from the intermediate data point, and `NNModel.train` returns
+# a single `NNRun` (no tuple to unpack). Seven node-classification notebooks
+# (phase2 nb1-3, phase3 nb1-4) plus the image_classification baseline still
+# referenced the stale shapes — `idp.train_loss` / `idp.val_error` raise
+# `AttributeError`, and `NNRun.load("best")` is not the v0.2.0 idiom (load
+# takes a real run id; the BEST checkpoint is reached via
+# `NNCheckpoint.load(run=<id>, type=Checkpoints.BEST)` or `run.checkpoints()`).
+# These execution-free scans catch the stale shapes on EVERY PR — the phase2/3
+# notebooks live in the smoke-only Tier-B/C lanes, so the papermill tiers don't
+# exercise them on a normal PR.
+
+# Attribute access of a removed flat IDP metric field (NOT the nested
+# `train_edp.loss` / `val_edp.error` form). The leading `.` requires attribute
+# access; the trailing `\b` keeps `train_loss_history`-style names from matching.
+_STALE_IDP_FIELD_RE = re.compile(
+    r"\.(train_loss|train_error|val_loss|val_error|snapshot_x|snapshot_y_hat|snapshot_y)\b"
+)
+# `NNRun.load("best")` / `NNRun.load('best')` — `"best"` is not a run id.
+_NNRUN_LOAD_BEST_RE = re.compile(r"""NNRun\.load\(\s*["']best["']""")
+
+
+def find_stale_idp_fields(nb: dict) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        for line in _live_lines(cell):
+            for m in _STALE_IDP_FIELD_RE.finditer(line):
+                out.append(f"code_cell[{idx}]: .{m.group(1)} (removed; use train_edp/val_edp.<loss|error>)")
+    return out
+
+
+def find_nnrun_load_best(nb: dict) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        for line in _live_lines(cell):
+            if _NNRUN_LOAD_BEST_RE.search(line):
+                out.append(f"code_cell[{idx}]: NNRun.load(\"best\") (use NNCheckpoint.load(run=<id>, type=Checkpoints.BEST))")
+    return out
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_no_stale_flat_idp_fields(nb_path: Path):
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_stale_idp_fields(nb)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} accesses removed flat IDP/snapshot field(s):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_no_nnrun_load_best(nb_path: Path):
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_nnrun_load_best(nb)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls NNRun.load(\"best\"):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+def test_stale_idp_guard_catches_flat_fields():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["losses = [idp.train_loss for idp in run.idps]\n", "e = min(run.idps, key=lambda i: i.val_error).val_error\n"],
+        "outputs": [],
+    })
+    assert len(find_stale_idp_fields(bad)) >= 2
+
+
+def test_stale_idp_guard_allows_nested_form_and_similar_names():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "losses = [idp.train_edp.loss for idp in run.idps]\n",
+            "errs = [i.val_edp.error for i in run.idps if i.val_edp is not None]\n",
+            "history = run.train_loss_history\n",  # different attr — must NOT match
+        ],
+        "outputs": [],
+    })
+    assert not find_stale_idp_fields(good)
+
+
+def test_stale_idp_guard_ignores_commented_snapshot_block():
+    commented = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["# if idp.snapshot_y_hat is None: continue  (legacy, removed)\n"],
+        "outputs": [],
+    })
+    assert not find_stale_idp_fields(commented)
+
+
+def test_nnrun_load_best_guard_catches_call():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["for c in NNRun.load(\"best\").checkpoints():\n", "    pass\n"],
+        "outputs": [],
+    })
+    assert find_nnrun_load_best(bad)
+
+
+def test_nnrun_load_best_guard_allows_real_id_load():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["run = NNRun.load(top_runs[0].id)\n", "ckpt = NNCheckpoint.load(run=top_runs[0].id, type=Checkpoints.BEST)\n"],
+        "outputs": [],
+    })
+    assert not find_nnrun_load_best(good)
