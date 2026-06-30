@@ -240,6 +240,86 @@ def _nnx_required_kwonly_params() -> dict[str, set[str]]:
     return out
 
 
+def _nnx_ctor_accepted_params() -> dict[str, set[str]]:
+    """All accepted kwarg names per top-level nnx `NN*` constructor, resolved
+    live from the INSTALLED nnx. Classes whose ``__init__`` accepts ``**kwargs``
+    are omitted (their kwarg set is unbounded → can't validate).
+
+    NOTE: this resolves against whatever nnx is installed, so a kwarg that
+    exists only in a local *dev* checkout but not in the released
+    ``thekaveh-nnx`` PyPI build will pass locally and FAIL in CI — which is
+    exactly the point: it converts dev-vs-release drift (e.g. an unreleased
+    ``NNGraphDataset(seed=)``) into a fast pytest-nnx-surface failure instead of
+    a slow smoke-tier-b/c crash.
+    """
+    out: dict[str, set[str]] = {}
+    for name in dir(nnx):
+        obj = getattr(nnx, name)
+        if not (inspect.isclass(obj) and name.startswith("NN")):
+            continue
+        try:
+            sig = inspect.signature(obj.__init__)
+        except (ValueError, TypeError):
+            continue
+        if any(p.kind is p.VAR_KEYWORD for p in sig.parameters.values()):
+            continue
+        out[name] = {pname for pname, p in sig.parameters.items() if pname != "self"}
+    return out
+
+
+def find_nnx_unknown_kwargs(nb: dict, accepted: dict[str, set[str]]) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        lines = [ln for ln in "".join(cell.get("source", [])).splitlines()
+                 if not ln.lstrip().startswith(("%", "!"))]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            name = _called_name(node)
+            if name not in accepted:
+                continue
+            if any(kw.arg is None for kw in node.keywords):
+                continue  # **kwargs unpacking — can't statically resolve
+            bad = {kw.arg for kw in node.keywords if kw.arg} - accepted[name]
+            if bad:
+                out.append(f"code_cell[{idx}]: {name}(...) unknown kwarg(s) {sorted(bad)} (not in installed nnx signature)")
+    return out
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_nnx_constructor_calls_use_known_kwargs(nb_path: Path):
+    accepted = _nnx_ctor_accepted_params()
+    assert accepted.get("NNGraphDataset"), "expected NNGraphDataset to resolve a signature"
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_nnx_unknown_kwargs(nb, accepted)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls an nnx constructor with a kwarg absent from the "
+        f"installed nnx (dev-vs-release drift?):\n  " + "\n  ".join(violations)
+    )
+
+
+def test_nnx_unknown_kwarg_guard_catches_bad_kwarg():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["d = NNGraphDataset(ds_class=R, n_neighbors=[2], totally_made_up_kwarg=1)\n"],
+        "outputs": [],
+    })
+    assert find_nnx_unknown_kwargs(bad, {"NNGraphDataset": {"ds_class", "n_neighbors", "n_workers", "transform", "batch_sizes", "root_dir"}})
+
+
+def test_nnx_unknown_kwarg_guard_allows_real_kwargs():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["d = NNGraphDataset(ds_class=R, n_neighbors=[2], n_workers=4, transform=t)\n"],
+        "outputs": [],
+    })
+    assert not find_nnx_unknown_kwargs(good, {"NNGraphDataset": {"ds_class", "n_neighbors", "n_workers", "transform", "batch_sizes", "root_dir"}})
+
+
 def _called_name(node: ast.Call) -> str | None:
     f = node.func
     if isinstance(f, ast.Attribute):
