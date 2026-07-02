@@ -1173,7 +1173,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     parser.add_argument(
-        "--check", required=True,
+        "--check",
         choices=("structure", "execution", "docs", "comments", "all"),
         help="Which check to run.",
     )
@@ -1195,6 +1195,9 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     args = parser.parse_args(argv)
+
+    if args.check is None and args.phase_b_out is None:
+        parser.error("--check is required unless --phase-b-out is used")
 
     if args.phase_b_out is not None:
         count = export_phase_b_candidates(REPO_ROOT, args.phase_b_out)

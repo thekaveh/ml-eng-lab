@@ -47,6 +47,12 @@ def test_unknown_check_errors():
     assert r.returncode != 0
 
 
+def test_missing_check_errors_without_phase_b_out():
+    r = run_verify()
+    assert r.returncode != 0
+    assert "--check is required unless --phase-b-out is used" in r.stderr
+
+
 def test_emits_valid_json_schema(tmp_path):
     out = tmp_path / "findings.json"
     r = run_verify("--check", "structure", "--out", str(out), "--fast")
@@ -381,6 +387,13 @@ def test_phase_b_export_runs_and_produces_json(tmp_path):
     assert isinstance(data["candidates"], list)
     for cand in data["candidates"]:
         assert {"location", "comment", "snippet"} <= set(cand.keys())
+
+
+def test_phase_b_export_does_not_require_check(tmp_path):
+    out = tmp_path / "candidates.json"
+    r = run_verify("--phase-b-out", str(out))
+    assert r.returncode == 0, r.stderr
+    assert out.exists()
 
 
 def test_e7_papermill_params_tag_check():
