@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Inject a `parameters`-tagged SMOKE_TEST cell at the top of each notebook.
+"""Ensure each notebook has a `parameters`-tagged SMOKE_TEST hook.
 
-Idempotent: if any code cell tagged `parameters` already exists, skips the file
-(the existing tag is treated as the SMOKE_TEST hook regardless of its source).
+Idempotent when a tagged cell already assigns `SMOKE_TEST`; otherwise augments
+the first existing `parameters` cell, or inserts a new one before the first code cell.
 
 Usage:
     python scripts/inject_smoke_test_cell.py NOTEBOOK [...]

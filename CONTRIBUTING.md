@@ -16,7 +16,7 @@ A short guide for adding new task folders and modifying shared code in this lab.
 3. Run `make verify` (wraps `python scripts/verify_repo.py --check all --fast`) — must exit 0 (no error-severity findings; warnings are OK).
 4. Run `make test` (wraps `pytest tests/`) locally. CI also runs `pytest tests/nnx_surface` as the per-PR `pytest-nnx-surface` gate.
 5. If you touched a notebook, re-run it (Tier-A: `make run-tier-a`; Tier-B: `make smoke-tier-b`; Tier-C: `make smoke-tier-c`). Tier-C **code cells** must remain identical to the `pre-cleanup-baseline` tag — verify check E5 enforces this (markdown and embedded outputs are not compared).
-6. Open a PR. CI runs Tier-A automatically; Tier-B/C run on schedule and on `workflow_dispatch`.
+6. Open a PR. CI runs Tier-A automatically; Tier-B runs on schedule, on `workflow_dispatch`, and on PRs labeled `tier-b-smoke`; Tier-C runs on schedule and on `workflow_dispatch`.
 
 ## 3. Adding a new task folder
 
