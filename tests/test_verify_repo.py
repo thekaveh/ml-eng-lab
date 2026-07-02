@@ -91,6 +91,32 @@ def test_structure_s1_notebooks_parse(tmp_path):
     )
 
 
+def test_structure_s1_flags_missing_notebook_cell_id(tmp_path):
+    """nbformat currently auto-fills missing cell ids, so check raw JSON too."""
+    repo = _temp_repo(tmp_path)
+    name = "missing-cell-id.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    fake.write_text(json.dumps({
+        "cells": [{
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": "x = 1\n",
+        }],
+        "metadata": {},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }))
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S1.cell_id" and name in f["location"]
+    ]
+    assert hits, f"expected S1.cell_id for {name}; got {data.get('findings')}"
+
+
 def test_structure_s5_no_common_imports():
     """No `from common.` import anywhere in active task notebooks or scripts."""
     r = run_verify("--check", "structure", "--fast")
