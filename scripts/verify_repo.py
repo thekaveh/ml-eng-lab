@@ -937,7 +937,15 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
     result = CheckResult(name="execution")
 
     make_tier_a = _makefile_variable_items(repo, "TIER_A")
-    if make_tier_a and make_tier_a != TIER_A_NOTEBOOKS:
+    if not make_tier_a:
+        result.findings.append(Finding(
+            id="E11.tier_a_makefile_missing",
+            check="execution",
+            severity="error",
+            location="Makefile:TIER_A",
+            message="Makefile TIER_A is missing or empty; Tier-A execution contract is unenforceable",
+        ))
+    elif make_tier_a != TIER_A_NOTEBOOKS:
         result.findings.append(Finding(
             id="E11.tier_a_config_drift",
             check="execution",

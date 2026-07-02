@@ -461,8 +461,17 @@ def test_e11_tier_a_config_matches_makefile():
     )
     r = run_verify("--check", "execution", "--fast")
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
-    hits = [f for f in data["findings"] if f["id"] == "E11.tier_a_config_drift"]
+    hits = [f for f in data["findings"] if f["id"].startswith("E11.")]
     assert hits == []
+
+
+def test_e11_flags_missing_makefile_tier_a(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ("task/notebook.ipynb",))
+    result = verify_repo.check_execution(tmp_path, fast=True)
+    hits = [f for f in result.findings if f.id == "E11.tier_a_makefile_missing"]
+    assert len(hits) == 1
+    assert hits[0].severity == "error"
 
 
 def test_run_helper_timeout_returns_rc_124():
