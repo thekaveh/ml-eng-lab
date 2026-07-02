@@ -12,7 +12,14 @@ class Utils:
     )
 
     one_hot_decode = staticmethod(lambda X: np.argmax(X, axis=1))
-    one_hot_encode = staticmethod(lambda X, C: np.eye(len(C), dtype=int)[X])
+
+    @staticmethod
+    def one_hot_encode(X, C):
+        class_to_idx = {c: idx for idx, c in enumerate(C)}
+        labels = np.asarray(X)
+        indices = np.array([class_to_idx[x] for x in labels.reshape(-1)])
+        indices = indices.reshape(labels.shape)
+        return np.eye(len(C), dtype=int)[indices]
 
     def two_line_plot(
         fig_size

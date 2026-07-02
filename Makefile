@@ -4,8 +4,9 @@
 # Tier B: moderate, smoke-runs to /tmp (preserves original outputs).
 # Tier C: expensive, smoke-runs via SMOKE_TEST parameter to /tmp.
 #
-# Tier A is what CI runs on every PR. B and C are on-demand
-# (`make smoke-tier-b`, `make smoke-tier-c`).
+# Tier A is what CI runs on every PR. B/C smoke targets can run locally or via
+# workflow_dispatch; CI also runs both on the weekly schedule and Tier B on PRs
+# labeled `tier-b-smoke`.
 #
 # All targets assume papermill is on PATH and the notebooks' kernel can
 # import nnx. nnx is consumed from PyPI via the `thekaveh-nnx[lm]==0.2.0`
@@ -48,7 +49,7 @@ TIER_B := \
 # quantization import: `torchao>=0.17` (requirements.txt pin, smallest version
 # exposing nnx.quantize_int8's `Int8WeightOnlyConfig` API) references
 # `torch.int1` at module load; `torch.int1` was added in torch 2.5; ml-lab
-# pins `torch==2.4.1` for genai-vanilla image-parity (see torch-requirements.txt
+# pins `torch==2.4.1` for genai-vanilla image-parity (see torch-core-requirements.txt
 # + issue #10). No torchao version satisfies both nnx's API requirement AND
 # the torch 2.4.1 import surface, so the notebook cannot execute under
 # CI's pinned environment. Notebook stays in the repo as a manual-only task
@@ -65,11 +66,12 @@ TIER_C := \
 
 SMOKE_OUT := /tmp/ml-smoke
 
-.PHONY: help run-tier-a smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify codespace-setup
+.PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify install-torch-stack codespace-setup
 
 help:
 	@echo "Targets:"
 	@echo "  run-tier-a        Re-execute Tier-A notebooks in place. CI runs this on every PR."
+	@echo "  check-tier-a-clean Fail if Tier-A notebook execution changed tracked outputs."
 	@echo "  smoke-tier-b      Papermill Tier-B notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/ (preserves source outputs)."
 	@echo "  smoke-tier-c      Papermill Tier-C notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/."
 	@echo "  test              Run pytest on tests/ directory."
@@ -77,6 +79,7 @@ help:
 	@echo "  lint              Run ruff check . using the [tool.ruff] config in pyproject.toml."
 	@echo "  nlp-assets        Download spaCy en_core_web_sm + NLTK vader_lexicon (needed by the 2 NLP Tier-A notebooks)."
 	@echo "  verify            Run repo verifier (scripts/verify_repo.py --check all --fast)."
+	@echo "  install-torch-stack Install pinned Torch core first, then PyG/runtime deps."
 	@echo "  codespace-setup   Full dep install + NLP assets. Invoked by .devcontainer/devcontainer.json's postCreateCommand."
 
 run-tier-a:
@@ -85,6 +88,9 @@ run-tier-a:
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
 		(cd "$$dir" && papermill --kernel python3 "$$base" "$$base") || exit 1; \
 	done
+
+check-tier-a-clean:
+	git diff --exit-code -- $(TIER_A)
 
 smoke-tier-b:
 	@mkdir -p $(SMOKE_OUT)
@@ -120,15 +126,16 @@ nlp-assets:
 verify:
 	python scripts/verify_repo.py --check all --fast
 
+install-torch-stack:
+	pip install --upgrade pip
+	pip install -r torch-core-requirements.txt
+	pip install --no-build-isolation -r torch-requirements.txt
+
 # Full one-shot dep install for the GitHub Codespaces / "Reopen in Container"
-# path (README §3.4). Mirrors the install order .github/workflows/ci.yml uses
-# for the tier-a-papermill job (torch-requirements.txt FIRST so torch is pinned
-# before the PyG wheels in requirements.txt try to resolve against it, then
-# requirements.txt, then the 2 NLP assets via the existing nlp-assets target).
+# path (README §3.4). Reuses the same Torch-first install order as CI and
+# Docker so PyG source-build fallback can import torch during extension builds.
 # Recursively invokes nlp-assets so the spaCy + NLTK download steps stay in
 # one place across the §3.2 (Docker), §3.3 (venv), and §3.4 (Codespaces) paths.
-codespace-setup:
-	pip install --upgrade pip
-	pip install -r torch-requirements.txt
+codespace-setup: install-torch-stack
 	pip install -r requirements.txt
 	$(MAKE) nlp-assets

@@ -11,13 +11,15 @@ REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "inject_smoke_test_cell.py"
 
 
-def _make_notebook(path: Path, *, with_params: bool = False) -> None:
+def _make_notebook(
+    path: Path, *, with_params: bool = False, params_source: str = "SMOKE_TEST = 0\n"
+) -> None:
     nb = nbformat.v4.new_notebook()
     cells: list = [
         nbformat.v4.new_markdown_cell("# Title\nintro"),
     ]
     if with_params:
-        params_cell = nbformat.v4.new_code_cell("SMOKE_TEST = 0\n")
+        params_cell = nbformat.v4.new_code_cell(params_source)
         params_cell.metadata["tags"] = ["parameters"]
         cells.append(params_cell)
     cells.append(nbformat.v4.new_code_cell("import torch\nprint('hi')\n"))
@@ -44,6 +46,7 @@ def test_inject_adds_parameters_cell_when_missing(tmp_path):
     # Inserted before the first code cell (markdown stays on top).
     assert nb.cells[0].cell_type == "markdown"
     assert nb.cells[1].cell_type == "code"
+    assert nb.cells[1].id == "smoke-params"
     assert "parameters" in nb.cells[1].metadata.get("tags", [])
 
 
@@ -55,6 +58,20 @@ def test_inject_is_idempotent_when_parameters_cell_exists(tmp_path):
     assert r.returncode == 0, r.stderr
     assert "unchanged" in r.stdout
     assert nb_path.read_bytes() == before
+
+
+def test_inject_augments_parameters_cell_missing_smoke_test(tmp_path):
+    nb_path = tmp_path / "nb.ipynb"
+    _make_notebook(nb_path, with_params=True, params_source="OTHER_PARAMETER = 1\n")
+    r = _run(str(nb_path))
+    assert r.returncode == 0, r.stderr
+    assert "augmented existing parameters cell" in r.stdout
+
+    nb = nbformat.read(nb_path, as_version=4)
+    params_cells = [c for c in nb.cells if "parameters" in c.metadata.get("tags", [])]
+    assert len(params_cells) == 1
+    assert "SMOKE_TEST = 0" in params_cells[0].source
+    assert "OTHER_PARAMETER = 1" in params_cells[0].source
 
 
 def test_main_returns_2_when_no_argv():

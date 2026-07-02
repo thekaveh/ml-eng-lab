@@ -28,9 +28,12 @@ actually fires, so a green suite means "checked", not "vacuously passed".
 from __future__ import annotations
 
 import ast
+import io
 import inspect
 import json
 import re
+import subprocess
+import tokenize
 from pathlib import Path
 
 import pytest
@@ -58,13 +61,20 @@ def _visutils_only_methods() -> set[str]:
     return _public_attrs(VisUtils) - _public_attrs(Utils)
 
 
-def _active_notebooks() -> list[Path]:
-    """Every committed notebook except the archived codexglue set + checkpoints."""
+def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
+    """Every git-tracked notebook except the archived codexglue set + checkpoints."""
+    tracked = subprocess.run(
+        ["git", "ls-files", "--", "*.ipynb"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
     return sorted(
-        p
-        for p in REPO_ROOT.rglob("*.ipynb")
-        if "archive/" not in p.relative_to(REPO_ROOT).as_posix()
-        and ".ipynb_checkpoints" not in p.parts
+        repo_root / rel
+        for rel in tracked
+        if not rel.startswith("archive/")
+        and ".ipynb_checkpoints" not in Path(rel).parts
     )
 
 
@@ -72,10 +82,40 @@ def _code_cells(nb: dict) -> list[dict]:
     return [c for c in nb.get("cells", []) if c.get("cell_type") == "code"]
 
 
+def _source_lines(cell: dict) -> list[str]:
+    source = cell.get("source", [])
+    if isinstance(source, str):
+        return source.splitlines(keepends=True)
+    return list(source)
+
+
 def _live_lines(cell: dict) -> list[str]:
     """Source lines that are not pure comments (commented-out historical code is
     deliberately preserved verbatim in some Tier-C cells and must not be flagged)."""
-    return [ln for ln in cell.get("source", []) if not ln.lstrip().startswith("#")]
+    return [ln for ln in _source_lines(cell) if not ln.lstrip().startswith("#")]
+
+
+def _executable_lines(cell: dict) -> list[str]:
+    """Code lines with comments and string literals blanked for regex guards."""
+    source = "".join(_source_lines(cell))
+    lines = source.splitlines(keepends=True)
+    masked = [list(line) for line in lines]
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+        for token in tokens:
+            if token.type not in {tokenize.COMMENT, tokenize.STRING}:
+                continue
+            (start_line, start_col), (end_line, end_col) = token.start, token.end
+            for line_no in range(start_line, end_line + 1):
+                row = masked[line_no - 1]
+                start = start_col if line_no == start_line else 0
+                end = end_col if line_no == end_line else len(row)
+                for idx in range(start, min(end, len(row))):
+                    if row[idx] not in "\r\n":
+                        row[idx] = " "
+    except tokenize.TokenError:
+        return _live_lines(cell)
+    return ["".join(line) for line in masked if "".join(line).strip()]
 
 
 def _output_text(cell: dict) -> str:
@@ -93,7 +133,7 @@ def _output_text(cell: dict) -> str:
 def find_misplaced_utils_attrs(nb: dict, forbidden: set[str]) -> list[str]:
     out: list[str] = []
     for idx, cell in enumerate(_code_cells(nb)):
-        for line in _live_lines(cell):
+        for line in _executable_lines(cell):
             for m in _UTILS_ATTR_RE.finditer(line):
                 if m.group(1) in forbidden:
                     out.append(f"code_cell[{idx}]: Utils.{m.group(1)} (moved to VisUtils)")
@@ -127,6 +167,34 @@ def test_active_notebooks_discovered():
     """Guard against the glob silently matching nothing (which would make every
     parametrized scan vacuously pass)."""
     assert len(_NOTEBOOKS) >= 25, f"expected the full active notebook set, found {len(_NOTEBOOKS)}"
+
+
+def test_active_notebooks_uses_git_tracked_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Untracked scratch notebooks on disk must not affect the static surface scans."""
+    tracked_nb = tmp_path / "task" / "notebook.ipynb"
+    archive_nb = tmp_path / "archive" / "old.ipynb"
+    checkpoint_nb = tmp_path / "task" / ".ipynb_checkpoints" / "scratch.ipynb"
+    untracked_nb = tmp_path / "task" / "scratch.ipynb"
+    for path in (tracked_nb, archive_nb, checkpoint_nb, untracked_nb):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+
+    def fake_run(cmd, cwd, capture_output, text, check):
+        assert cmd == ["git", "ls-files", "--", "*.ipynb"]
+        assert cwd == tmp_path
+        assert capture_output is True
+        assert text is True
+        assert check is True
+        stdout = "\n".join([
+            "task/notebook.ipynb",
+            "archive/old.ipynb",
+            "task/.ipynb_checkpoints/scratch.ipynb",
+        ])
+        return subprocess.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert _active_notebooks(tmp_path) == [tracked_nb]
 
 
 @pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
@@ -174,6 +242,12 @@ def test_migration_guard_catches_bad_call():
     assert find_misplaced_utils_attrs(bad, forbidden)
 
 
+def test_migration_guard_catches_string_source_bad_call():
+    forbidden = _visutils_only_methods()
+    bad = _synthetic_nb({"cell_type": "code", "source": "Utils.multi_line_plot(x=[1])\n", "outputs": []})
+    assert find_misplaced_utils_attrs(bad, forbidden)
+
+
 def test_migration_guard_allows_correct_call_and_real_utils_methods():
     forbidden = _visutils_only_methods()
     good = _synthetic_nb({
@@ -182,6 +256,19 @@ def test_migration_guard_allows_correct_call_and_real_utils_methods():
         "outputs": [],
     })
     assert not find_misplaced_utils_attrs(good, forbidden)
+
+
+def test_migration_guard_ignores_string_literals_and_docstrings():
+    forbidden = _visutils_only_methods()
+    quoted = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "\"\"\"Example: Utils.multi_line_plot(x=[1])\"\"\"\n",
+            "msg = 'Utils.multi_line_plot(x=[1])'\n",
+        ],
+        "outputs": [],
+    })
+    assert not find_misplaced_utils_attrs(quoted, forbidden)
 
 
 def test_migration_guard_ignores_commented_out_reference():
@@ -407,14 +494,10 @@ def test_signature_guard_allows_complete_call():
 _STALE_IDP_FIELD_RE = re.compile(
     r"\.(train_loss|train_error|val_loss|val_error|snapshot_x|snapshot_y_hat|snapshot_y)\b"
 )
-# `NNRun.load("best")` / `NNRun.load('best')` — `"best"` is not a run id.
-_NNRUN_LOAD_BEST_RE = re.compile(r"""NNRun\.load\(\s*["']best["']""")
-
-
 def find_stale_idp_fields(nb: dict) -> list[str]:
     out: list[str] = []
     for idx, cell in enumerate(_code_cells(nb)):
-        for line in _live_lines(cell):
+        for line in _executable_lines(cell):
             for m in _STALE_IDP_FIELD_RE.finditer(line):
                 out.append(f"code_cell[{idx}]: .{m.group(1)} (removed; use train_edp/val_edp.<loss|error>)")
     return out
@@ -423,9 +506,51 @@ def find_stale_idp_fields(nb: dict) -> list[str]:
 def find_nnrun_load_best(nb: dict) -> list[str]:
     out: list[str] = []
     for idx, cell in enumerate(_code_cells(nb)):
-        for line in _live_lines(cell):
-            if _NNRUN_LOAD_BEST_RE.search(line):
+        lines = [
+            ln for ln in "".join(_live_lines(cell)).splitlines()
+            if not ln.lstrip().startswith(("%", "!"))
+        ]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not (
+                isinstance(func, ast.Attribute)
+                and func.attr == "load"
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "NNRun"
+            ):
+                continue
+            first_arg = node.args[0] if node.args else None
+            if isinstance(first_arg, ast.Constant) and first_arg.value == "best":
                 out.append(f"code_cell[{idx}]: NNRun.load(\"best\") (use NNCheckpoint.load(run=<id>, type=Checkpoints.BEST))")
+    return out
+
+
+def find_sparse_tensor_edge_index_drops(nb: dict) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        lines = [ln for ln in "".join(_live_lines(cell)).splitlines()
+                 if not ln.lstrip().startswith(("%", "!"))]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or _called_name(node) != "ToSparseTensor":
+                continue
+            preserves_edge_index = any(
+                kw.arg == "remove_edge_index"
+                and isinstance(kw.value, ast.Constant)
+                and kw.value.value is False
+                for kw in node.keywords
+            )
+            if not preserves_edge_index:
+                out.append(f"code_cell[{idx}]: ToSparseTensor(...) drops edge_index by default")
     return out
 
 
@@ -449,6 +574,16 @@ def test_no_nnrun_load_best(nb_path: Path):
     )
 
 
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_no_tosparsetensor_default_edge_index_drop(nb_path: Path):
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_sparse_tensor_edge_index_drops(nb)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls ToSparseTensor without preserving edge_index:\n  "
+        + "\n  ".join(violations)
+    )
+
+
 def test_stale_idp_guard_catches_flat_fields():
     bad = _synthetic_nb({
         "cell_type": "code",
@@ -456,6 +591,15 @@ def test_stale_idp_guard_catches_flat_fields():
         "outputs": [],
     })
     assert len(find_stale_idp_fields(bad)) >= 2
+
+
+def test_stale_idp_guard_catches_string_source_flat_fields():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": "losses = [idp.train_loss for idp in run.idps]\n",
+        "outputs": [],
+    })
+    assert find_stale_idp_fields(bad)
 
 
 def test_stale_idp_guard_allows_nested_form_and_similar_names():
@@ -480,10 +624,31 @@ def test_stale_idp_guard_ignores_commented_snapshot_block():
     assert not find_stale_idp_fields(commented)
 
 
+def test_stale_idp_guard_ignores_string_literals_and_docstrings():
+    quoted = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "\"\"\"Legacy note: idp.val_error\"\"\"\n",
+            "msg = 'idp.train_loss'\n",
+        ],
+        "outputs": [],
+    })
+    assert not find_stale_idp_fields(quoted)
+
+
 def test_nnrun_load_best_guard_catches_call():
     bad = _synthetic_nb({
         "cell_type": "code",
         "source": ["for c in NNRun.load(\"best\").checkpoints():\n", "    pass\n"],
+        "outputs": [],
+    })
+    assert find_nnrun_load_best(bad)
+
+
+def test_nnrun_load_best_guard_catches_string_source_call():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": "run = NNRun.load(\"best\")\n",
         "outputs": [],
     })
     assert find_nnrun_load_best(bad)
@@ -496,6 +661,78 @@ def test_nnrun_load_best_guard_allows_real_id_load():
         "outputs": [],
     })
     assert not find_nnrun_load_best(good)
+
+
+def test_nnrun_load_best_guard_ignores_string_literal_example():
+    quoted = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["msg = 'NNRun.load(\"best\")'\n"],
+        "outputs": [],
+    })
+    assert not find_nnrun_load_best(quoted)
+
+
+def test_tosparsetensor_guard_catches_default_edge_index_drop():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["transform = pyg.transforms.ToSparseTensor()\n"],
+        "outputs": [],
+    })
+    assert find_sparse_tensor_edge_index_drops(bad)
+
+
+def test_tosparsetensor_guard_allows_preserving_edge_index():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["transform = pyg.transforms.ToSparseTensor(remove_edge_index=False)\n"],
+        "outputs": [],
+    })
+    assert not find_sparse_tensor_edge_index_drops(good)
+
+
+def test_tosparsetensor_guard_catches_multiline_default_edge_index_drop():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "transform = pyg.transforms.ToSparseTensor(\n",
+            "    fill_cache=False,\n",
+            ")\n",
+        ],
+        "outputs": [],
+    })
+    assert find_sparse_tensor_edge_index_drops(bad)
+
+
+def test_tosparsetensor_guard_catches_string_source_default_edge_index_drop():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": "# keep this historical note\ntransform = pyg.transforms.ToSparseTensor()\n",
+        "outputs": [],
+    })
+    assert find_sparse_tensor_edge_index_drops(bad)
+
+
+def test_tosparsetensor_guard_allows_spaced_keyword_assignment():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["transform = pyg.transforms.ToSparseTensor(remove_edge_index = False)\n"],
+        "outputs": [],
+    })
+    assert not find_sparse_tensor_edge_index_drops(good)
+
+
+def test_tosparsetensor_guard_allows_multiline_preserving_edge_index():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "transform = pyg.transforms.ToSparseTensor(\n",
+            "    fill_cache=False,\n",
+            "    remove_edge_index=False,\n",
+            ")\n",
+        ],
+        "outputs": [],
+    })
+    assert not find_sparse_tensor_edge_index_drops(good)
 
 
 # --- VisUtils call-signature guard (nnx plotting-API drift) -------------------

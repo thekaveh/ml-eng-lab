@@ -9,6 +9,7 @@ the run); 1 = at least one error finding (counts on stderr).
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import importlib.util
 import json
@@ -18,6 +19,7 @@ import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
+from urllib.parse import unquote
 
 import nbformat
 
@@ -28,10 +30,13 @@ except ImportError:
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = Path(__file__).resolve().parent / "verify_repo_config.yaml"
+_HELP_REQUESTED = any(arg in ("-h", "--help") for arg in sys.argv[1:])
 
 
 def _load_config() -> dict:
     if _yaml is None or not CONFIG_PATH.exists():
+        if _HELP_REQUESTED:
+            return {}
         raise RuntimeError(
             "verify_repo_config.yaml is required; install PyYAML and ensure "
             "the file exists."
@@ -43,9 +48,12 @@ _CONFIG = _load_config()
 
 _active_task_dirs_raw = _CONFIG.get("active_task_dirs")
 if not _active_task_dirs_raw:
-    raise RuntimeError(
-        "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
-    )
+    if _HELP_REQUESTED:
+        _active_task_dirs_raw = ()
+    else:
+        raise RuntimeError(
+            "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
+        )
 ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
 
 VERIFY_ONLY_DIRS = ("archive", "vendor")
@@ -62,9 +70,12 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = _required_sections_from_config()
 
 _tier_a_raw = _CONFIG.get("tier_a_notebooks")
 if not _tier_a_raw:
-    raise RuntimeError(
-        "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
-    )
+    if _HELP_REQUESTED:
+        _tier_a_raw = ()
+    else:
+        raise RuntimeError(
+            "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
+        )
 TIER_A_NOTEBOOKS = tuple(_tier_a_raw)
 
 README_REQUIRED_H2 = (
@@ -105,7 +116,8 @@ class CheckResult:
     skip_reason: str = ""
 
 
-_INTERNAL_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)#][^)#]*)(#[^)]*)?\)")
+_MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+_INLINE_CODE_RE = re.compile(r"`+[^`]*`+")
 _IMPORT_RE = re.compile(r"^\s*(?:from\s+([\w\.]+)\s+import|import\s+([\w\.]+))")
 _GITIGNORE_REQUIRED_PATTERNS = (
     "docs/superpowers/",
@@ -147,10 +159,62 @@ def _read_text(path: Path) -> str:
         return ""
 
 
+def _strip_markdown_code(text: str) -> str:
+    stripped: list[str] = []
+    in_fence = False
+    for line in text.splitlines():
+        if re.match(r"^\s*(?:```|~~~)", line):
+            in_fence = not in_fence
+            stripped.append(" " * len(line))
+            continue
+        if in_fence:
+            stripped.append(" " * len(line))
+            continue
+        stripped.append(_INLINE_CODE_RE.sub(lambda m: " " * len(m.group(0)), line))
+    return "\n".join(stripped)
+
+
+def _github_markdown_slug(heading: str) -> str:
+    heading = re.sub(r"<[^>]+>", "", heading)
+    heading = re.sub(r"[`*_~\[\]]", "", heading).strip().lower()
+    heading = re.sub(r"[^a-z0-9\s-]", "", heading)
+    heading = re.sub(r"\s+", "-", heading).strip("-")
+    return heading
+
+
+def _markdown_heading_slugs(text: str) -> set[str]:
+    counts: dict[str, int] = {}
+    slugs: set[str] = set()
+    for line in text.splitlines():
+        m = re.match(r"^#{1,6}\s+(.+?)\s*$", line)
+        if not m:
+            continue
+        base = _github_markdown_slug(m.group(1))
+        if not base:
+            continue
+        count = counts.get(base, 0)
+        counts[base] = count + 1
+        slugs.add(base if count == 0 else f"{base}-{count}")
+    return slugs
+
+
+def _split_markdown_link_target(target: str) -> tuple[str, str]:
+    target = target.strip().strip("<>")
+    target = target.split()[0] if target else ""
+    if "#" not in target:
+        return target, ""
+    path_part, fragment = target.split("#", 1)
+    return path_part, unquote(fragment)
+
+
 def _iter_notebooks(repo: Path) -> Iterator[Path]:
     for d in ACTIVE_TASK_DIRS:
         for nb_path in (repo / d).glob("*.ipynb"):
             yield nb_path
+
+
+def _notebook_rel(path: Path, repo: Path) -> str:
+    return str(path.relative_to(repo))
 
 
 def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
@@ -164,6 +228,20 @@ def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
             yield p
 
 
+def _iter_in_scope_markdown_documents(repo: Path) -> Iterator[tuple[Path, Path, str]]:
+    for md in _iter_in_scope_text_files(repo):
+        yield md, md.parent, _read_text(md)
+    for nb_path in _iter_notebooks(repo):
+        try:
+            doc = nbformat.read(nb_path, as_version=4)
+        except Exception:
+            continue
+        text = "\n\n".join(
+            cell.source for cell in doc.cells if cell.cell_type == "markdown"
+        )
+        yield nb_path, nb_path.parent, text
+
+
 def check_structure(repo: Path) -> CheckResult:
     result = CheckResult(name="structure")
     tracked = set(_git_ls_files(repo))
@@ -172,6 +250,14 @@ def check_structure(repo: Path) -> CheckResult:
     notebooks = list(_iter_notebooks(repo))
     for nb in notebooks:
         try:
+            raw_doc = json.loads(nb.read_text(encoding="utf-8"))
+            for i, c in enumerate(raw_doc.get("cells", [])):
+                if "id" not in c:
+                    result.findings.append(Finding(
+                        id="S1.cell_id", check="structure", severity="error",
+                        location=f"{nb.relative_to(repo)}:cell[{i}]",
+                        message="cell is missing required nbformat v4 id",
+                    ))
             doc = nbformat.read(nb, as_version=4)
             for i, c in enumerate(doc.cells):
                 if c.cell_type not in valid_types:
@@ -231,20 +317,33 @@ def check_structure(repo: Path) -> CheckResult:
                         ),
                     ))
 
-    for md in _iter_in_scope_text_files(repo):
-        text = _read_text(md)
-        for m in _INTERNAL_LINK_RE.finditer(text):
-            target = m.group(1).strip()
+    for doc_path, base_dir, raw_text in _iter_in_scope_markdown_documents(repo):
+        text = _strip_markdown_code(raw_text)
+        for m in _MARKDOWN_LINK_RE.finditer(text):
+            path_part, fragment = _split_markdown_link_target(m.group(1))
+            target = path_part
             if target.startswith(("http://", "https://", "mailto:")):
                 continue
-            target_path = (md.parent / target).resolve()
+            if not target and not fragment:
+                continue
+            target_path = (base_dir / target).resolve() if target else doc_path.resolve()
             if not target_path.exists():
                 result.findings.append(Finding(
                     id="S3.broken_link", check="structure", severity="error",
-                    location=f"{md.relative_to(repo)}",
+                    location=f"{doc_path.relative_to(repo)}",
                     message=f"internal link target missing: {target}",
                     detail={"link": m.group(0)},
                 ))
+                continue
+            if fragment and target_path.suffix.lower() == ".md":
+                slugs = _markdown_heading_slugs(_read_text(target_path))
+                if fragment not in slugs:
+                    result.findings.append(Finding(
+                        id="S3.broken_anchor", check="structure", severity="error",
+                        location=f"{doc_path.relative_to(repo)}",
+                        message=f"internal link anchor missing: #{fragment}",
+                        detail={"link": m.group(0), "target": str(target_path.relative_to(repo))},
+                    ))
 
     _COMMON_IMPORT_RE = re.compile(r"^\s*(?:from\s+common(?:\.\w+)*\s+import\b|import\s+common(?:\.\w+)*)")
     for path in tracked:
@@ -317,16 +416,155 @@ def check_structure(repo: Path) -> CheckResult:
                 ),
             ))
 
+    for script in sorted((repo / "scripts").glob("*.py")):
+        if not script.is_file():
+            continue
+        rel = str(script.relative_to(repo))
+        text = _read_text(script)
+        has_shebang = text.startswith("#!")
+        executable = bool(script.stat().st_mode & 0o111)
+        if has_shebang != executable:
+            result.findings.append(Finding(
+                id="S8.script_executable_mismatch",
+                check="structure",
+                severity="error",
+                location=rel,
+                message=(
+                    "script shebang and executable bit disagree; keep both "
+                    "present for direct CLI scripts or both absent for modules"
+                ),
+                detail={"has_shebang": has_shebang, "executable": executable},
+            ))
+
     return result
 
 
 _H1_RE = re.compile(r"^# ([^\n]+)", re.MULTILINE)
 _H2_RE = re.compile(r"^## ([^\n]+)", re.MULTILINE)
+_MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+_NUMBERED_HEADING_RE = re.compile(r"^(\d+(?:\.\d+)*)\.\s+\S")
 
 
 def _markdown_headings(text: str, level: int) -> list[str]:
     pat = _H1_RE if level == 1 else _H2_RE
     return [m.group(1).strip() for m in pat.finditer(text)]
+
+
+def _iter_markdown_headings(text: str) -> Iterator[tuple[int, int, str]]:
+    in_fence = False
+    for line_no, line in enumerate(text.splitlines(), 1):
+        if re.match(r"^\s*(?:```|~~~)", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = _MARKDOWN_HEADING_RE.match(line)
+        if not m:
+            continue
+        title = m.group(2).strip().rstrip("#").strip()
+        yield line_no, len(m.group(1)), title
+
+
+def _iter_numbered_doc_files(repo: Path) -> Iterator[Path]:
+    for rel in ("README.md", "CONTRIBUTING.md"):
+        path = repo / rel
+        if path.exists():
+            yield path
+    for rel in (
+        "FINDINGS-NNX.md",
+        "FINDINGS-VENDOR.md",
+        "dependency-contracts.md",
+        "env-setup.md",
+        "jupyterhub-integration.md",
+        "vscode-remote-access.md",
+    ):
+        path = repo / "docs" / rel
+        if path.exists():
+            yield path
+    maintenance_dir = repo / "docs" / "maintenance"
+    if maintenance_dir.exists():
+        yield from sorted(maintenance_dir.glob("*.md"))
+    for d in ACTIVE_TASK_DIRS:
+        path = repo / d / "README.md"
+        if path.exists():
+            yield path
+
+
+def _numbered_heading_findings(repo: Path, path: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    for line_no, level, title in _iter_markdown_headings(_read_text(path)):
+        if level == 1:
+            continue
+        m = _NUMBERED_HEADING_RE.match(title)
+        if not m:
+            findings.append(Finding(
+                id="D9.numbered_heading", check="docs", severity="error",
+                location=f"{path.relative_to(repo)}:{line_no}",
+                message="numbered-doc heading must start with '<number>. '",
+                detail={"heading": title},
+            ))
+            continue
+        expected_depth = level - 1
+        actual_depth = len(m.group(1).split("."))
+        if actual_depth != expected_depth:
+            findings.append(Finding(
+                id="D9.numbered_heading", check="docs", severity="error",
+                location=f"{path.relative_to(repo)}:{line_no}",
+                message=(
+                    f"numbered-doc H{level} must use {expected_depth} "
+                    f"numeric component(s)"
+                ),
+                detail={"heading": title},
+            ))
+    return findings
+
+
+def _dependency_ledger_findings(repo: Path) -> list[Finding]:
+    path = repo / "docs" / "dependency-contracts.md"
+    if not path.exists():
+        return []
+    text = _read_text(path)
+    package_counts = {
+        package: int(count)
+        for package, count in re.findall(
+            r"^\| `([^`]+)` \| `[^`]+` \| `[^`]+` \| (\d+) \|", text, re.M
+        )
+    }
+    advisory_counts: dict[str, int] = {}
+    for package, count in re.findall(
+        r"^\| `([^`]+)` \| `(?:PYSEC|CVE)-[^`]+` \| (\d+) \|", text, re.M
+    ):
+        advisory_counts[package] = advisory_counts.get(package, 0) + int(count)
+
+    findings: list[Finding] = []
+    for package, expected in package_counts.items():
+        actual = advisory_counts.get(package, 0)
+        if actual != expected:
+            findings.append(Finding(
+                id="D10.dependency_ledger_count", check="docs", severity="error",
+                location="docs/dependency-contracts.md",
+                message=(
+                    f"{package} advisory feed-record count is {actual}; "
+                    f"expected {expected} from audit summary"
+                ),
+                detail={"package": package, "expected": expected, "actual": actual},
+            ))
+
+    total_match = re.search(r"Result: (\d+) known vulnerabilities", text)
+    if total_match:
+        expected_total = int(total_match.group(1))
+        actual_total = sum(advisory_counts.values())
+        if actual_total != expected_total:
+            findings.append(Finding(
+                id="D10.dependency_ledger_count", check="docs", severity="error",
+                location="docs/dependency-contracts.md",
+                message=(
+                    f"advisory feed-record total is {actual_total}; "
+                    f"expected {expected_total} from audit summary"
+                ),
+                detail={"expected": expected_total, "actual": actual_total},
+            ))
+    return findings
 
 
 def _notebook_markdown_text(nb_path: Path) -> str:
@@ -354,6 +592,20 @@ def _ordered_contains(required: tuple[str, ...], actual: list[str]) -> tuple[boo
 
 def check_docs(repo: Path) -> CheckResult:
     result = CheckResult(name="docs")
+
+    configured_notebooks = set(REQUIRED_SECTIONS)
+    for nb in _iter_notebooks(repo):
+        rel = _notebook_rel(nb, repo)
+        if rel not in configured_notebooks:
+            result.findings.append(Finding(
+                id="D1.unconfigured_notebook", check="docs", severity="error",
+                location=rel,
+                message=(
+                    "active notebook is missing from verify_repo_config.yaml "
+                    "required_sections; docs and papermill-parameter checks "
+                    "would otherwise skip it"
+                ),
+            ))
 
     for rel, required in REQUIRED_SECTIONS.items():
         nb = repo / rel
@@ -482,6 +734,11 @@ def check_docs(repo: Path) -> CheckResult:
                         location=f"{path.relative_to(repo)}:{line_no}",
                         message=f"non-canonical spelling {dev!r}; use {canonical!r}",
                     ))
+
+    for path in _iter_numbered_doc_files(repo):
+        result.findings.extend(_numbered_heading_findings(repo, path))
+
+    result.findings.extend(_dependency_ledger_findings(repo))
 
     return result
 
@@ -651,6 +908,129 @@ def export_phase_b_candidates(repo: Path, out_path: Path) -> int:
     return len(candidates)
 
 
+def _subprocess_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
+def _cell_tags(cell) -> set[str]:
+    return set(cell.get("metadata", {}).get("tags") or [])
+
+
+def _is_parameters_cell(cell) -> bool:
+    tags = _cell_tags(cell)
+    return "parameters" in tags or "injected-parameters" in tags
+
+
+def _code_cell_sources_for_baseline(doc) -> list[str]:
+    return [
+        cell.source
+        for cell in doc.cells
+        if cell.cell_type == "code" and not _is_parameters_cell(cell)
+    ]
+
+
+def _parameter_trailing_comment_findings(doc, rel: str) -> list[Finding]:
+    findings: list[Finding] = []
+    bad_line_re = re.compile(r"^\s*[A-Za-z_]\w*\s*=.*#.*=")
+    for ci, cell in enumerate(doc.cells):
+        if cell.cell_type != "code" or not _is_parameters_cell(cell):
+            continue
+        for li, line in enumerate(cell.source.splitlines(), start=1):
+            if bad_line_re.search(line):
+                findings.append(Finding(
+                    id="E9.parameter_trailing_comment",
+                    check="execution",
+                    severity="error",
+                    location=f"{rel}:cell[{ci}]:line[{li}]",
+                    message=(
+                        "parameters cell assignment has a trailing comment with "
+                        "'='; papermill 2.7 cannot inspect it reliably"
+                    ),
+                ))
+    return findings
+
+
+def _assignment_names(source: str) -> set[str]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    names: set[str] = set()
+
+    def collect(target: ast.expr) -> None:
+        if isinstance(target, ast.Name):
+            names.add(target.id)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for elt in target.elts:
+                collect(elt)
+
+    for node in ast.walk(tree):
+        targets: list[ast.expr] = []
+        if isinstance(node, ast.Assign):
+            targets.extend(node.targets)
+        elif isinstance(node, ast.AnnAssign):
+            targets.append(node.target)
+        elif isinstance(node, ast.AugAssign):
+            targets.append(node.target)
+        for target in targets:
+            collect(target)
+    return names
+
+
+def _parameters_assignment_names(doc) -> set[str]:
+    names: set[str] = set()
+    for cell in doc.cells:
+        if cell.cell_type == "code" and _is_parameters_cell(cell):
+            names.update(_assignment_names(cell.source))
+    return names
+
+
+def _makefile_variable_items(repo: Path, name: str) -> tuple[str, ...]:
+    lines = _read_text(repo / "Makefile").splitlines()
+    items: list[str] = []
+    collecting = False
+    prefix = f"{name} :="
+    for line in lines:
+        stripped = line.strip()
+        if not collecting:
+            if not stripped.startswith(prefix):
+                continue
+            collecting = True
+            stripped = stripped[len(prefix):].strip()
+        if stripped.endswith("\\"):
+            stripped = stripped[:-1].strip()
+            keep_collecting = True
+        else:
+            keep_collecting = False
+        if stripped:
+            items.extend(stripped.split())
+        if collecting and not keep_collecting:
+            break
+    return tuple(items)
+
+
+def _ci_tier_a_artifact_paths(repo: Path) -> tuple[str, ...]:
+    workflow = repo / ".github" / "workflows" / "ci.yml"
+    if _yaml is None or not workflow.exists():
+        return ()
+    data = _yaml.safe_load(workflow.read_text(encoding="utf-8")) or {}
+    steps = data.get("jobs", {}).get("tier-a-papermill", {}).get("steps", [])
+    for step in steps:
+        if step.get("name") != "Upload refreshed notebook outputs as artifact":
+            continue
+        raw_path = step.get("with", {}).get("path", "")
+        return tuple(
+            line.strip()
+            for line in str(raw_path).splitlines()
+            if line.strip()
+        )
+    return ()
+
+
 def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
@@ -658,7 +1038,9 @@ def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, st
         # rc=124 mirrors GNU `timeout(1)`: callers already branch on rc != 0
         # to surface a Finding, so a hung make target produces a clean
         # error rather than crashing the verifier.
-        return 124, e.stdout or "", (e.stderr or "") + f"\n[verify_repo] timed out after {timeout}s"
+        stdout = _subprocess_text(e.stdout)
+        stderr = _subprocess_text(e.stderr)
+        return 124, stdout, stderr + f"\n[verify_repo] timed out after {timeout}s"
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -702,8 +1084,8 @@ def _phase3_code_cells_unchanged(repo: Path) -> list[Finding]:
                 message=f"baseline notebook unparseable: {e}",
             ))
             continue
-        head_codes = [c.source for c in head_doc.cells if c.cell_type == "code"]
-        base_codes = [c.source for c in base_doc.cells if c.cell_type == "code"]
+        head_codes = _code_cell_sources_for_baseline(head_doc)
+        base_codes = _code_cell_sources_for_baseline(base_doc)
         if head_codes != base_codes:
             findings.append(Finding(
                 id="E5.code_cells_changed", check="execution", severity="error",
@@ -732,6 +1114,50 @@ def _runtime_available() -> bool:
 
 def check_execution(repo: Path, fast: bool) -> CheckResult:
     result = CheckResult(name="execution")
+
+    make_tier_a = _makefile_variable_items(repo, "TIER_A")
+    if not make_tier_a:
+        result.findings.append(Finding(
+            id="E11.tier_a_makefile_missing",
+            check="execution",
+            severity="error",
+            location="Makefile:TIER_A",
+            message="Makefile TIER_A is missing or empty; Tier-A execution contract is unenforceable",
+        ))
+    elif make_tier_a != TIER_A_NOTEBOOKS:
+        result.findings.append(Finding(
+            id="E11.tier_a_config_drift",
+            check="execution",
+            severity="error",
+            location="Makefile:TIER_A",
+            message="Makefile TIER_A drifted from scripts/verify_repo_config.yaml tier_a_notebooks",
+            detail={
+                "makefile_only": sorted(set(make_tier_a) - set(TIER_A_NOTEBOOKS)),
+                "config_only": sorted(set(TIER_A_NOTEBOOKS) - set(make_tier_a)),
+            },
+        ))
+
+    ci_tier_a_artifacts = _ci_tier_a_artifact_paths(repo)
+    if not ci_tier_a_artifacts:
+        result.findings.append(Finding(
+            id="E12.tier_a_artifact_paths_missing",
+            check="execution",
+            severity="error",
+            location=".github/workflows/ci.yml:tier-a-papermill",
+            message="Tier-A artifact upload paths are missing or empty",
+        ))
+    elif ci_tier_a_artifacts != TIER_A_NOTEBOOKS:
+        result.findings.append(Finding(
+            id="E12.tier_a_artifact_paths_drift",
+            check="execution",
+            severity="error",
+            location=".github/workflows/ci.yml:tier-a-papermill",
+            message="Tier-A artifact upload paths drifted from verifier config",
+            detail={
+                "artifact_only": sorted(set(ci_tier_a_artifacts) - set(TIER_A_NOTEBOOKS)),
+                "config_only": sorted(set(TIER_A_NOTEBOOKS) - set(ci_tier_a_artifacts)),
+            },
+        ))
 
     if not fast:
         if not _runtime_available():
@@ -819,6 +1245,18 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                     "no-op against this notebook"
                 ),
             ))
+        elif "SMOKE_TEST" not in _parameters_assignment_names(doc):
+            result.findings.append(Finding(
+                id="E10.missing_smoke_test_parameter",
+                check="execution",
+                severity="error",
+                location=rel,
+                message=(
+                    "parameters-tagged cell does not assign SMOKE_TEST; "
+                    "make smoke targets pass `-p SMOKE_TEST 1`"
+                ),
+            ))
+        result.findings.extend(_parameter_trailing_comment_findings(doc, rel))
 
     # V6: Tier-A notebook outputs should match the current source. Cheap check:
     # for each code cell that has outputs, source byte-hash should match the
@@ -887,7 +1325,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     parser.add_argument(
-        "--check", required=True,
+        "--check",
         choices=("structure", "execution", "docs", "comments", "all"),
         help="Which check to run.",
     )
@@ -901,6 +1339,10 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to write findings JSON. Default: print to stdout.",
     )
     parser.add_argument(
+        "--repo-root", type=Path, default=REPO_ROOT,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
         "--phase-b-out", type=Path, default=None,
         help=(
             "Path to write Phase-B comment-hygiene candidates JSON (the input "
@@ -910,8 +1352,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    if args.check is None and args.phase_b_out is None:
+        parser.error("--check is required unless --phase-b-out is used")
+
+    repo_root = args.repo_root.resolve()
+
     if args.phase_b_out is not None:
-        count = export_phase_b_candidates(REPO_ROOT, args.phase_b_out)
+        count = export_phase_b_candidates(repo_root, args.phase_b_out)
         print(f"verify_repo: {count} Phase-B candidates → {args.phase_b_out}", file=sys.stderr)
         return 0
 
@@ -922,7 +1369,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Only check_execution respects --fast; the other three never read it.
     results = [
-        CHECKS[name](REPO_ROOT, args.fast) if name == "execution" else CHECKS[name](REPO_ROOT)
+        CHECKS[name](repo_root, args.fast) if name == "execution" else CHECKS[name](repo_root)
         for name in checks_to_run
     ]
 

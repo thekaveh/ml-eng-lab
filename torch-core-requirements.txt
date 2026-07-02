@@ -1,0 +1,9 @@
+# Core PyTorch stack matched to genai-vanilla image versions.
+# Install these before PyG extension packages so source-build fallback can
+# import torch during setup.
+
+torch==2.4.1
+pytorch-lightning==2.4.0
+torchvision==0.19.1
+torchaudio==2.4.1
+torchmetrics==1.4.2

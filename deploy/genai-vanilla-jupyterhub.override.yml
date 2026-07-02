@@ -7,10 +7,12 @@
 #
 # Required env vars:
 #   ML_REPO_PATH    absolute path to the ml-lab repo root
-#   HOST_SSH_DIR    absolute path to ~/.ssh (defaults to $HOME/.ssh in the wrapper)
+#   ML_SSH_MOUNT_DIR absolute path mounted at /home/jovyan/.ssh
+#                    (wrapper defaults to an empty ignored dir; set HOST_SSH_DIR
+#                    explicitly to opt into mounting host SSH keys)
 
 services:
   jupyterhub:
     volumes:
       - ${ML_REPO_PATH}:/home/jovyan/work/ml-lab
-      - ${HOST_SSH_DIR}:/home/jovyan/.ssh:ro
+      - ${ML_SSH_MOUNT_DIR}:/home/jovyan/.ssh:ro

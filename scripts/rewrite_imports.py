@@ -10,11 +10,15 @@ Usage:
     python scripts/rewrite_imports.py path/to/notebook.ipynb [more.ipynb ...]
 """
 from __future__ import annotations
+import io
 import json
 import re
 import sys
+import tokenize
 from collections.abc import Callable
 from pathlib import Path
+
+USAGE = "Usage: rewrite_imports.py NOTEBOOK [NOTEBOOK ...]"
 
 # Order matters. Longer/more-specific patterns FIRST so they win over
 # shorter prefixes.
@@ -75,9 +79,27 @@ DEPRECATED_PARAM_NAMES: list[str] = [
 ]
 
 
-def _drop_deprecated_from_import(line: str) -> tuple[str, bool]:
+def _nnparams_replacement_for_symbol(symbol: str) -> str | None:
+    m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?,?$", symbol)
+    if not m or m.group(1) not in DEPRECATED_PARAM_NAMES:
+        return None
+    alias = m.group(2)
+    return f"NNParams as {alias}" if alias else "NNParams"
+
+
+def _imported_symbol_bindings(symbols: str) -> set[str]:
+    bindings = set()
+    for part in (p.strip() for p in symbols.split(",") if p.strip()):
+        m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?$", part)
+        if m:
+            bindings.add(m.group(2) or m.group(1))
+    return bindings
+
+
+def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
     """Given a `from ... import A, B[, ...]` line, drop any deprecated
-    Params names from the symbol list. Returns (new_line, changed).
+    Params names from the symbol list. Returns (new_line,
+    nnparams_import_symbols, changed).
 
     If all symbols were deprecated, returns ("", True) — caller should
     omit the line entirely. NNParams import injection is handled at the
@@ -85,46 +107,80 @@ def _drop_deprecated_from_import(line: str) -> tuple[str, bool]:
     """
     m = re.match(r"^(\s*)from\s+([\w.]+)\s+import\s+(.+?)(\s*)$", line.rstrip("\n"))
     if not m:
-        return line, False
+        return line, [], False
     indent, module, symbols, trailing = m.group(1), m.group(2), m.group(3), m.group(4)
     parts = [p.strip() for p in symbols.split(",") if p.strip()]
-    kept = [p for p in parts if p not in DEPRECATED_PARAM_NAMES]
+    nnparams_imports = [replacement for p in parts if (replacement := _nnparams_replacement_for_symbol(p))]
+    kept = [p for p in parts if _nnparams_replacement_for_symbol(p) is None]
     if kept == parts:
-        return line, False
+        return line, [], False
     if not kept:
-        return "", True
+        return "", nnparams_imports, True
     new_symbols = ", ".join(kept)
     had_nl = line.endswith("\n")
     rebuilt = f"{indent}from {module} import {new_symbols}{trailing}"
-    return rebuilt + ("\n" if had_nl else ""), True
+    return rebuilt + ("\n" if had_nl else ""), nnparams_imports, True
 
 
 def _rewrite_call_sites(line: str) -> tuple[str, bool]:
     """Rewrite `OldNameParams(` → `NNParams(` on this line.
 
-    Uses word-boundary regex so identifiers that merely contain a
-    deprecated name as a substring (e.g. `MyGraphAttNNParamsHelper`)
-    are left alone.
+    Tokenization keeps comments and string literals untouched, so prose-only
+    cells do not gain executable imports.
     """
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(line).readline))
+    except tokenize.TokenError:
+        close_parens = ")" * max(1, line.count("(") - line.count(")"))
+        try:
+            tokens = list(tokenize.generate_tokens(io.StringIO(line.rstrip("\n") + close_parens + "\n").readline))
+        except tokenize.TokenError:
+            return line, False
+
+    replacements: list[tuple[int, int]] = []
+    for idx, token in enumerate(tokens):
+        if token.type != tokenize.NAME or token.string not in DEPRECATED_PARAM_NAMES:
+            continue
+        next_token = next(
+            (
+                candidate
+                for candidate in tokens[idx + 1:]
+                if candidate.type not in {tokenize.NL, tokenize.NEWLINE, tokenize.ENDMARKER}
+            ),
+            None,
+        )
+        if next_token is not None and next_token.string == "(":
+            replacements.append((token.start[1], token.end[1]))
+
+    if not replacements:
+        return line, False
+
     new_line = line
-    changed = False
-    for old in DEPRECATED_PARAM_NAMES:
-        if old in new_line:
-            replaced = re.sub(rf"\b{re.escape(old)}\b", "NNParams", new_line)
-            if replaced != new_line:
-                changed = True
-                new_line = replaced
-    return new_line, changed
+    for start, end in reversed(replacements):
+        new_line = f"{new_line[:start]}NNParams{new_line[end:]}"
+    return new_line, True
 
 
 def rewrite_lines(source_lines: list[str]) -> list[str]:
     """Apply all rewrites to a list of source lines (each preserving its trailing \\n if present)."""
     out: list[str] = []
-    cell_emits_nnparams_import = False  # tracks whether we already have an NNParams import in this cell after rewrites
-    needs_nnparams = False
+    needed_nnparams_imports: set[str] = set()
+    existing_nnparams_imports: set[str] = set()
+    in_parenthesized_import = False
     for line in source_lines:
         stripped_nl = line.rstrip("\n")
         had_nl = line.endswith("\n")
+        if in_parenthesized_import:
+            replacement = _nnparams_replacement_for_symbol(stripped_nl.strip())
+            if replacement:
+                needed_nnparams_imports.add(replacement)
+                if ")" in stripped_nl:
+                    in_parenthesized_import = False
+                continue
+            out.append(line)
+            if ")" in stripped_nl:
+                in_parenthesized_import = False
+            continue
         # Try split patterns first
         split_applied = False
         for pattern, builder in SPLIT_PATTERNS:
@@ -139,17 +195,22 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                 break
         if split_applied:
             continue
-        # Apply simple prefix mappings
+        # Apply simple prefix mappings only to real import statements.
         new_line = line
-        for old, new in SIMPLE_MAPPINGS:
-            if old in new_line:
-                new_line = new_line.replace(old, new)
+        if new_line.lstrip().startswith(("from common", "import common.")):
+            for old, new in SIMPLE_MAPPINGS:
+                if old in new_line:
+                    new_line = new_line.replace(old, new)
+        if new_line.lstrip().startswith("from ") and " import (" in new_line:
+            in_parenthesized_import = True
+            out.append(new_line)
+            continue
         # 2026-05-27: drop deprecated per-net Params from import lines
         if new_line.lstrip().startswith("from "):
-            rewritten, ch = _drop_deprecated_from_import(new_line)
+            rewritten, nnparams_imports, ch = _drop_deprecated_from_import(new_line)
             if ch:
                 # Dropping a deprecated symbol means the cell now needs NNParams.
-                needs_nnparams = True
+                needed_nnparams_imports.update(nnparams_imports)
                 # If the whole line vanished (all symbols deprecated), skip emitting it.
                 if rewritten == "":
                     continue
@@ -157,18 +218,19 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         # 2026-05-27: rewrite call sites OldNameParams( → NNParams(
         new_line, call_site_changed = _rewrite_call_sites(new_line)
         if call_site_changed:
-            needs_nnparams = True
+            needed_nnparams_imports.add("NNParams")
         # Track whether NNParams is being imported in this cell already.
         # Match only real `from ... import NNParams[,...]` lines, not
         # comments / strings that happen to contain the substring.
-        if re.match(r"^\s*from\s+nnx\.nn\.params\.nn_params\s+import\b", new_line) or \
-           re.match(r"^\s*from\s+\S+\s+import\s+.*\bNNParams\b", new_line):
-            cell_emits_nnparams_import = True
+        nnparams_import = re.match(r"^\s*from\s+nnx\.nn\.params\.nn_params\s+import\s+(.+?)(\s*)$", new_line.rstrip("\n"))
+        if nnparams_import:
+            existing_nnparams_imports.update(_imported_symbol_bindings(nnparams_import.group(1)))
         out.append(new_line)
     # If any call site or rewrite needs NNParams but the cell never imports it,
     # inject one.
-    if needs_nnparams and not cell_emits_nnparams_import:
-        out.insert(0, "from nnx.nn.params.nn_params import NNParams\n")
+    missing_nnparams_imports = sorted(needed_nnparams_imports - existing_nnparams_imports)
+    if missing_nnparams_imports:
+        out.insert(0, f"from nnx.nn.params.nn_params import {', '.join(missing_nnparams_imports)}\n")
     return out
 
 
@@ -198,8 +260,11 @@ def process_notebook(path: Path) -> bool:
 
 def main(argv: list[str]) -> int:
     if not argv:
-        print("Usage: rewrite_imports.py NOTEBOOK [NOTEBOOK ...]", file=sys.stderr)
+        print(USAGE, file=sys.stderr)
         return 2
+    if argv == ["--help"] or argv == ["-h"]:
+        print(USAGE)
+        return 0
     changed_count = 0
     for arg in argv:
         p = Path(arg)

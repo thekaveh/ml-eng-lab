@@ -6,7 +6,8 @@ COPY . .
 
 RUN pip install --no-cache-dir --upgrade pip \
   && pip install --no-cache-dir --upgrade setuptools \
-  && pip install --no-cache-dir -r torch-requirements.txt \
+  && pip install --no-cache-dir -r torch-core-requirements.txt \
+  && pip install --no-cache-dir --no-build-isolation -r torch-requirements.txt \
   && pip install --no-cache-dir -r requirements.txt
 
 # Two Tier-A NLP tasks (text_classification-agnews-spacy-mlp,

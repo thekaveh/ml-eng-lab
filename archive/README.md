@@ -6,11 +6,11 @@ If you want to revive any of these, treat it as starting from scratch with the o
 
 ---
 
-## codexglue_summarization/
+## 1. codexglue_summarization/
 
 22 sub-experiments around the [CodeXGLUE](https://github.com/microsoft/CodeXGLUE) code-summarization benchmark. Two families:
 
-### Cross-language experiments
+### 1.1. Cross-language experiments
 
 Each notebook trains a model on one language's data and evaluates on another, exploring transfer behavior across programming languages.
 
@@ -27,7 +27,7 @@ Each notebook trains a model on one language's data and evaluates on another, ex
 | codexglue-summarization-cross-python-on-php | Python → PHP |
 | codexglue-summarization-cross-python-on-ruby | Python → Ruby |
 
-### RoBERTa-based model experiments
+### 1.2. RoBERTa-based model experiments
 
 Each notebook fine-tunes a pre-trained model (CodeBERT / GraphCodeBERT / RoBERTa variants) on one language for code-summarization.
 
@@ -46,7 +46,7 @@ Each notebook fine-tunes a pre-trained model (CodeBERT / GraphCodeBERT / RoBERTa
 | codexglue-summarization-roberta-unixcoder-java | unixcoder · Java |
 | codexglue-summarization-roberta-unixcoder-python | unixcoder · Python |
 
-### Other
+### 1.3. Other
 
 | Folder | Notes |
 |---|---|
@@ -54,6 +54,6 @@ Each notebook fine-tunes a pre-trained model (CodeBERT / GraphCodeBERT / RoBERTa
 
 ---
 
-## Why archived
+## 2. Why archived
 
 The codexglue experiments depend on the older `transformers` API and have not been touched since Aug 2023. The active task index in the root README (`README.md` §4.1) now spans 21 task folders covering vision, tabular, graph, NLP, generative, PEFT, MoE, JEPA, DPO and more. Codexglue stays here as a reference snapshot.

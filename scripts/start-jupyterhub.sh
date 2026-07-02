@@ -3,7 +3,8 @@
 # with the ml-lab integration override layered on top.
 #
 # Usage:
-#   scripts/start-jupyterhub.sh           # equivalent to running ./start.sh in the submodule
+#   scripts/start-jupyterhub.sh           # no host SSH keys mounted by default
+#   HOST_SSH_DIR="$HOME/.ssh" scripts/start-jupyterhub.sh  # opt-in SSH mount
 #   scripts/start-jupyterhub.sh <args>    # extra args passed through
 set -euo pipefail
 
@@ -11,8 +12,8 @@ ML_REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GENAI_DIR="$ML_REPO_ROOT/vendor/genai-vanilla"
 OVERRIDE_FILE="$ML_REPO_ROOT/deploy/genai-vanilla-jupyterhub.override.yml"
 
-if [ ! -d "$GENAI_DIR" ]; then
-    echo "ERROR: $GENAI_DIR not found." >&2
+if [ ! -f "$GENAI_DIR/start.sh" ] || [ ! -f "$GENAI_DIR/docker-compose.yml" ]; then
+    echo "ERROR: genai-vanilla submodule is not initialized at $GENAI_DIR." >&2
     echo "Run: git submodule update --init --recursive" >&2
     exit 1
 fi
@@ -22,9 +23,18 @@ if [ ! -f "$OVERRIDE_FILE" ]; then
     exit 1
 fi
 
-# Required by the override file:
+# Required by the override file.
 export ML_REPO_PATH="$ML_REPO_ROOT"
-export HOST_SSH_DIR="${HOST_SSH_DIR:-$HOME/.ssh}"
+if [ -n "${HOST_SSH_DIR:-}" ]; then
+    if [ ! -d "$HOST_SSH_DIR" ]; then
+        echo "ERROR: HOST_SSH_DIR does not exist: $HOST_SSH_DIR" >&2
+        exit 1
+    fi
+    export ML_SSH_MOUNT_DIR="$HOST_SSH_DIR"
+else
+    export ML_SSH_MOUNT_DIR="$ML_REPO_ROOT/.claude/empty-ssh"
+    mkdir -p "$ML_SSH_MOUNT_DIR"
+fi
 
 # Tell docker compose to layer our override on top of the base compose.
 # COMPOSE_FILE is a colon-separated list (Unix); absolute paths are fine.
