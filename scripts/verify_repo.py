@@ -441,11 +441,82 @@ def check_structure(repo: Path) -> CheckResult:
 
 _H1_RE = re.compile(r"^# ([^\n]+)", re.MULTILINE)
 _H2_RE = re.compile(r"^## ([^\n]+)", re.MULTILINE)
+_MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+_NUMBERED_HEADING_RE = re.compile(r"^(\d+(?:\.\d+)*)\.\s+\S")
 
 
 def _markdown_headings(text: str, level: int) -> list[str]:
     pat = _H1_RE if level == 1 else _H2_RE
     return [m.group(1).strip() for m in pat.finditer(text)]
+
+
+def _iter_markdown_headings(text: str) -> Iterator[tuple[int, int, str]]:
+    in_fence = False
+    for line_no, line in enumerate(text.splitlines(), 1):
+        if re.match(r"^\s*(?:```|~~~)", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = _MARKDOWN_HEADING_RE.match(line)
+        if not m:
+            continue
+        title = m.group(2).strip().rstrip("#").strip()
+        yield line_no, len(m.group(1)), title
+
+
+def _iter_numbered_doc_files(repo: Path) -> Iterator[Path]:
+    for rel in ("README.md", "CONTRIBUTING.md"):
+        path = repo / rel
+        if path.exists():
+            yield path
+    for rel in (
+        "FINDINGS-NNX.md",
+        "FINDINGS-VENDOR.md",
+        "dependency-contracts.md",
+        "env-setup.md",
+        "jupyterhub-integration.md",
+        "vscode-remote-access.md",
+    ):
+        path = repo / "docs" / rel
+        if path.exists():
+            yield path
+    maintenance_dir = repo / "docs" / "maintenance"
+    if maintenance_dir.exists():
+        yield from sorted(maintenance_dir.glob("*.md"))
+    for d in ACTIVE_TASK_DIRS:
+        path = repo / d / "README.md"
+        if path.exists():
+            yield path
+
+
+def _numbered_heading_findings(repo: Path, path: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    for line_no, level, title in _iter_markdown_headings(_read_text(path)):
+        if level == 1:
+            continue
+        m = _NUMBERED_HEADING_RE.match(title)
+        if not m:
+            findings.append(Finding(
+                id="D9.numbered_heading", check="docs", severity="error",
+                location=f"{path.relative_to(repo)}:{line_no}",
+                message="numbered-doc heading must start with '<number>. '",
+                detail={"heading": title},
+            ))
+            continue
+        expected_depth = level - 1
+        actual_depth = len(m.group(1).split("."))
+        if actual_depth != expected_depth:
+            findings.append(Finding(
+                id="D9.numbered_heading", check="docs", severity="error",
+                location=f"{path.relative_to(repo)}:{line_no}",
+                message=(
+                    f"numbered-doc H{level} must use {expected_depth} "
+                    f"numeric component(s)"
+                ),
+                detail={"heading": title},
+            ))
+    return findings
 
 
 def _notebook_markdown_text(nb_path: Path) -> str:
@@ -615,6 +686,9 @@ def check_docs(repo: Path) -> CheckResult:
                         location=f"{path.relative_to(repo)}:{line_no}",
                         message=f"non-canonical spelling {dev!r}; use {canonical!r}",
                     ))
+
+    for path in _iter_numbered_doc_files(repo):
+        result.findings.extend(_numbered_heading_findings(repo, path))
 
     return result
 

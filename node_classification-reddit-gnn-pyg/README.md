@@ -24,11 +24,11 @@ Nine notebooks across three phases. Each follows the standard 6-section structur
 
 > **Tip:** GitHub may show "Unable to render code block" on output cells with large matplotlib PNGs (Phase 1 EDA + Phase 2/3 training curves trip the renderer). [Browse this folder on nbviewer](https://nbviewer.org/github/thekaveh/ml-lab/tree/main/node_classification-reddit-gnn-pyg/) for full rendering.
 
-### 3.1 Phase 1 — dataset exploration
+### 3.1. Phase 1 — dataset exploration
 
 - **phase1-dataset-exploration-notebook.ipynb** — §1 Overview, §2 Setup, §3 Dataset deep-dive (graph properties, degree distribution, community structure via Louvain, t-SNE projections).
 
-### 3.2 Phase 2 — model selection
+### 3.2. Phase 2 — model selection
 
 Four notebooks sweeping architectures, depths, and learning rates over short training budgets to pick a winner per architecture.
 
@@ -37,7 +37,7 @@ Four notebooks sweeping architectures, depths, and learning rates over short tra
 - **phase2-model-selection-notebook3.ipynb** — deep architecture testing (`[1024, 512, 256]` hidden, 250 epochs; GAT excluded due to GPU-memory constraints).
 - **phase2-model-selection-notebook4.ipynb** — 1000-epoch GAT extended training (single architecture, not a sweep; see also phase 3).
 
-### 3.3 Phase 3 — final training and evaluation
+### 3.3. Phase 3 — final training and evaluation
 
 Long training runs of the top picks from Phase 2 (Tier-C — preserved outputs, do not re-execute in place; see [../docs/env-setup.md](../docs/env-setup.md)).
 

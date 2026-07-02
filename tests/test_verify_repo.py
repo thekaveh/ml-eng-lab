@@ -270,6 +270,38 @@ def test_docs_d8_terminology_consistency_known_canonicals():
         assert token in SCRIPT_TEXT, f"D8 missing canonical {token!r}"
 
 
+def test_docs_d9_current_numbered_docs_are_consistent():
+    """Active numbered docs should use dotted numeric headings consistently."""
+    r = run_verify("--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    d9 = [f for f in data["findings"] if f["id"] == "D9.numbered_heading"]
+    assert d9 == [], f"D9 reported numbered-heading issues: {d9}"
+
+
+def test_docs_d9_flags_malformed_numbered_headings(tmp_path):
+    """H3 headings need a dotted number plus trailing period, e.g. `3.1.`."""
+    repo = _temp_repo(tmp_path)
+    readme = repo / ACTIVE_FIXTURE_DIR / "README.md"
+    readme.write_text(
+        "# Fixture\n\n"
+        "## 1. Task summary\n\n"
+        "## 2. Why this exists\n\n"
+        "## 3. What's in the notebook\n\n"
+        "### 3.1 Phase without dotted-number terminator\n\n"
+        "## 4. How to run\n\n"
+        "## 5. Dependencies\n\n"
+        "## 6. Known issues\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "D9.numbered_heading" and "README.md:9" in f["location"]
+    ]
+    assert hits, f"expected D9.numbered_heading for malformed H3; got {data.get('findings')}"
+
+
 def test_comments_phase_a_flags_obvious_state_the_what(tmp_path):
     """Synthetic .py file with a known bad comment should produce a finding.
 
