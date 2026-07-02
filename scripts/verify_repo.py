@@ -18,6 +18,7 @@ import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
+from urllib.parse import unquote
 
 import nbformat
 
@@ -105,7 +106,8 @@ class CheckResult:
     skip_reason: str = ""
 
 
-_INTERNAL_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)#][^)#]*)(#[^)]*)?\)")
+_MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+_INLINE_CODE_RE = re.compile(r"`+[^`]*`+")
 _IMPORT_RE = re.compile(r"^\s*(?:from\s+([\w\.]+)\s+import|import\s+([\w\.]+))")
 _GITIGNORE_REQUIRED_PATTERNS = (
     "docs/superpowers/",
@@ -145,6 +147,54 @@ def _read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, FileNotFoundError):
         return ""
+
+
+def _strip_markdown_code(text: str) -> str:
+    stripped: list[str] = []
+    in_fence = False
+    for line in text.splitlines():
+        if re.match(r"^\s*(?:```|~~~)", line):
+            in_fence = not in_fence
+            stripped.append(" " * len(line))
+            continue
+        if in_fence:
+            stripped.append(" " * len(line))
+            continue
+        stripped.append(_INLINE_CODE_RE.sub(lambda m: " " * len(m.group(0)), line))
+    return "\n".join(stripped)
+
+
+def _github_markdown_slug(heading: str) -> str:
+    heading = re.sub(r"<[^>]+>", "", heading)
+    heading = re.sub(r"[`*_~\[\]]", "", heading).strip().lower()
+    heading = re.sub(r"[^a-z0-9\s-]", "", heading)
+    heading = re.sub(r"\s+", "-", heading).strip("-")
+    return heading
+
+
+def _markdown_heading_slugs(text: str) -> set[str]:
+    counts: dict[str, int] = {}
+    slugs: set[str] = set()
+    for line in text.splitlines():
+        m = re.match(r"^#{1,6}\s+(.+?)\s*$", line)
+        if not m:
+            continue
+        base = _github_markdown_slug(m.group(1))
+        if not base:
+            continue
+        count = counts.get(base, 0)
+        counts[base] = count + 1
+        slugs.add(base if count == 0 else f"{base}-{count}")
+    return slugs
+
+
+def _split_markdown_link_target(target: str) -> tuple[str, str]:
+    target = target.strip().strip("<>")
+    target = target.split()[0] if target else ""
+    if "#" not in target:
+        return target, ""
+    path_part, fragment = target.split("#", 1)
+    return path_part, unquote(fragment)
 
 
 def _iter_notebooks(repo: Path) -> Iterator[Path]:
@@ -236,12 +286,15 @@ def check_structure(repo: Path) -> CheckResult:
                     ))
 
     for md in _iter_in_scope_text_files(repo):
-        text = _read_text(md)
-        for m in _INTERNAL_LINK_RE.finditer(text):
-            target = m.group(1).strip()
+        text = _strip_markdown_code(_read_text(md))
+        for m in _MARKDOWN_LINK_RE.finditer(text):
+            path_part, fragment = _split_markdown_link_target(m.group(1))
+            target = path_part
             if target.startswith(("http://", "https://", "mailto:")):
                 continue
-            target_path = (md.parent / target).resolve()
+            if not target and not fragment:
+                continue
+            target_path = (md.parent / target).resolve() if target else md.resolve()
             if not target_path.exists():
                 result.findings.append(Finding(
                     id="S3.broken_link", check="structure", severity="error",
@@ -249,6 +302,16 @@ def check_structure(repo: Path) -> CheckResult:
                     message=f"internal link target missing: {target}",
                     detail={"link": m.group(0)},
                 ))
+                continue
+            if fragment and target_path.suffix.lower() == ".md":
+                slugs = _markdown_heading_slugs(_read_text(target_path))
+                if fragment not in slugs:
+                    result.findings.append(Finding(
+                        id="S3.broken_anchor", check="structure", severity="error",
+                        location=f"{md.relative_to(repo)}",
+                        message=f"internal link anchor missing: #{fragment}",
+                        detail={"link": m.group(0), "target": str(target_path.relative_to(repo))},
+                    ))
 
     _COMMON_IMPORT_RE = re.compile(r"^\s*(?:from\s+common(?:\.\w+)*\s+import\b|import\s+common(?:\.\w+)*)")
     for path in tracked:

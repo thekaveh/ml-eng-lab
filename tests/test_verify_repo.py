@@ -82,6 +82,62 @@ def test_structure_s7_no_pycache_tracked():
     assert s7 == [], f"S7 found tracked bloat: {s7}"
 
 
+def test_structure_s3_flags_missing_markdown_fragment(tmp_path):
+    """Internal Markdown links must validate `#fragment` anchors, not just files."""
+    name = f"_temp_{tmp_path.name}_bad_anchor.md"
+    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    fake.write_text("# 1. Existing Heading\n\n[bad](#2-missing-heading)\n")
+    try:
+        r = run_verify("--check", "structure", "--fast")
+        data = json.loads(r.stdout) if r.stdout else {"findings": []}
+        hits = [
+            f for f in data["findings"]
+            if f["id"] == "S3.broken_anchor" and name in f["location"]
+        ]
+        assert hits, f"expected S3.broken_anchor for {name}; got {data.get('findings')}"
+    finally:
+        fake.unlink(missing_ok=True)
+
+
+def test_structure_s3_ignores_markdown_link_examples_in_code_spans(tmp_path):
+    """Historical examples like ``[§4](#old-heading)`` should not be live links."""
+    name = f"_temp_{tmp_path.name}_code_span_anchor.md"
+    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    fake.write_text("# 1. Existing Heading\n\nLiteral example: `[bad](#missing-heading)`.\n")
+    try:
+        r = run_verify("--check", "structure", "--fast")
+        data = json.loads(r.stdout) if r.stdout else {"findings": []}
+        hits = [
+            f for f in data["findings"]
+            if f["id"].startswith("S3.") and name in f["location"]
+        ]
+        assert not hits, f"code-span Markdown link example was treated as live: {hits}"
+    finally:
+        fake.unlink(missing_ok=True)
+
+
+def test_structure_s3_ignores_markdown_link_examples_in_fenced_code(tmp_path):
+    """Fenced snippets often contain example Markdown links that are not live."""
+    name = f"_temp_{tmp_path.name}_fenced_anchor.md"
+    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    fake.write_text(
+        "# 1. Existing Heading\n\n"
+        "```md\n"
+        "[bad](#missing-heading)\n"
+        "```\n"
+    )
+    try:
+        r = run_verify("--check", "structure", "--fast")
+        data = json.loads(r.stdout) if r.stdout else {"findings": []}
+        hits = [
+            f for f in data["findings"]
+            if f["id"].startswith("S3.") and name in f["location"]
+        ]
+        assert not hits, f"fenced Markdown link example was treated as live: {hits}"
+    finally:
+        fake.unlink(missing_ok=True)
+
+
 def test_docs_d1_known_notebooks_have_required_sections():
     """All tracked notebooks must have their REQUIRED_SECTIONS H1s present.
 
