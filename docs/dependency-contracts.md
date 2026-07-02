@@ -29,31 +29,32 @@ Because several manifest entries are intentionally ranged or floating today,
 the audited resolved versions and advisory IDs below are the accepted state, not
 just the package-level counts.
 
-Accepted advisory IDs from the 2026-07-02 audit:
+Accepted advisory IDs from the 2026-07-02 audit. `pip-audit` currently emits
+23 feed records; two Torch advisory IDs appear twice from overlapping sources.
 
-| Package | Advisory ID | Fix Versions |
-| --- | --- | --- |
-| `torch` | `PYSEC-2025-191` | `2.7.1rc1` / none listed |
-| `torch` | `PYSEC-2025-41` | `2.6.0` |
-| `torch` | `PYSEC-2024-259` | `2.5.0` |
-| `torch` | `PYSEC-2025-205` | `2.7.1` |
-| `torch` | `PYSEC-2025-206` | `2.9.0` |
-| `torch` | `PYSEC-2025-207` | `2.7.1` |
-| `torch` | `PYSEC-2025-204` | `2.9.0` |
-| `torch` | `PYSEC-2026-139` | none listed |
-| `torch` | `PYSEC-2025-209` | `2.7.1` |
-| `torch` | `PYSEC-2025-208` | `2.7.1` |
-| `torch` | `PYSEC-2025-198` | `2.7.0` |
-| `torch` | `PYSEC-2025-203` | `2.9.0` |
-| `torch` | `CVE-2025-3730` | `2.8.0` |
-| `torch` | `CVE-2025-2148` | none listed |
-| `torch` | `CVE-2025-2149` | none listed |
-| `torch` | `CVE-2025-2998` | none listed |
-| `torch` | `CVE-2025-2999` | `2.9.1` |
-| `torch` | `CVE-2025-3000` | none listed |
-| `torch` | `CVE-2025-3001` | `2.10.0` |
-| `pytorch-lightning` | `CVE-2026-31221` | none listed |
-| `nltk` | `PYSEC-2026-597` | none listed |
+| Package | Advisory ID | Feed Records | Fix Versions |
+| --- | --- | ---: | --- |
+| `torch` | `PYSEC-2025-191` | 2 | `2.7.1rc1` / none listed |
+| `torch` | `PYSEC-2025-41` | 2 | `2.6.0` |
+| `torch` | `PYSEC-2024-259` | 1 | `2.5.0` |
+| `torch` | `PYSEC-2025-205` | 1 | `2.7.1` |
+| `torch` | `PYSEC-2025-206` | 1 | `2.9.0` |
+| `torch` | `PYSEC-2025-207` | 1 | `2.7.1` |
+| `torch` | `PYSEC-2025-204` | 1 | `2.9.0` |
+| `torch` | `PYSEC-2026-139` | 1 | none listed |
+| `torch` | `PYSEC-2025-209` | 1 | `2.7.1` |
+| `torch` | `PYSEC-2025-208` | 1 | `2.7.1` |
+| `torch` | `PYSEC-2025-198` | 1 | `2.7.0` |
+| `torch` | `PYSEC-2025-203` | 1 | `2.9.0` |
+| `torch` | `CVE-2025-3730` | 1 | `2.8.0` |
+| `torch` | `CVE-2025-2148` | 1 | none listed |
+| `torch` | `CVE-2025-2149` | 1 | none listed |
+| `torch` | `CVE-2025-2998` | 1 | none listed |
+| `torch` | `CVE-2025-2999` | 1 | `2.9.1` |
+| `torch` | `CVE-2025-3000` | 1 | none listed |
+| `torch` | `CVE-2025-3001` | 1 | `2.10.0` |
+| `pytorch-lightning` | `CVE-2026-31221` | 1 | none listed |
+| `nltk` | `PYSEC-2026-597` | 1 | none listed |
 
 ## 2. Torch Stack Pin
 

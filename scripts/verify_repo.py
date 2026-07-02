@@ -519,6 +519,54 @@ def _numbered_heading_findings(repo: Path, path: Path) -> list[Finding]:
     return findings
 
 
+def _dependency_ledger_findings(repo: Path) -> list[Finding]:
+    path = repo / "docs" / "dependency-contracts.md"
+    if not path.exists():
+        return []
+    text = _read_text(path)
+    package_counts = {
+        package: int(count)
+        for package, count in re.findall(
+            r"^\| `([^`]+)` \| `[^`]+` \| `[^`]+` \| (\d+) \|", text, re.M
+        )
+    }
+    advisory_counts: dict[str, int] = {}
+    for package, count in re.findall(
+        r"^\| `([^`]+)` \| `(?:PYSEC|CVE)-[^`]+` \| (\d+) \|", text, re.M
+    ):
+        advisory_counts[package] = advisory_counts.get(package, 0) + int(count)
+
+    findings: list[Finding] = []
+    for package, expected in package_counts.items():
+        actual = advisory_counts.get(package, 0)
+        if actual != expected:
+            findings.append(Finding(
+                id="D10.dependency_ledger_count", check="docs", severity="error",
+                location="docs/dependency-contracts.md",
+                message=(
+                    f"{package} advisory feed-record count is {actual}; "
+                    f"expected {expected} from audit summary"
+                ),
+                detail={"package": package, "expected": expected, "actual": actual},
+            ))
+
+    total_match = re.search(r"Result: (\d+) known vulnerabilities", text)
+    if total_match:
+        expected_total = int(total_match.group(1))
+        actual_total = sum(advisory_counts.values())
+        if actual_total != expected_total:
+            findings.append(Finding(
+                id="D10.dependency_ledger_count", check="docs", severity="error",
+                location="docs/dependency-contracts.md",
+                message=(
+                    f"advisory feed-record total is {actual_total}; "
+                    f"expected {expected_total} from audit summary"
+                ),
+                detail={"expected": expected_total, "actual": actual_total},
+            ))
+    return findings
+
+
 def _notebook_markdown_text(nb_path: Path) -> str:
     try:
         doc = nbformat.read(nb_path, as_version=4)
@@ -689,6 +737,8 @@ def check_docs(repo: Path) -> CheckResult:
 
     for path in _iter_numbered_doc_files(repo):
         result.findings.extend(_numbered_heading_findings(repo, path))
+
+    result.findings.extend(_dependency_ledger_findings(repo))
 
     return result
 

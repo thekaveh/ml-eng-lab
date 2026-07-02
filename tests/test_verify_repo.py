@@ -302,6 +302,37 @@ def test_docs_d9_flags_malformed_numbered_headings(tmp_path):
     assert hits, f"expected D9.numbered_heading for malformed H3; got {data.get('findings')}"
 
 
+def test_docs_d10_dependency_ledger_counts_match_current_doc():
+    """Package counts and advisory feed-record counts should reconcile."""
+    r = run_verify("--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    d10 = [f for f in data["findings"] if f["id"] == "D10.dependency_ledger_count"]
+    assert d10 == [], f"D10 reported dependency-ledger issues: {d10}"
+
+
+def test_docs_d10_flags_dependency_ledger_count_drift(tmp_path):
+    """The dependency ledger should not collapse duplicated advisory feed records."""
+    repo = _temp_repo(tmp_path)
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 1. Audit Snapshot\n\n"
+        "Result: 2 known vulnerabilities across one resolved package:\n\n"
+        "| Package | Manifest Constraint | Audited Resolved Version | Finding Count | Current Disposition |\n"
+        "| --- | --- | ---: | ---: | --- |\n"
+        "| `torch` | `torch==2.4.1` | `2.4.1` | 2 | Accepted temporarily. |\n\n"
+        "| Package | Advisory ID | Feed Records | Fix Versions |\n"
+        "| --- | --- | ---: | --- |\n"
+        "| `torch` | `PYSEC-2025-41` | 1 | `2.6.0` |\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.dependency_ledger_count"]
+    assert hits, f"expected D10.dependency_ledger_count; got {data.get('findings')}"
+
+
 def test_comments_phase_a_flags_obvious_state_the_what(tmp_path):
     """Synthetic .py file with a known bad comment should produce a finding.
 
