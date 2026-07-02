@@ -1,6 +1,6 @@
 # VS Code remote access to the jupyterhub container
 
-Three modes, pick by use case. Mode 2 is the default for most ml-lab work as of genai-vanilla `cbad341` (PR #26) — the image now ships the full ml-lab dep set natively, so you can connect to a standalone genai-vanilla without ml-lab's wrapper script or bind-mount.
+Three modes, pick by use case. Mode 2 is the default for most ml-lab work as of genai-vanilla `cbad341` (PR #26) — the image ships ml-lab's external dependencies and NLP assets, while `nnx` still needs the `thekaveh-nnx[lm]==0.2.0` image bump or the per-session install workaround described below.
 
 ## 1. Mode 1 — Attach to Running Container
 
@@ -14,7 +14,7 @@ After the genai-vanilla stack is up:
 A new VS Code window opens inside the container. The container's CWD is `/home/jovyan/work/`. On the §2-wrapper path of [jupyterhub-integration.md](jupyterhub-integration.md#2-persistence-path-wrapper-script--bind-mount), the ml-lab repo is bind-mounted at `/home/jovyan/work/ml-lab/`; open that folder.
 
 What works inside:
-- Native VS Code notebook UI with kernel = `python3` (the container's interpreter, with all deps installed via genai-vanilla PR #26).
+- Native VS Code notebook UI with kernel = `python3` (the container's interpreter, with external deps/assets installed via genai-vanilla PR #26 and `nnx` caveated as in §2).
 - Integrated terminal with `git`, `pip`, etc.
 - If using the §2-wrapper path, `/home/jovyan/.ssh` is empty by default. Set `HOST_SSH_DIR=/path/to/keys` before `scripts/start-jupyterhub.sh` only when you want to opt into a read-only host-key mount for `git push`.
 
@@ -49,4 +49,4 @@ Use this for quick edits, demos, or when VS Code is overkill.
 ## 4. Not pursued
 
 - **Remote-SSH** — requires an SSH server in the container. Extra surface area for no benefit over Mode 1.
-- **`.devcontainer.json` reopen-in-container** — would rebuild a new image. We have a long-lived running container already; Mode 1's attach is simpler.
+- **`.devcontainer.json` reopen-in-container for the existing JupyterHub container** — not applicable; Mode 1 attaches to the long-lived running container. The repo's `.devcontainer/devcontainer.json` is a separate Codespaces/local-devcontainer path that builds its own environment.

@@ -25,6 +25,35 @@ Result: 23 known vulnerabilities across three resolved packages:
 
 The audit must be re-run after any dependency pin change. New unreviewed audit
 findings are maintenance issues until either fixed or added here with rationale.
+Because several manifest entries are intentionally ranged or floating today,
+the audited resolved versions and advisory IDs below are the accepted state, not
+just the package-level counts.
+
+Accepted advisory IDs from the 2026-07-02 audit:
+
+| Package | Advisory ID | Fix Versions |
+| --- | --- | --- |
+| `torch` | `PYSEC-2025-191` | `2.7.1rc1` / none listed |
+| `torch` | `PYSEC-2025-41` | `2.6.0` |
+| `torch` | `PYSEC-2024-259` | `2.5.0` |
+| `torch` | `PYSEC-2025-205` | `2.7.1` |
+| `torch` | `PYSEC-2025-206` | `2.9.0` |
+| `torch` | `PYSEC-2025-207` | `2.7.1` |
+| `torch` | `PYSEC-2025-204` | `2.9.0` |
+| `torch` | `PYSEC-2026-139` | none listed |
+| `torch` | `PYSEC-2025-209` | `2.7.1` |
+| `torch` | `PYSEC-2025-208` | `2.7.1` |
+| `torch` | `PYSEC-2025-198` | `2.7.0` |
+| `torch` | `PYSEC-2025-203` | `2.9.0` |
+| `torch` | `CVE-2025-3730` | `2.8.0` |
+| `torch` | `CVE-2025-2148` | none listed |
+| `torch` | `CVE-2025-2149` | none listed |
+| `torch` | `CVE-2025-2998` | none listed |
+| `torch` | `CVE-2025-2999` | `2.9.1` |
+| `torch` | `CVE-2025-3000` | none listed |
+| `torch` | `CVE-2025-3001` | `2.10.0` |
+| `pytorch-lightning` | `CVE-2026-31221` | none listed |
+| `nltk` | `PYSEC-2026-597` | none listed |
 
 ## 2. Torch Stack Pin
 
@@ -74,3 +103,12 @@ These assets are consumed by the text-classification and sentiment notebooks.
 They are not locked by checksum today. If reproducibility becomes stricter than
 the current educational-notebook standard, add a lock/verification mechanism and
 update this section.
+
+## 5. Deferred Reproducibility Hardening
+
+The current manifests still include floating and ranged Python dependencies, and
+the Docker/devcontainer bases are tag-pinned rather than digest-pinned. A full
+lockfile, CI install against that lock, `pip-audit` comparison against accepted
+advisory IDs, and base-image digest pinning are intentionally deferred to a
+coordinated dependency-refresh pass because they can change every notebook
+runtime at once.

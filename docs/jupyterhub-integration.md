@@ -91,8 +91,8 @@ genai-vanilla `cbad341` (PR #26, 2026-06-02) or later — the first commit where
 
 ## 6. Common failure modes
 
-- **`Could not find a version that satisfies the requirement nnx-pytorch`** during `docker compose build jupyterhub` — the `nnx-pytorch` PyPI name was retired on 2026-06-14 in favor of `thekaveh-nnx`. The image needs an upstream bump to `pip install thekaveh-nnx[lm]==0.2.0`. Until then, the workaround is to `docker exec` into the running container and `pip install thekaveh-nnx[lm]==0.2.0` per-session.
-- **`ModuleNotFoundError: No module named 'nnx'`** in the §1 path — the image was built before genai-vanilla PR #26 (`cbad341`) OR before the image bumps to `thekaveh-nnx[lm]`. Pull the latest genai-vanilla `main` and `docker compose build jupyterhub`.
+- **`Could not find a version that satisfies the requirement nnx-pytorch`** during `docker compose build jupyterhub` — the `nnx-pytorch` PyPI name was retired on 2026-06-14 in favor of `thekaveh-nnx`. A build failure needs an upstream image bump or local image patch to install `thekaveh-nnx[lm]==0.2.0`; there is no running container to patch with `docker exec`.
+- **`ModuleNotFoundError: No module named 'nnx'`** in the §1 path — the image was built before genai-vanilla PR #26 (`cbad341`) OR before the image bumps to `thekaveh-nnx[lm]`. Pull the latest genai-vanilla `main` and `docker compose build jupyterhub`; if the container already starts but only lacks the modern package, run `docker exec -it <project>-jupyterhub pip install 'thekaveh-nnx[lm]==0.2.0'` per session.
 - **Submodule not found at `vendor/genai-vanilla/`** — run `git submodule update --init --recursive` at the repo root.
 - **`ML_REPO_PATH variable is not set`** during compose up — you ran `cd vendor/genai-vanilla && ./start.sh` directly instead of using the wrapper. Use `scripts/start-jupyterhub.sh`.
 - **Relative-path reads/writes go to the wrong place** (notebook does `pd.read_csv("./data/foo.csv")` but the file is on your host) — you're on the §1 path. Switch to §2 if you want host-side persistence.

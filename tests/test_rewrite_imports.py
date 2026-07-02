@@ -95,6 +95,17 @@ def test_graph_att_params_import_consolidates_to_nnparams(tmp_path):
     assert "NNParams" in src  # either via import or remaining context
 
 
+def test_aliased_graph_att_params_import_consolidates_to_aliased_nnparams(tmp_path):
+    p = _make_notebook(tmp_path, "gat_alias.ipynb", [
+        _code_cell("from nnx.nn.net.graph_att_nn import GraphAttNNParams as GATParams\n"),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "from nnx.nn.net.graph_att_nn import NNParams" not in src
+    assert "from nnx.nn.params.nn_params import NNParams as GATParams" in src
+    assert "GraphAttNNParams" not in src
+
+
 def test_graph_att_params_call_site_renamed_to_nnparams(tmp_path):
     """`GraphAttNNParams(n_heads=..., ...)` call sites rewrite to `NNParams(n_heads=..., ...)`."""
     p = _make_notebook(tmp_path, "gat_call.ipynb", [

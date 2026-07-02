@@ -72,10 +72,17 @@ def _code_cells(nb: dict) -> list[dict]:
     return [c for c in nb.get("cells", []) if c.get("cell_type") == "code"]
 
 
+def _source_lines(cell: dict) -> list[str]:
+    source = cell.get("source", [])
+    if isinstance(source, str):
+        return source.splitlines(keepends=True)
+    return list(source)
+
+
 def _live_lines(cell: dict) -> list[str]:
     """Source lines that are not pure comments (commented-out historical code is
     deliberately preserved verbatim in some Tier-C cells and must not be flagged)."""
-    return [ln for ln in cell.get("source", []) if not ln.lstrip().startswith("#")]
+    return [ln for ln in _source_lines(cell) if not ln.lstrip().startswith("#")]
 
 
 def _output_text(cell: dict) -> str:
@@ -171,6 +178,12 @@ def test_migration_guard_catches_bad_call():
     forbidden = _visutils_only_methods()
     assert "multi_line_plot" in forbidden, "fixture assumes multi_line_plot is VisUtils-only"
     bad = _synthetic_nb({"cell_type": "code", "source": ["Utils.multi_line_plot(x=[1])\n"], "outputs": []})
+    assert find_misplaced_utils_attrs(bad, forbidden)
+
+
+def test_migration_guard_catches_string_source_bad_call():
+    forbidden = _visutils_only_methods()
+    bad = _synthetic_nb({"cell_type": "code", "source": "Utils.multi_line_plot(x=[1])\n", "outputs": []})
     assert find_misplaced_utils_attrs(bad, forbidden)
 
 
@@ -491,6 +504,15 @@ def test_stale_idp_guard_catches_flat_fields():
     assert len(find_stale_idp_fields(bad)) >= 2
 
 
+def test_stale_idp_guard_catches_string_source_flat_fields():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": "losses = [idp.train_loss for idp in run.idps]\n",
+        "outputs": [],
+    })
+    assert find_stale_idp_fields(bad)
+
+
 def test_stale_idp_guard_allows_nested_form_and_similar_names():
     good = _synthetic_nb({
         "cell_type": "code",
@@ -517,6 +539,15 @@ def test_nnrun_load_best_guard_catches_call():
     bad = _synthetic_nb({
         "cell_type": "code",
         "source": ["for c in NNRun.load(\"best\").checkpoints():\n", "    pass\n"],
+        "outputs": [],
+    })
+    assert find_nnrun_load_best(bad)
+
+
+def test_nnrun_load_best_guard_catches_string_source_call():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": "run = NNRun.load(\"best\")\n",
         "outputs": [],
     })
     assert find_nnrun_load_best(bad)
@@ -557,6 +588,15 @@ def test_tosparsetensor_guard_catches_multiline_default_edge_index_drop():
             "    fill_cache=False,\n",
             ")\n",
         ],
+        "outputs": [],
+    })
+    assert find_sparse_tensor_edge_index_drops(bad)
+
+
+def test_tosparsetensor_guard_catches_string_source_default_edge_index_drop():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": "# keep this historical note\ntransform = pyg.transforms.ToSparseTensor()\n",
         "outputs": [],
     })
     assert find_sparse_tensor_edge_index_drops(bad)
