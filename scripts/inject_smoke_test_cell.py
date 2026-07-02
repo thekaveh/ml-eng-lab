@@ -8,6 +8,7 @@ Usage:
     python scripts/inject_smoke_test_cell.py NOTEBOOK [...]
 """
 from __future__ import annotations
+import ast
 import json
 import sys
 from pathlib import Path
@@ -31,14 +32,51 @@ SMOKE_CELL_SOURCE = [
 # this. Comments-on-their-own-lines is the parser-friendly form.
 
 
-def has_parameters_cell(nb: dict) -> bool:
+def _cell_source_text(cell: dict) -> str:
+    source = cell.get("source", "")
+    if isinstance(source, list):
+        return "".join(source)
+    return str(source)
+
+
+def _assignment_names(source: str) -> set[str]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        targets: list[ast.expr] = []
+        if isinstance(node, ast.Assign):
+            targets.extend(node.targets)
+        elif isinstance(node, ast.AnnAssign):
+            targets.append(node.target)
+        elif isinstance(node, ast.AugAssign):
+            targets.append(node.target)
+        for target in targets:
+            if isinstance(target, ast.Name):
+                names.add(target.id)
+    return names
+
+
+def parameters_cell_with_smoke_test(nb: dict) -> bool:
+    for cell in nb.get("cells", []):
+        if cell.get("cell_type") != "code":
+            continue
+        tags = cell.get("metadata", {}).get("tags", [])
+        if "parameters" in tags and "SMOKE_TEST" in _assignment_names(_cell_source_text(cell)):
+            return True
+    return False
+
+
+def first_parameters_cell(nb: dict) -> dict | None:
     for cell in nb.get("cells", []):
         if cell.get("cell_type") != "code":
             continue
         tags = cell.get("metadata", {}).get("tags", [])
         if "parameters" in tags:
-            return True
-    return False
+            return cell
+    return None
 
 
 def make_parameters_cell() -> dict:
@@ -61,8 +99,16 @@ def find_insert_index(nb: dict) -> int:
 
 def process(path: Path) -> str:
     nb = json.loads(path.read_text(encoding="utf-8"))
-    if has_parameters_cell(nb):
-        return "unchanged (parameters cell present)"
+    if parameters_cell_with_smoke_test(nb):
+        return "unchanged (SMOKE_TEST parameters cell present)"
+    existing = first_parameters_cell(nb)
+    if existing is not None:
+        existing_source = existing.get("source", [])
+        if isinstance(existing_source, str):
+            existing_source = [existing_source]
+        existing["source"] = SMOKE_CELL_SOURCE + ["\n"] + existing_source
+        path.write_text(json.dumps(nb, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+        return "augmented existing parameters cell with SMOKE_TEST"
     idx = find_insert_index(nb)
     nb["cells"].insert(idx, make_parameters_cell())
     path.write_text(json.dumps(nb, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
