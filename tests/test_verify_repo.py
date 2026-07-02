@@ -6,10 +6,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "verify_repo.py"
+ACTIVE_FIXTURE_DIR = "image_classification-mnist-ffnn-numpy"
 
 
 def run_verify(*args: str) -> subprocess.CompletedProcess:
@@ -19,6 +18,12 @@ def run_verify(*args: str) -> subprocess.CompletedProcess:
         text=True,
         cwd=REPO,
     )
+
+
+def _temp_repo(tmp_path: Path) -> Path:
+    (tmp_path / ACTIVE_FIXTURE_DIR).mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True, text=True, check=True)
+    return tmp_path
 
 
 def test_help_lists_all_checks():
@@ -104,100 +109,90 @@ def test_structure_s7_no_pycache_tracked():
 
 def test_structure_s3_flags_missing_markdown_fragment(tmp_path):
     """Internal Markdown links must validate `#fragment` anchors, not just files."""
-    name = f"_temp_{tmp_path.name}_bad_anchor.md"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "bad_anchor.md"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     fake.write_text("# 1. Existing Heading\n\n[bad](#2-missing-heading)\n")
-    try:
-        r = run_verify("--check", "structure", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["id"] == "S3.broken_anchor" and name in f["location"]
-        ]
-        assert hits, f"expected S3.broken_anchor for {name}; got {data.get('findings')}"
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S3.broken_anchor" and name in f["location"]
+    ]
+    assert hits, f"expected S3.broken_anchor for {name}; got {data.get('findings')}"
 
 
 def test_structure_s3_ignores_markdown_link_examples_in_code_spans(tmp_path):
     """Historical examples like ``[§4](#old-heading)`` should not be live links."""
-    name = f"_temp_{tmp_path.name}_code_span_anchor.md"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "code_span_anchor.md"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     fake.write_text("# 1. Existing Heading\n\nLiteral example: `[bad](#missing-heading)`.\n")
-    try:
-        r = run_verify("--check", "structure", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["id"].startswith("S3.") and name in f["location"]
-        ]
-        assert not hits, f"code-span Markdown link example was treated as live: {hits}"
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"].startswith("S3.") and name in f["location"]
+    ]
+    assert not hits, f"code-span Markdown link example was treated as live: {hits}"
 
 
 def test_structure_s3_ignores_markdown_link_examples_in_fenced_code(tmp_path):
     """Fenced snippets often contain example Markdown links that are not live."""
-    name = f"_temp_{tmp_path.name}_fenced_anchor.md"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "fenced_anchor.md"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     fake.write_text(
         "# 1. Existing Heading\n\n"
         "```md\n"
         "[bad](#missing-heading)\n"
         "```\n"
     )
-    try:
-        r = run_verify("--check", "structure", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["id"].startswith("S3.") and name in f["location"]
-        ]
-        assert not hits, f"fenced Markdown link example was treated as live: {hits}"
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"].startswith("S3.") and name in f["location"]
+    ]
+    assert not hits, f"fenced Markdown link example was treated as live: {hits}"
 
 
 def test_structure_s3_checks_notebook_markdown_links(tmp_path):
     """Notebook markdown links should be covered by the same S3 hygiene."""
     import nbformat
 
-    name = f"_temp_{tmp_path.name}_bad_link.ipynb"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "bad_link.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     nb = nbformat.v4.new_notebook()
     nb.cells = [nbformat.v4.new_markdown_cell("[bad](missing-local-doc.md)\n")]
     nbformat.write(nb, str(fake))
-    try:
-        r = run_verify("--check", "structure", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["id"] == "S3.broken_link" and name in f["location"]
-        ]
-        assert hits, f"expected S3.broken_link for notebook markdown; got {data.get('findings')}"
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S3.broken_link" and name in f["location"]
+    ]
+    assert hits, f"expected S3.broken_link for notebook markdown; got {data.get('findings')}"
 
 
 def test_structure_s3_ignores_notebook_markdown_code_span_links(tmp_path):
     """Notebook prose can show Markdown link syntax as a literal example."""
     import nbformat
 
-    name = f"_temp_{tmp_path.name}_code_span_link.ipynb"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "code_span_link.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     nb = nbformat.v4.new_notebook()
     nb.cells = [nbformat.v4.new_markdown_cell("Literal: `[bad](missing-local-doc.md)`\n")]
     nbformat.write(nb, str(fake))
-    try:
-        r = run_verify("--check", "structure", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["id"].startswith("S3.") and name in f["location"]
-        ]
-        assert not hits, f"notebook code-span Markdown link was treated as live: {hits}"
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"].startswith("S3.") and name in f["location"]
+    ]
+    assert not hits, f"notebook code-span Markdown link was treated as live: {hits}"
 
 
 def test_docs_d1_known_notebooks_have_required_sections():
@@ -218,22 +213,20 @@ def test_docs_d1_unconfigured_active_notebook_is_error(tmp_path):
     """A new active notebook must not bypass docs/E7 checks by being omitted from YAML."""
     import nbformat
 
-    name = f"_temp_{tmp_path.name}_unconfigured.ipynb"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "unconfigured.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     nb = nbformat.v4.new_notebook()
     nb.cells = [nbformat.v4.new_markdown_cell("# 1. Overview\n")]
     nbformat.write(nb, str(fake))
-    try:
-        r = run_verify("--check", "docs", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["id"] == "D1.unconfigured_notebook" and name in f["location"]
-        ]
-        assert hits, f"expected D1.unconfigured_notebook for {name}; got {data.get('findings')}"
-        assert all(f["severity"] == "error" for f in hits)
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "D1.unconfigured_notebook" and name in f["location"]
+    ]
+    assert hits, f"expected D1.unconfigured_notebook for {name}; got {data.get('findings')}"
+    assert all(f["severity"] == "error" for f in hits)
 
 
 def test_docs_d8_terminology_consistency_known_canonicals():
@@ -246,44 +239,38 @@ def test_docs_d8_terminology_consistency_known_canonicals():
 def test_comments_phase_a_flags_obvious_state_the_what(tmp_path):
     """Synthetic .py file with a known bad comment should produce a finding.
 
-    verify_repo.py runs in a subprocess and scans ACTIVE_TASK_DIRS in REPO, so
-    we must drop the synthetic file inside one of those task dirs. We derive a
-    unique filename from `tmp_path` so concurrent test runs don't collide, and
-    wrap in try/finally for robust cleanup even if the assertion fires.
+    The synthetic file lives in an isolated repo root so this test never mutates
+    the real checkout.
     """
-    name = f"_temp_{tmp_path.name}_state_the_what.py"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "state_the_what.py"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     fake.write_text("# import numpy as np\nimport numpy as np\n")
-    try:
-        r = run_verify("--check", "comments", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["check"] == "comments" and name in f["location"]
-        ]
-        assert hits, f"expected at least one state-the-what flag; got summary={data.get('summary')}"
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "comments", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["check"] == "comments" and name in f["location"]
+    ]
+    assert hits, f"expected at least one state-the-what flag; got summary={data.get('summary')}"
 
 
 def test_comments_phase_a_skips_explanatory_comments(tmp_path):
     """A WHY-style comment should NOT be flagged."""
-    name = f"_temp_{tmp_path.name}_why.py"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "why.py"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     fake.write_text(
         "# Xavier init keeps variance stable across depths; default torch init blows up here.\n"
         "weight = xavier_init(shape)\n"
     )
-    try:
-        r = run_verify("--check", "comments", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["check"] == "comments" and name in f["location"]
-        ]
-        assert not hits, f"WHY-style comment falsely flagged: {hits}"
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "comments", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["check"] == "comments" and name in f["location"]
+    ]
+    assert not hits, f"WHY-style comment falsely flagged: {hits}"
 
 
 def test_comments_phase_a_skips_parameters_tagged_cells(tmp_path):
@@ -296,8 +283,9 @@ def test_comments_phase_a_skips_parameters_tagged_cells(tmp_path):
     verify_repo.py-as-scanner skip.
     """
     import nbformat
-    name = f"_temp_{tmp_path.name}_params.ipynb"
-    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    repo = _temp_repo(tmp_path)
+    name = "params.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
     nb = nbformat.v4.new_notebook()
     cell = nbformat.v4.new_code_cell(
         # Comment matches the `^# (initialize|init|set|assign)` rule; without
@@ -308,16 +296,13 @@ def test_comments_phase_a_skips_parameters_tagged_cells(tmp_path):
     cell.metadata["tags"] = ["parameters"]
     nb.cells = [cell]
     nbformat.write(nb, str(fake))
-    try:
-        r = run_verify("--check", "comments", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        hits = [
-            f for f in data["findings"]
-            if f["check"] == "comments" and name in f["location"]
-        ]
-        assert not hits, f"parameters-tagged cell falsely flagged: {hits}"
-    finally:
-        fake.unlink(missing_ok=True)
+    r = run_verify("--repo-root", str(repo), "--check", "comments", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["check"] == "comments" and name in f["location"]
+    ]
+    assert not hits, f"parameters-tagged cell falsely flagged: {hits}"
 
 
 def test_execution_fast_mode_skips_e1_e2_e3():
@@ -604,21 +589,17 @@ def test_parameter_trailing_comment_check_flags_papermill_uninspectable_assignme
     assert verify_repo._parameter_trailing_comment_findings(nb, "fake.ipynb") == []
 
 
-def test_s7_forbidden_toplevel_detects_resurrected_common():
+def test_s7_forbidden_toplevel_detects_resurrected_common(tmp_path):
     """S7.forbidden_toplevel fires if common/ ever comes back."""
-    fake_dir = REPO / "common"
-    if fake_dir.exists():
-        pytest.fail("pre-existing common/ blocks this test")
+    repo = _temp_repo(tmp_path)
+    fake_dir = repo / "common"
     fake_dir.mkdir()
-    try:
-        r = run_verify("--check", "structure", "--fast")
-        data = json.loads(r.stdout) if r.stdout else {"findings": []}
-        s7 = [
-            f for f in data["findings"]
-            if f["id"] == "S7.forbidden_toplevel" and "common" in f["location"]
-        ]
-        assert s7, "expected S7.forbidden_toplevel to flag resurrected common/"
-        for f in s7:
-            assert f["severity"] == "error"
-    finally:
-        fake_dir.rmdir()
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    s7 = [
+        f for f in data["findings"]
+        if f["id"] == "S7.forbidden_toplevel" and "common" in f["location"]
+    ]
+    assert s7, "expected S7.forbidden_toplevel to flag resurrected common/"
+    for f in s7:
+        assert f["severity"] == "error"

@@ -1187,6 +1187,10 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to write findings JSON. Default: print to stdout.",
     )
     parser.add_argument(
+        "--repo-root", type=Path, default=REPO_ROOT,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
         "--phase-b-out", type=Path, default=None,
         help=(
             "Path to write Phase-B comment-hygiene candidates JSON (the input "
@@ -1199,8 +1203,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.check is None and args.phase_b_out is None:
         parser.error("--check is required unless --phase-b-out is used")
 
+    repo_root = args.repo_root.resolve()
+
     if args.phase_b_out is not None:
-        count = export_phase_b_candidates(REPO_ROOT, args.phase_b_out)
+        count = export_phase_b_candidates(repo_root, args.phase_b_out)
         print(f"verify_repo: {count} Phase-B candidates → {args.phase_b_out}", file=sys.stderr)
         return 0
 
@@ -1211,7 +1217,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Only check_execution respects --fast; the other three never read it.
     results = [
-        CHECKS[name](REPO_ROOT, args.fast) if name == "execution" else CHECKS[name](REPO_ROOT)
+        CHECKS[name](repo_root, args.fast) if name == "execution" else CHECKS[name](repo_root)
         for name in checks_to_run
     ]
 
