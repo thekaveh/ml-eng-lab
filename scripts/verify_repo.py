@@ -852,6 +852,24 @@ def _makefile_variable_items(repo: Path, name: str) -> tuple[str, ...]:
     return tuple(items)
 
 
+def _ci_tier_a_artifact_paths(repo: Path) -> tuple[str, ...]:
+    workflow = repo / ".github" / "workflows" / "ci.yml"
+    if _yaml is None or not workflow.exists():
+        return ()
+    data = _yaml.safe_load(workflow.read_text(encoding="utf-8")) or {}
+    steps = data.get("jobs", {}).get("tier-a-papermill", {}).get("steps", [])
+    for step in steps:
+        if step.get("name") != "Upload refreshed notebook outputs as artifact":
+            continue
+        raw_path = step.get("with", {}).get("path", "")
+        return tuple(
+            line.strip()
+            for line in str(raw_path).splitlines()
+            if line.strip()
+        )
+    return ()
+
+
 def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
@@ -955,6 +973,28 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
             detail={
                 "makefile_only": sorted(set(make_tier_a) - set(TIER_A_NOTEBOOKS)),
                 "config_only": sorted(set(TIER_A_NOTEBOOKS) - set(make_tier_a)),
+            },
+        ))
+
+    ci_tier_a_artifacts = _ci_tier_a_artifact_paths(repo)
+    if not ci_tier_a_artifacts:
+        result.findings.append(Finding(
+            id="E12.tier_a_artifact_paths_missing",
+            check="execution",
+            severity="error",
+            location=".github/workflows/ci.yml:tier-a-papermill",
+            message="Tier-A artifact upload paths are missing or empty",
+        ))
+    elif ci_tier_a_artifacts != TIER_A_NOTEBOOKS:
+        result.findings.append(Finding(
+            id="E12.tier_a_artifact_paths_drift",
+            check="execution",
+            severity="error",
+            location=".github/workflows/ci.yml:tier-a-papermill",
+            message="Tier-A artifact upload paths drifted from verifier config",
+            detail={
+                "artifact_only": sorted(set(ci_tier_a_artifacts) - set(TIER_A_NOTEBOOKS)),
+                "config_only": sorted(set(TIER_A_NOTEBOOKS) - set(ci_tier_a_artifacts)),
             },
         ))
 

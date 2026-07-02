@@ -474,6 +474,37 @@ def test_e11_flags_missing_makefile_tier_a(tmp_path, monkeypatch):
     assert hits[0].severity == "error"
 
 
+def test_ci_tier_a_artifact_paths_parse_workflow(tmp_path):
+    verify_repo = _load_verify_module()
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text(
+        "jobs:\n"
+        "  tier-a-papermill:\n"
+        "    steps:\n"
+        "      - name: Upload refreshed notebook outputs as artifact\n"
+        "        with:\n"
+        "          path: |\n"
+        "            first/notebook.ipynb\n"
+        "            second/notebook.ipynb\n"
+    )
+    assert verify_repo._ci_tier_a_artifact_paths(tmp_path) == (
+        "first/notebook.ipynb",
+        "second/notebook.ipynb",
+    )
+
+
+def test_e12_tier_a_artifact_paths_match_config():
+    verify_repo = _load_verify_module()
+    assert verify_repo._ci_tier_a_artifact_paths(REPO) == tuple(
+        verify_repo.TIER_A_NOTEBOOKS
+    )
+    r = run_verify("--check", "execution", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"].startswith("E12.")]
+    assert hits == []
+
+
 def test_run_helper_timeout_returns_rc_124():
     """_run must catch subprocess.TimeoutExpired and surface rc=124 + a
     diagnostic stderr suffix, so a hung make target produces a clean Finding
