@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   pytest-nnx-surface:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -48,7 +48,7 @@ jobs:
         run: make test-nnx-surface
 
   verify-repo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -76,7 +76,7 @@ jobs:
         run: make verify
 
   tier-a-papermill:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # 19 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch originally moved to Tier-B per issue #10, then removed from TIER_B on 2026-06-16 after the weekly cron confirmed it cannot run in CI's pinned env — manual-only now). Cumulative ~7 min on a macOS M-series CPU but Linux
     # GH Actions runners are ~3-4× slower for hand-coded numpy training
     # (image_classification-mnist-ffnn-numpy is the worst offender — observed
@@ -122,6 +122,9 @@ jobs:
       - name: Run Tier-A notebooks (papermill)
         run: make run-tier-a
 
+      - name: Check Tier-A notebook outputs are committed
+        run: make check-tier-a-clean
+
       - name: Upload refreshed notebook outputs as artifact
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
@@ -159,7 +162,7 @@ jobs:
           retention-days: 7
 
   smoke-tier-b:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     if: |
       github.event_name == 'workflow_dispatch'
@@ -190,7 +193,7 @@ jobs:
         run: make smoke-tier-b
 
   smoke-tier-c:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     steps:

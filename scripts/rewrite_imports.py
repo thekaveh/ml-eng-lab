@@ -10,9 +10,11 @@ Usage:
     python scripts/rewrite_imports.py path/to/notebook.ipynb [more.ipynb ...]
 """
 from __future__ import annotations
+import io
 import json
 import re
 import sys
+import tokenize
 from collections.abc import Callable
 from pathlib import Path
 
@@ -121,19 +123,40 @@ def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
 def _rewrite_call_sites(line: str) -> tuple[str, bool]:
     """Rewrite `OldNameParams(` → `NNParams(` on this line.
 
-    Uses word-boundary regex so identifiers that merely contain a
-    deprecated name as a substring (e.g. `MyGraphAttNNParamsHelper`)
-    are left alone.
+    Tokenization keeps comments and string literals untouched, so prose-only
+    cells do not gain executable imports.
     """
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(line).readline))
+    except tokenize.TokenError:
+        close_parens = ")" * max(1, line.count("(") - line.count(")"))
+        try:
+            tokens = list(tokenize.generate_tokens(io.StringIO(line.rstrip("\n") + close_parens + "\n").readline))
+        except tokenize.TokenError:
+            return line, False
+
+    replacements: list[tuple[int, int]] = []
+    for idx, token in enumerate(tokens):
+        if token.type != tokenize.NAME or token.string not in DEPRECATED_PARAM_NAMES:
+            continue
+        next_token = next(
+            (
+                candidate
+                for candidate in tokens[idx + 1:]
+                if candidate.type not in {tokenize.NL, tokenize.NEWLINE, tokenize.ENDMARKER}
+            ),
+            None,
+        )
+        if next_token is not None and next_token.string == "(":
+            replacements.append((token.start[1], token.end[1]))
+
+    if not replacements:
+        return line, False
+
     new_line = line
-    changed = False
-    for old in DEPRECATED_PARAM_NAMES:
-        if old in new_line:
-            replaced = re.sub(rf"\b{re.escape(old)}\b", "NNParams", new_line)
-            if replaced != new_line:
-                changed = True
-                new_line = replaced
-    return new_line, changed
+    for start, end in reversed(replacements):
+        new_line = f"{new_line[:start]}NNParams{new_line[end:]}"
+    return new_line, True
 
 
 def rewrite_lines(source_lines: list[str]) -> list[str]:

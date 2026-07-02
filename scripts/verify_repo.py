@@ -153,6 +153,10 @@ def _iter_notebooks(repo: Path) -> Iterator[Path]:
             yield nb_path
 
 
+def _notebook_rel(path: Path, repo: Path) -> str:
+    return str(path.relative_to(repo))
+
+
 def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
     yield repo / "README.md"
     yield repo / "CONTRIBUTING.md"
@@ -354,6 +358,20 @@ def _ordered_contains(required: tuple[str, ...], actual: list[str]) -> tuple[boo
 
 def check_docs(repo: Path) -> CheckResult:
     result = CheckResult(name="docs")
+
+    configured_notebooks = set(REQUIRED_SECTIONS)
+    for nb in _iter_notebooks(repo):
+        rel = _notebook_rel(nb, repo)
+        if rel not in configured_notebooks:
+            result.findings.append(Finding(
+                id="D1.unconfigured_notebook", check="docs", severity="error",
+                location=rel,
+                message=(
+                    "active notebook is missing from verify_repo_config.yaml "
+                    "required_sections; docs and papermill-parameter checks "
+                    "would otherwise skip it"
+                ),
+            ))
 
     for rel, required in REQUIRED_SECTIONS.items():
         nb = repo / rel
@@ -651,6 +669,14 @@ def export_phase_b_candidates(repo: Path, out_path: Path) -> int:
     return len(candidates)
 
 
+def _subprocess_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
 def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
@@ -658,7 +684,9 @@ def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, st
         # rc=124 mirrors GNU `timeout(1)`: callers already branch on rc != 0
         # to surface a Finding, so a hung make target produces a clean
         # error rather than crashing the verifier.
-        return 124, e.stdout or "", (e.stderr or "") + f"\n[verify_repo] timed out after {timeout}s"
+        stdout = _subprocess_text(e.stdout)
+        stderr = _subprocess_text(e.stderr)
+        return 124, stdout, stderr + f"\n[verify_repo] timed out after {timeout}s"
     return proc.returncode, proc.stdout, proc.stderr
 
 

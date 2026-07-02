@@ -40,9 +40,9 @@ Four ways to run these notebooks, in increasing order of "I want my own machine 
 
 ### 3.1. genai-vanilla jupyterhub (recommended)
 
-As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the ml-lab dep set + the 2 NLP model assets. The image bakes the now-defunct `nnx-pytorch[lm]` PyPI name; a coordinated upstream bump to `thekaveh-nnx[lm]==0.2.0` is needed before this path covers every notebook on a fresh build (tracked as a follow-up to the 2026-06-14 PyPI migration). Two paths, pick by need:
+As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the ml-lab dep set + the 2 NLP model assets. The image bakes the now-defunct `nnx-pytorch[lm]` PyPI name; a coordinated upstream bump to `thekaveh-nnx[lm]==0.2.0` is needed before this path covers the tier-covered notebooks on a fresh build (tracked as a follow-up to the 2026-06-14 PyPI migration). Two paths, pick by need:
 
-**Default — standalone genai-vanilla + VS Code Mode 2** (works for the 28 tier-covered notebooks once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`; one tier-covered exception remains regardless: `image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the wrapper-and-bind-mount §2 path below. The quantization notebook is still manual-only under `torch>=2.5` + `torchao>=0.17`):
+**Default — standalone genai-vanilla + VS Code Mode 2** (works for tier-covered notebooks once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`; one tier-covered exception remains regardless: `image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the persistence variant below. The quantization notebook is still manual-only under `torch>=2.5` + `torchao>=0.17`):
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh
@@ -170,7 +170,7 @@ To extend `nnx` for a new task:
 
 1. Open a PR against [`thekaveh/NNx`](https://github.com/thekaveh/NNx) with the new feature + a smoke test.
 2. After merge, wait for the next NNx release cut (or, for editable iteration during the design phase: clone `thekaveh/NNx` outside the ml-lab tree and `pip install -e <path-to-clone>[lm]` into your venv).
-3. Bump the pinned version in `requirements.txt` here (e.g. `thekaveh-nnx[lm]==0.2.1`); open a PR. Tier-A papermill CI re-runs every notebook against the new version — same validation discipline as the prior submodule-pointer-bump workflow.
+3. Bump the pinned version in `requirements.txt` here (e.g. `thekaveh-nnx[lm]==0.2.1`); open a PR. Tier-A papermill CI re-runs the Tier-A list against the new version; run `make smoke-tier-b`, `make smoke-tier-c`, and manual quantization validation when the NNx change touches those surfaces — same validation discipline as the prior submodule-pointer-bump workflow.
 
 ## 7. Repository conventions
 

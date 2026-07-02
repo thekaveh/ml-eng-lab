@@ -8,7 +8,7 @@ As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image nativ
 
 ### 1.1. Default — standalone genai-vanilla + VS Code Mode 2
 
-Once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`, this path covers every ml-lab Tier-A/B/C notebook except the from-scratch `image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder and needs the §1.2 wrapper-and-bind-mount path. Until then, the path covers the subset of notebooks that don't touch the nnx import surface (limited; mostly the from-scratch numpy task isn't one of them).
+Once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`, this path covers the tier-covered ml-lab notebooks except the from-scratch `image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder and needs the §1.2 wrapper-and-bind-mount path. The quantization notebook remains manual-only under `torch>=2.5` + `torchao>=0.17`. Until then, the path covers the subset of notebooks that don't touch the nnx import surface (limited; mostly the from-scratch numpy task isn't one of them).
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh

@@ -42,7 +42,7 @@ Convention: top-level folder named `[task]-[dataset]-[model]-[framework]/`.
 - **`thekaveh-nnx` is a PyPI dep.** Don't bump the `requirements.txt` pin without a corresponding upstream release on [`thekaveh/NNx`](https://github.com/thekaveh/NNx). Workflow:
   1. Open a PR against `thekaveh/NNx` with the new feature + a smoke test.
   2. After merge, wait for the next NNx PyPI release (or, for editable iteration: clone `thekaveh/NNx` outside the ml-lab tree and `pip install -e <path>[lm]` into your venv).
-  3. Bump `thekaveh-nnx[lm]==X.Y.Z` in ml-lab's `requirements.txt` to the new version; open a PR here. Tier-A papermill CI re-runs every notebook against the new version.
+  3. Bump `thekaveh-nnx[lm]==X.Y.Z` in ml-lab's `requirements.txt` to the new version; open a PR here. Tier-A papermill CI re-runs the Tier-A list against the new version; run `make smoke-tier-b`, `make smoke-tier-c`, and manual quantization validation when the NNx change touches those surfaces.
 - **`vendor/genai-vanilla/` is vendored.** Don't edit it directly. The ml-specific compose override lives in [`deploy/`](deploy/) — never commit override files inside `vendor/genai-vanilla/`.
 - **`archive/` is read-only.** Preserved Aug-2023 work.
 
@@ -50,7 +50,7 @@ Found an issue in the `thekaveh-nnx` library? Append to [docs/FINDINGS-NNX.md](d
 
 ## 5. Running notebooks
 
-Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the image natively ships the ml-lab dep set + the 2 NLP model assets. The image currently bakes the now-defunct `nnx-pytorch[lm]` PyPI name; a coordinated upstream bump to `thekaveh-nnx[lm]==0.2.0` is needed before the standalone path covers every notebook on a fresh build (tracked as a follow-up to the 2026-06-14 PyPI migration). The wrapper-and-bind-mount is required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook and for host-side data/runs persistence.
+Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the image natively ships the ml-lab dep set + the 2 NLP model assets. The image currently bakes the now-defunct `nnx-pytorch[lm]` PyPI name; a coordinated upstream bump to `thekaveh-nnx[lm]==0.2.0` is needed before the standalone path covers the tier-covered notebooks on a fresh build (tracked as a follow-up to the 2026-06-14 PyPI migration). The wrapper-and-bind-mount is required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook and for host-side data/runs persistence; the quantization notebook remains manual-only under `torch>=2.5` + `torchao>=0.17`.
 
 - **Default (standalone genai-vanilla)** — `cd ~/repos/genai-vanilla && ./start.sh`, then point VS Code Mode 2 at the token URL.
 - **Persistence variant (wrapper + bind-mount)** — `scripts/start-jupyterhub.sh` from the ml-lab repo root (NOT `cd vendor/genai-vanilla && ./start.sh` directly — the wrapper sets `ML_REPO_PATH` and `COMPOSE_FILE` to layer the override).

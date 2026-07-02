@@ -65,11 +65,12 @@ TIER_C := \
 
 SMOKE_OUT := /tmp/ml-smoke
 
-.PHONY: help run-tier-a smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify codespace-setup
+.PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify codespace-setup
 
 help:
 	@echo "Targets:"
 	@echo "  run-tier-a        Re-execute Tier-A notebooks in place. CI runs this on every PR."
+	@echo "  check-tier-a-clean Fail if Tier-A notebook execution changed tracked outputs."
 	@echo "  smoke-tier-b      Papermill Tier-B notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/ (preserves source outputs)."
 	@echo "  smoke-tier-c      Papermill Tier-C notebooks with SMOKE_TEST=1 to $(SMOKE_OUT)/."
 	@echo "  test              Run pytest on tests/ directory."
@@ -85,6 +86,9 @@ run-tier-a:
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
 		(cd "$$dir" && papermill --kernel python3 "$$base" "$$base") || exit 1; \
 	done
+
+check-tier-a-clean:
+	git diff --exit-code -- $(TIER_A)
 
 smoke-tier-b:
 	@mkdir -p $(SMOKE_OUT)

@@ -168,12 +168,12 @@ def test_other_per_net_params_renamed_defensively(tmp_path):
         assert "NNParams(" in src
 
 
-def test_commented_out_call_site_still_rewrites(tmp_path):
-    """Commented `# GraphAttNNParams(...)` still gets rewritten (consistency)."""
-    p = _make_notebook(tmp_path, "commented.ipynb", [
-        _code_cell("# x = GraphAttNNParams(n_heads=2, input_dim=4, output_dim=2, dropout_prob=0.1, hidden_dims=[])\n"),
-    ])
+def test_commented_out_and_string_call_sites_are_preserved(tmp_path):
+    """Historical prose must not gain executable NNParams imports."""
+    src = (
+        "# x = GraphAttNNParams(n_heads=2, input_dim=4, output_dim=2)\n"
+        "example = 'GraphAttNNParams(n_heads=2, input_dim=4, output_dim=2)'\n"
+    )
+    p = _make_notebook(tmp_path, "commented.ipynb", [_code_cell(src)])
     _run(p)
-    src = _cell_source(p, 0)
-    assert "GraphAttNNParams" not in src
-    assert "NNParams" in src
+    assert _cell_source(p, 0) == src

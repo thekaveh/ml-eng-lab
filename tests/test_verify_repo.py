@@ -96,6 +96,28 @@ def test_docs_d1_known_notebooks_have_required_sections():
     assert d1 == [], f"D1 reported issues: {d1}"
 
 
+def test_docs_d1_unconfigured_active_notebook_is_error(tmp_path):
+    """A new active notebook must not bypass docs/E7 checks by being omitted from YAML."""
+    import nbformat
+
+    name = f"_temp_{tmp_path.name}_unconfigured.ipynb"
+    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [nbformat.v4.new_markdown_cell("# 1. Overview\n")]
+    nbformat.write(nb, str(fake))
+    try:
+        r = run_verify("--check", "docs", "--fast")
+        data = json.loads(r.stdout) if r.stdout else {"findings": []}
+        hits = [
+            f for f in data["findings"]
+            if f["id"] == "D1.unconfigured_notebook" and name in f["location"]
+        ]
+        assert hits, f"expected D1.unconfigured_notebook for {name}; got {data.get('findings')}"
+        assert all(f["severity"] == "error" for f in hits)
+    finally:
+        fake.unlink(missing_ok=True)
+
+
 def test_docs_d8_terminology_consistency_known_canonicals():
     """The check should mention canonical spellings in its allow-list logic."""
     SCRIPT_TEXT = SCRIPT.read_text()
@@ -279,6 +301,26 @@ def test_run_helper_timeout_returns_rc_124():
     verify_repo = _load_verify_module()
     rc, stdout, stderr = verify_repo._run(["sleep", "5"], REPO, timeout=1)
     assert rc == 124, f"expected rc=124 on timeout, got {rc} (stdout={stdout!r}, stderr={stderr!r})"
+    assert "timed out after 1s" in stderr
+
+
+def test_run_helper_timeout_normalizes_byte_streams(monkeypatch):
+    """TimeoutExpired can carry byte stdout/stderr even when subprocess.run used text=True."""
+    verify_repo = _load_verify_module()
+
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(
+            cmd=args[0],
+            timeout=kwargs.get("timeout"),
+            output=b"partial stdout",
+            stderr=b"partial stderr",
+        )
+
+    monkeypatch.setattr(verify_repo.subprocess, "run", raise_timeout)
+    rc, stdout, stderr = verify_repo._run(["fake"], REPO, timeout=1)
+    assert rc == 124
+    assert stdout == "partial stdout"
+    assert "partial stderr" in stderr
     assert "timed out after 1s" in stderr
 
 
