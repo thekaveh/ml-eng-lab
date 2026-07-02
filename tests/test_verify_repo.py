@@ -133,6 +133,14 @@ def test_structure_s7_no_pycache_tracked():
     assert s7 == [], f"S7 found tracked bloat: {s7}"
 
 
+def test_structure_s8_script_shebang_executable_parity():
+    """Direct CLI scripts should keep shebang and executable bit in sync."""
+    r = run_verify("--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    s8 = [f for f in data["findings"] if f["id"].startswith("S8")]
+    assert s8 == [], f"S8 found script mode drift: {s8}"
+
+
 def test_structure_s3_flags_missing_markdown_fragment(tmp_path):
     """Internal Markdown links must validate `#fragment` anchors, not just files."""
     repo = _temp_repo(tmp_path)

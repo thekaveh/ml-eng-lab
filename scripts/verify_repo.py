@@ -416,6 +416,26 @@ def check_structure(repo: Path) -> CheckResult:
                 ),
             ))
 
+    for script in sorted((repo / "scripts").glob("*.py")):
+        if not script.is_file():
+            continue
+        rel = str(script.relative_to(repo))
+        text = _read_text(script)
+        has_shebang = text.startswith("#!")
+        executable = bool(script.stat().st_mode & 0o111)
+        if has_shebang != executable:
+            result.findings.append(Finding(
+                id="S8.script_executable_mismatch",
+                check="structure",
+                severity="error",
+                location=rel,
+                message=(
+                    "script shebang and executable bit disagree; keep both "
+                    "present for direct CLI scripts or both absent for modules"
+                ),
+                detail={"has_shebang": has_shebang, "executable": executable},
+            ))
+
     return result
 
 
