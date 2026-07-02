@@ -47,6 +47,18 @@ def _cell_source(path: Path, idx: int) -> str:
 
 # ----- Existing rule coverage (sanity regression) ---------------------------
 
+def test_help_exits_zero_and_prints_usage():
+    repo_root = Path(__file__).resolve().parent.parent
+    result = subprocess.run(
+        [sys.executable, str(repo_root / "scripts" / "rewrite_imports.py"), "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "Usage:" in result.stdout
+    assert "NOTEBOOK" in result.stdout
+
 def test_module_path_rewrite_common_to_nnx(tmp_path):
     p = _make_notebook(tmp_path, "old.ipynb", [
         _code_cell("from common.nn_model import NNModel\n"),

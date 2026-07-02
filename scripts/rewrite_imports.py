@@ -18,6 +18,8 @@ import tokenize
 from collections.abc import Callable
 from pathlib import Path
 
+USAGE = "Usage: rewrite_imports.py NOTEBOOK [NOTEBOOK ...]"
+
 # Order matters. Longer/more-specific patterns FIRST so they win over
 # shorter prefixes.
 SIMPLE_MAPPINGS: list[tuple[str, str]] = [
@@ -258,8 +260,11 @@ def process_notebook(path: Path) -> bool:
 
 def main(argv: list[str]) -> int:
     if not argv:
-        print("Usage: rewrite_imports.py NOTEBOOK [NOTEBOOK ...]", file=sys.stderr)
+        print(USAGE, file=sys.stderr)
         return 2
+    if argv == ["--help"] or argv == ["-h"]:
+        print(USAGE)
+        return 0
     changed_count = 0
     for arg in argv:
         p = Path(arg)
