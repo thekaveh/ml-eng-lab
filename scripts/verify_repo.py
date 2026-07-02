@@ -30,10 +30,13 @@ except ImportError:
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = Path(__file__).resolve().parent / "verify_repo_config.yaml"
+_HELP_REQUESTED = any(arg in ("-h", "--help") for arg in sys.argv[1:])
 
 
 def _load_config() -> dict:
     if _yaml is None or not CONFIG_PATH.exists():
+        if _HELP_REQUESTED:
+            return {}
         raise RuntimeError(
             "verify_repo_config.yaml is required; install PyYAML and ensure "
             "the file exists."
@@ -45,9 +48,12 @@ _CONFIG = _load_config()
 
 _active_task_dirs_raw = _CONFIG.get("active_task_dirs")
 if not _active_task_dirs_raw:
-    raise RuntimeError(
-        "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
-    )
+    if _HELP_REQUESTED:
+        _active_task_dirs_raw = ()
+    else:
+        raise RuntimeError(
+            "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
+        )
 ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
 
 VERIFY_ONLY_DIRS = ("archive", "vendor")
@@ -64,9 +70,12 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = _required_sections_from_config()
 
 _tier_a_raw = _CONFIG.get("tier_a_notebooks")
 if not _tier_a_raw:
-    raise RuntimeError(
-        "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
-    )
+    if _HELP_REQUESTED:
+        _tier_a_raw = ()
+    else:
+        raise RuntimeError(
+            "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
+        )
 TIER_A_NOTEBOOKS = tuple(_tier_a_raw)
 
 README_REQUIRED_H2 = (

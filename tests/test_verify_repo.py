@@ -28,6 +28,20 @@ def test_help_lists_all_checks():
         assert ch in r.stdout
 
 
+def test_help_does_not_require_adjacent_config(tmp_path):
+    script_copy = tmp_path / "scripts" / "verify_repo.py"
+    script_copy.parent.mkdir()
+    script_copy.write_text(SCRIPT.read_text())
+    r = subprocess.run(
+        [sys.executable, str(script_copy), "--help"],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    assert r.returncode == 0, r.stderr
+    assert "--check" in r.stdout
+
+
 def test_unknown_check_errors():
     r = run_verify("--check", "garbage")
     assert r.returncode != 0
