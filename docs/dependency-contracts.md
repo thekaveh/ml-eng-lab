@@ -68,6 +68,11 @@ Accepted advisory IDs from the 2026-07-02 audit:
 `torch-requirements.txt` includes `torch-core-requirements.txt` and then pins:
 
 - PyG wheels resolved from `https://data.pyg.org/whl/torch-2.4.0+cpu.html`
+- `torch-scatter==2.1.2`
+- `torch-sparse==0.6.18`
+- `torch-cluster==1.6.3`
+- `torch-spline-conv==1.2.2`
+- `torch_geometric==2.6.1`
 
 Reason: these versions match the genai-vanilla JupyterHub image lineage used by
 the documented runtime paths.
