@@ -9,6 +9,7 @@ the run); 1 = at least one error finding (counts on stderr).
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import importlib.util
 import json
@@ -792,6 +793,41 @@ def _parameter_trailing_comment_findings(doc, rel: str) -> list[Finding]:
     return findings
 
 
+def _assignment_names(source: str) -> set[str]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    names: set[str] = set()
+
+    def collect(target: ast.expr) -> None:
+        if isinstance(target, ast.Name):
+            names.add(target.id)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for elt in target.elts:
+                collect(elt)
+
+    for node in ast.walk(tree):
+        targets: list[ast.expr] = []
+        if isinstance(node, ast.Assign):
+            targets.extend(node.targets)
+        elif isinstance(node, ast.AnnAssign):
+            targets.append(node.target)
+        elif isinstance(node, ast.AugAssign):
+            targets.append(node.target)
+        for target in targets:
+            collect(target)
+    return names
+
+
+def _parameters_assignment_names(doc) -> set[str]:
+    names: set[str] = set()
+    for cell in doc.cells:
+        if cell.cell_type == "code" and _is_parameters_cell(cell):
+            names.update(_assignment_names(cell.source))
+    return names
+
+
 def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
@@ -960,6 +996,17 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                 message=(
                     "no cell tagged 'parameters'; papermill -p will silently "
                     "no-op against this notebook"
+                ),
+            ))
+        elif "SMOKE_TEST" not in _parameters_assignment_names(doc):
+            result.findings.append(Finding(
+                id="E10.missing_smoke_test_parameter",
+                check="execution",
+                severity="error",
+                location=rel,
+                message=(
+                    "parameters-tagged cell does not assign SMOKE_TEST; "
+                    "make smoke targets pass `-p SMOKE_TEST 1`"
                 ),
             ))
         result.findings.extend(_parameter_trailing_comment_findings(doc, rel))

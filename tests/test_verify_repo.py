@@ -392,6 +392,52 @@ def _load_verify_module():
     return mod
 
 
+def test_assignment_names_ignore_comments_and_strings():
+    verify_repo = _load_verify_module()
+    names = verify_repo._assignment_names(
+        "# COMMENT_ONLY = 1\n"
+        "example = 'STRING_ONLY = 1'\n"
+        "SMOKE_TEST = 0\n"
+        "SMOKE_TEST_EPOCHS: int = 1\n"
+        "SMOKE_TEST_SUBSET += 1\n"
+        "LEFT, RIGHT = 1, 2\n"
+    )
+
+    assert {"SMOKE_TEST", "SMOKE_TEST_EPOCHS", "SMOKE_TEST_SUBSET", "LEFT", "RIGHT"} <= names
+    assert "COMMENT_ONLY" not in names
+    assert "STRING_ONLY" not in names
+
+
+def test_e10_flags_parameters_tag_without_smoke_test_assignment(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    import nbformat
+
+    rel = Path("task") / "missing-smoke.ipynb"
+    nb_path = tmp_path / rel
+    nb_path.parent.mkdir()
+    nb = nbformat.v4.new_notebook()
+    cell = nbformat.v4.new_code_cell("OTHER_PARAMETER = 1\n")
+    cell.metadata["tags"] = ["parameters"]
+    nb.cells = [cell]
+    nbformat.write(nb, str(nb_path))
+
+    monkeypatch.setattr(verify_repo, "REQUIRED_SECTIONS", {str(rel): ("1. Any",)})
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+    result = verify_repo.check_execution(tmp_path, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E10.missing_smoke_test_parameter"]
+    assert len(hits) == 1
+    assert hits[0].severity == "error"
+    assert hits[0].location == str(rel)
+
+
+def test_e10_smoke_test_parameter_check_clean_current_repo():
+    r = run_verify("--check", "execution", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "E10.missing_smoke_test_parameter"]
+    assert hits == []
+
+
 def test_run_helper_timeout_returns_rc_124():
     """_run must catch subprocess.TimeoutExpired and surface rc=124 + a
     diagnostic stderr suffix, so a hung make target produces a clean Finding
