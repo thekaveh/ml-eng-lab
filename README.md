@@ -42,7 +42,7 @@ Four ways to run these notebooks, in increasing order of "I want my own machine 
 
 As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the ml-lab dep set + the 2 NLP model assets. The image bakes the now-defunct `nnx-pytorch[lm]` PyPI name; a coordinated upstream bump to `thekaveh-nnx[lm]==0.2.0` is needed before this path covers every notebook on a fresh build (tracked as a follow-up to the 2026-06-14 PyPI migration). Two paths, pick by need:
 
-**Default — standalone genai-vanilla + VS Code Mode 2** (works once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`; one exception remains regardless: `image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the wrapper-and-bind-mount §2 path below):
+**Default — standalone genai-vanilla + VS Code Mode 2** (works for the 28 tier-covered notebooks once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`; one tier-covered exception remains regardless: `image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the wrapper-and-bind-mount §2 path below. The quantization notebook is still manual-only under `torch>=2.5` + `torchao>=0.17`):
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh

@@ -76,11 +76,20 @@ DEPRECATED_PARAM_NAMES: list[str] = [
 
 
 def _nnparams_replacement_for_symbol(symbol: str) -> str | None:
-    m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?$", symbol)
+    m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?,?$", symbol)
     if not m or m.group(1) not in DEPRECATED_PARAM_NAMES:
         return None
     alias = m.group(2)
     return f"NNParams as {alias}" if alias else "NNParams"
+
+
+def _imported_symbol_bindings(symbols: str) -> set[str]:
+    bindings = set()
+    for part in (p.strip() for p in symbols.split(",") if p.strip()):
+        m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?$", part)
+        if m:
+            bindings.add(m.group(2) or m.group(1))
+    return bindings
 
 
 def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
@@ -94,7 +103,7 @@ def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
     """
     m = re.match(r"^(\s*)from\s+([\w.]+)\s+import\s+(.+?)(\s*)$", line.rstrip("\n"))
     if not m:
-        return line, False
+        return line, [], False
     indent, module, symbols, trailing = m.group(1), m.group(2), m.group(3), m.group(4)
     parts = [p.strip() for p in symbols.split(",") if p.strip()]
     nnparams_imports = [replacement for p in parts if (replacement := _nnparams_replacement_for_symbol(p))]
@@ -130,12 +139,23 @@ def _rewrite_call_sites(line: str) -> tuple[str, bool]:
 def rewrite_lines(source_lines: list[str]) -> list[str]:
     """Apply all rewrites to a list of source lines (each preserving its trailing \\n if present)."""
     out: list[str] = []
-    cell_emits_nnparams_import = False  # tracks whether we already have an NNParams import in this cell after rewrites
     needed_nnparams_imports: set[str] = set()
     existing_nnparams_imports: set[str] = set()
+    in_parenthesized_import = False
     for line in source_lines:
         stripped_nl = line.rstrip("\n")
         had_nl = line.endswith("\n")
+        if in_parenthesized_import:
+            replacement = _nnparams_replacement_for_symbol(stripped_nl.strip())
+            if replacement:
+                needed_nnparams_imports.add(replacement)
+                if ")" in stripped_nl:
+                    in_parenthesized_import = False
+                continue
+            out.append(line)
+            if ")" in stripped_nl:
+                in_parenthesized_import = False
+            continue
         # Try split patterns first
         split_applied = False
         for pattern, builder in SPLIT_PATTERNS:
@@ -156,6 +176,10 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
             for old, new in SIMPLE_MAPPINGS:
                 if old in new_line:
                     new_line = new_line.replace(old, new)
+        if new_line.lstrip().startswith("from ") and " import (" in new_line:
+            in_parenthesized_import = True
+            out.append(new_line)
+            continue
         # 2026-05-27: drop deprecated per-net Params from import lines
         if new_line.lstrip().startswith("from "):
             rewritten, nnparams_imports, ch = _drop_deprecated_from_import(new_line)
@@ -175,15 +199,11 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         # comments / strings that happen to contain the substring.
         nnparams_import = re.match(r"^\s*from\s+nnx\.nn\.params\.nn_params\s+import\s+(.+?)(\s*)$", new_line.rstrip("\n"))
         if nnparams_import:
-            existing_nnparams_imports.update(p.strip() for p in nnparams_import.group(1).split(",") if p.strip())
-        if nnparams_import or re.match(r"^\s*from\s+\S+\s+import\s+.*\bNNParams\b", new_line):
-            cell_emits_nnparams_import = True
+            existing_nnparams_imports.update(_imported_symbol_bindings(nnparams_import.group(1)))
         out.append(new_line)
     # If any call site or rewrite needs NNParams but the cell never imports it,
     # inject one.
     missing_nnparams_imports = sorted(needed_nnparams_imports - existing_nnparams_imports)
-    if "NNParams" in missing_nnparams_imports and cell_emits_nnparams_import:
-        missing_nnparams_imports.remove("NNParams")
     if missing_nnparams_imports:
         out.insert(0, f"from nnx.nn.params.nn_params import {', '.join(missing_nnparams_imports)}\n")
     return out

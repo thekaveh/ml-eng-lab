@@ -106,6 +106,38 @@ def test_aliased_graph_att_params_import_consolidates_to_aliased_nnparams(tmp_pa
     assert "GraphAttNNParams" not in src
 
 
+def test_parenthesized_graph_att_params_import_consolidates_to_nnparams(tmp_path):
+    p = _make_notebook(tmp_path, "gat_parenthesized.ipynb", [
+        _code_cell(
+            "from nnx.nn.net.graph_att_nn import (\n"
+            "    GraphAttNN,\n"
+            "    GraphAttNNParams,\n"
+            ")\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "from nnx.nn.net.graph_att_nn import NNParams" not in src
+    assert "GraphAttNNParams" not in src
+    assert "from nnx.nn.net.graph_att_nn import (\n    GraphAttNN,\n)" in src
+    assert "from nnx.nn.params.nn_params import NNParams" in src
+
+
+def test_aliased_nnparams_import_does_not_suppress_bare_nnparams_for_call_site(tmp_path):
+    p = _make_notebook(tmp_path, "gat_alias_and_call.ipynb", [
+        _code_cell(
+            "from nnx.nn.params.nn_params import NNParams as GATParams\n"
+            "params = GraphAttNNParams(n_heads=4, input_dim=10, output_dim=2)\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "from nnx.nn.params.nn_params import NNParams\n" in src
+    assert "from nnx.nn.params.nn_params import NNParams as GATParams\n" in src
+    assert "params = NNParams(n_heads=4, input_dim=10, output_dim=2)" in src
+    assert "GraphAttNNParams" not in src
+
+
 def test_graph_att_params_call_site_renamed_to_nnparams(tmp_path):
     """`GraphAttNNParams(n_heads=..., ...)` call sites rewrite to `NNParams(n_heads=..., ...)`."""
     p = _make_notebook(tmp_path, "gat_call.ipynb", [

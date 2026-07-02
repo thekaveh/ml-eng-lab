@@ -10,7 +10,7 @@ For most workflows you do NOT need this repo's wrapper script or override file �
 
 ## 1. Default path: standalone genai-vanilla + VS Code Mode 2
 
-This is the recommended path for **most ml-lab notebooks** — the exception being the from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access, and needs the §2 path). Until the genai-vanilla image bumps its baked `nnx-pytorch` name to `thekaveh-nnx[lm]==0.2.0`, the standalone path also requires a per-session manual fix (`docker exec ... pip install thekaveh-nnx[lm]==0.2.0` inside the running jupyterhub container) for notebooks that import `nnx`.
+This is the recommended path for **most tier-covered ml-lab notebooks** — the exception being the from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access, and needs the §2 path). The quantization notebook is still manual-only under `torch>=2.5` + `torchao>=0.17`. Until the genai-vanilla image bumps its baked `nnx-pytorch` name to `thekaveh-nnx[lm]==0.2.0`, the standalone path also requires a per-session manual fix (`docker exec ... pip install thekaveh-nnx[lm]==0.2.0` inside the running jupyterhub container) for notebooks that import `nnx`.
 
 1. Bring the stack up from a standalone clone of genai-vanilla:
 
