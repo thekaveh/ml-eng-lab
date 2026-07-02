@@ -46,6 +46,7 @@ def test_inject_adds_parameters_cell_when_missing(tmp_path):
     # Inserted before the first code cell (markdown stays on top).
     assert nb.cells[0].cell_type == "markdown"
     assert nb.cells[1].cell_type == "code"
+    assert nb.cells[1].id == "smoke-params"
     assert "parameters" in nb.cells[1].metadata.get("tags", [])
 
 

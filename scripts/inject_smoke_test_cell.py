@@ -79,9 +79,24 @@ def first_parameters_cell(nb: dict) -> dict | None:
     return None
 
 
-def make_parameters_cell() -> dict:
+def _unique_cell_id(nb: dict, preferred: str = "smoke-params") -> str:
+    existing = {
+        cell.get("id")
+        for cell in nb.get("cells", [])
+        if isinstance(cell, dict) and cell.get("id")
+    }
+    if preferred not in existing:
+        return preferred
+    suffix = 2
+    while f"{preferred}-{suffix}" in existing:
+        suffix += 1
+    return f"{preferred}-{suffix}"
+
+
+def make_parameters_cell(cell_id: str = "smoke-params") -> dict:
     return {
         "cell_type": "code",
+        "id": cell_id,
         "execution_count": None,
         "metadata": {"tags": ["parameters"]},
         "outputs": [],
@@ -110,7 +125,7 @@ def process(path: Path) -> str:
         path.write_text(json.dumps(nb, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
         return "augmented existing parameters cell with SMOKE_TEST"
     idx = find_insert_index(nb)
-    nb["cells"].insert(idx, make_parameters_cell())
+    nb["cells"].insert(idx, make_parameters_cell(_unique_cell_id(nb)))
     path.write_text(json.dumps(nb, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     return f"injected at cell index {idx}"
 
