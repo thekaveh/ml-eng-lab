@@ -23,7 +23,7 @@ This is the recommended path for **most ml-lab notebooks** — the exception bei
 
 3. Point VS Code at the remote kernel — see [vscode-remote-access.md Mode 2](vscode-remote-access.md#2-mode-2--connect-to-remote-jupyter-server-default).
 
-`import nnx` and every other top-level import resolves out of the box. Notebook outputs save back to the local `.ipynb` file because VS Code holds the file on the host.
+After the image bump, or after the per-session install workaround, `import nnx` and every other top-level import resolve. Notebook outputs save back to the local `.ipynb` file because VS Code holds the file on the host.
 
 What this path does NOT give you: notebook code that does `pd.read_csv("./data/foo.csv")` or `NNRun.save()` writes to the container's CWD (`/home/jovyan/`), not to your host repo. Data/run artifacts land in the `jupyterhub-data` named volume — opaque to `git status` and lost on `docker volume rm`. For most Tier-A demos that's fine (small datasets, cheap to re-download). For long-running training where you want host-side persistence, see §2.
 

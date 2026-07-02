@@ -16,7 +16,9 @@ class Utils:
     @staticmethod
     def one_hot_encode(X, C):
         class_to_idx = {c: idx for idx, c in enumerate(C)}
-        indices = np.array([class_to_idx[x] for x in X])
+        labels = np.asarray(X)
+        indices = np.array([class_to_idx[x] for x in labels.reshape(-1)])
+        indices = indices.reshape(labels.shape)
         return np.eye(len(C), dtype=int)[indices]
 
     def two_line_plot(

@@ -409,7 +409,6 @@ _STALE_IDP_FIELD_RE = re.compile(
 )
 # `NNRun.load("best")` / `NNRun.load('best')` — `"best"` is not a run id.
 _NNRUN_LOAD_BEST_RE = re.compile(r"""NNRun\.load\(\s*["']best["']""")
-_TOSPARSETENSOR_CALL_RE = re.compile(r"ToSparseTensor\((?P<args>[^)]*)\)")
 
 
 def find_stale_idp_fields(nb: dict) -> list[str]:
@@ -433,9 +432,22 @@ def find_nnrun_load_best(nb: dict) -> list[str]:
 def find_sparse_tensor_edge_index_drops(nb: dict) -> list[str]:
     out: list[str] = []
     for idx, cell in enumerate(_code_cells(nb)):
-        for line in _live_lines(cell):
-            m = _TOSPARSETENSOR_CALL_RE.search(line)
-            if m and "remove_edge_index=False" not in m.group("args"):
+        lines = [ln for ln in "".join(_live_lines(cell)).splitlines()
+                 if not ln.lstrip().startswith(("%", "!"))]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or _called_name(node) != "ToSparseTensor":
+                continue
+            preserves_edge_index = any(
+                kw.arg == "remove_edge_index"
+                and isinstance(kw.value, ast.Constant)
+                and kw.value.value is False
+                for kw in node.keywords
+            )
+            if not preserves_edge_index:
                 out.append(f"code_cell[{idx}]: ToSparseTensor(...) drops edge_index by default")
     return out
 
@@ -532,6 +544,42 @@ def test_tosparsetensor_guard_allows_preserving_edge_index():
     good = _synthetic_nb({
         "cell_type": "code",
         "source": ["transform = pyg.transforms.ToSparseTensor(remove_edge_index=False)\n"],
+        "outputs": [],
+    })
+    assert not find_sparse_tensor_edge_index_drops(good)
+
+
+def test_tosparsetensor_guard_catches_multiline_default_edge_index_drop():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "transform = pyg.transforms.ToSparseTensor(\n",
+            "    fill_cache=False,\n",
+            ")\n",
+        ],
+        "outputs": [],
+    })
+    assert find_sparse_tensor_edge_index_drops(bad)
+
+
+def test_tosparsetensor_guard_allows_spaced_keyword_assignment():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["transform = pyg.transforms.ToSparseTensor(remove_edge_index = False)\n"],
+        "outputs": [],
+    })
+    assert not find_sparse_tensor_edge_index_drops(good)
+
+
+def test_tosparsetensor_guard_allows_multiline_preserving_edge_index():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "transform = pyg.transforms.ToSparseTensor(\n",
+            "    fill_cache=False,\n",
+            "    remove_edge_index=False,\n",
+            ")\n",
+        ],
         "outputs": [],
     })
     assert not find_sparse_tensor_edge_index_drops(good)

@@ -15,13 +15,13 @@ Command:
 pip-audit -r requirements.txt -r torch-requirements.txt
 ```
 
-Result: 23 known vulnerabilities across three pinned packages:
+Result: 23 known vulnerabilities across three resolved packages:
 
-| Package | Pinned Version | Finding Count | Current Disposition |
-| --- | ---: | ---: | --- |
-| `torch` | `2.4.1` | 21 | Accepted temporarily for genai-vanilla image parity; upgrade requires a coordinated PyTorch/PyG/torchao compatibility pass. |
-| `pytorch-lightning` | `2.4.0` | 1 | Accepted temporarily because it is pinned to the current Torch stack; revisit with the Torch upgrade. |
-| `nltk` | `3.9.4` | 1 | Review on the next dependency bump; VADER usage is local/offline and does not deserialize untrusted corpus files. |
+| Package | Manifest Constraint | Audited Resolved Version | Finding Count | Current Disposition |
+| --- | --- | ---: | ---: | --- |
+| `torch` | `torch==2.4.1` | `2.4.1` | 21 | Accepted temporarily for genai-vanilla image parity; upgrade requires a coordinated PyTorch/PyG/torchao compatibility pass. |
+| `pytorch-lightning` | `pytorch-lightning==2.4.0` | `2.4.0` | 1 | Accepted temporarily because it is pinned to the current Torch stack; revisit with the Torch upgrade. |
+| `nltk` | `nltk>=3.9.3` | `3.9.4` | 1 | Review on the next dependency bump; VADER usage is local/offline and does not deserialize untrusted corpus files. |
 
 The audit must be re-run after any dependency pin change. New unreviewed audit
 findings are maintenance issues until either fixed or added here with rationale.

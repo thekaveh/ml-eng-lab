@@ -36,3 +36,9 @@ def test_one_hot_encode_accepts_string_labels():
     encoded = Utils.one_hot_encode(labels, classes)
 
     assert encoded.tolist() == [[0, 1], [1, 0], [0, 1]]
+
+
+def test_one_hot_encode_accepts_scalar_label():
+    encoded = Utils.one_hot_encode(2, np.array([4, 2]))
+
+    assert encoded.tolist() == [0, 1]

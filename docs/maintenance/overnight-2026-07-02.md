@@ -5,7 +5,7 @@ Upstream: `origin/codex/overnight-maintenance`
 Spec: `/Users/kaveh/.agents/skills/overnight-maintenance/maintenance-spec.md`
 Parameters: `PASSES=25`, `MAX_PASSES=75`, `PUSH=yes`, `NUMBERED_DOCS=yes`
 
-## Coverage Decisions
+## 1. Coverage Decisions
 
 Applied checks:
 - Baseline repository scan: Python code, notebooks, tests, docs, scripts, CI, Docker, devcontainer, dependency manifests.
@@ -21,13 +21,14 @@ Skipped checks:
 - Multi-language parity for active surfaces: N/A for active notebooks and Python helpers; archived CodexGLUE material is reviewed as archive hygiene, not an active supported surface.
 - Performance budget benchmarking: N/A unless a repository-declared performance budget is found during pass review.
 
-## Pass History
+## 2. Pass History
 
 | Pass | Type | Issues | Coverage Evidence | Result |
 | --- | --- | ---: | --- | --- |
 | 1 | genuine | 18 | Inventory gathered: git state, tracked files, 51 notebooks / 61 Python files / 30 Markdown files; baseline and post-fix `ruff check .`; `pytest tests/`; `pytest tests/nnx_surface`; `python scripts/verify_repo.py --check all --fast`; `pip-audit -r requirements.txt -r torch-requirements.txt`; fresh-eyes report-only subagents for docs, notebooks, tooling/security/dependencies, and Python/tests/complexity. | Non-zero pass; valid findings fixed or explicitly deferred |
+| 2 | genuine | 8 | Fresh-eyes report-only subagents for changed docs/logs, changed code/tests/runtime, and CI/dependency/security; focused red/green tests for scalar one-hot encoding and multiline/spaced `ToSparseTensor` calls; `ruff check .`; `pytest tests/ -v`; `python scripts/verify_repo.py --check all --fast`; workflow/override YAML parse; `bash -n scripts/start-jupyterhub.sh`; `git diff --check`; `pip-audit -r requirements.txt -r torch-requirements.txt`. | Non-zero pass; pass-2 follow-ups fixed |
 
-## Validation Log
+## 3. Validation Log
 
 - `ruff check .` passed before and after the pass-1 fix batch.
 - Baseline `pytest tests/ -v` passed with `291 passed, 3 skipped`; post-fix full suite passed with `325 passed, 3 skipped, 19 warnings`.
@@ -37,17 +38,19 @@ Skipped checks:
 - YAML parsing passed for `.github/workflows/ci.yml` and `deploy/genai-vanilla-jupyterhub.override.yml`.
 - `scripts/start-jupyterhub.sh --help` exited with status 1 by design in this checkout and printed the intended uninitialized-submodule recovery command.
 - `git diff --check` passed.
-- `pip-audit -r requirements.txt -r torch-requirements.txt` still reports 23 known vulnerabilities across `torch==2.4.1`, `pytorch-lightning==2.4.0`, and `nltk==3.9.4`; this is recorded in `docs/dependency-contracts.md` and remains a coordinated dependency-upgrade follow-up rather than a local green check.
+- `pip-audit -r requirements.txt -r torch-requirements.txt` still reports 23 known vulnerabilities across resolved `torch==2.4.1`, `pytorch-lightning==2.4.0`, and `nltk==3.9.4`; this is recorded in `docs/dependency-contracts.md` and remains a coordinated dependency-upgrade follow-up rather than a local green check.
+- Pass-2 red tests failed for scalar `one_hot_encode`, multiline `ToSparseTensor(...)`, and spaced `remove_edge_index = False`; the same focused set passed after the fix.
+- Pass-2 full validation passed: `ruff check .`; `pytest tests/ -v` (`329 passed, 3 skipped, 19 warnings`); `python scripts/verify_repo.py --check all --fast` (`0 errors, 5 warnings`); workflow/override YAML parse; `bash -n scripts/start-jupyterhub.sh`; `git diff --check`.
 
-## Issue Log
+## 4. Issue Log
 
 | ID | Severity | Category | Location | Description | Status | Validation |
 | --- | --- | --- | --- | --- | --- | --- |
 | OM-001 | High | §3.16 security / §3.14 CI | `.github/workflows/ci.yml` | CI ran PR-controlled code without explicit least-privilege permissions and with persisted checkout credentials. | Fixed | Added top-level `permissions: contents: read`; set `persist-credentials: false` on checkout steps; workflow YAML parsed successfully. |
 | OM-002 | High | §3.16 security / §3.26 configuration | `scripts/start-jupyterhub.sh`, `deploy/genai-vanilla-jupyterhub.override.yml`, runtime docs | Wrapper mounted host `~/.ssh` into JupyterHub by default. | Fixed | Host SSH mount now opt-in via `HOST_SSH_DIR`; docs updated; shell syntax and override YAML validated. |
-| OM-003 | High | §3.16 dependency security / §3.31 consumed contracts | `requirements.txt`, `torch-requirements.txt`, `docs/dependency-contracts.md` | `pip-audit` reported 23 known vulnerabilities in pinned `torch`, `pytorch-lightning`, and `nltk`; exception state was undocumented. | Fixed/documented | Added dependency contract ledger with audit snapshot and upgrade criteria; full upgrade deferred to coordinated Torch stack pass. |
+| OM-003 | High | §3.16 dependency security / §3.31 consumed contracts | `requirements.txt`, `torch-requirements.txt`, `docs/dependency-contracts.md` | `pip-audit` reported 23 known vulnerabilities in resolved `torch`, `pytorch-lightning`, and `nltk`; exception state was undocumented. | Fixed/documented | Added dependency contract ledger with audit snapshot and upgrade criteria; full upgrade deferred to coordinated Torch stack pass. |
 | OM-004 | Medium | §3.29 reproducibility | Docker/devcontainer/PyPI/NLP assets | Build inputs are tag-pinned/ranged and external NLP assets are not checksum locked. | Documented/deferred | Ledger records current contract and stricter reproducibility upgrade path; full lockfile/digest migration deferred due broad dependency blast radius. |
-| OM-005 | Medium | §3.14 CI/tooling | `.github/workflows/ci.yml` | `make verify` was local-only, despite enforcing repo invariants. | Fixed | Added `verify-repo` CI job running `make verify`; workflow YAML parsed successfully. |
+| OM-005 | Medium | §3.14 CI/tooling | `.github/workflows/ci.yml` | `make verify` was local-only, despite enforcing repo invariants. | Fixed | Added `verify-repo` CI job running `make verify`; workflow YAML parsed successfully. Pass 2 added `fetch-depth: 0` so the tag-backed E5 baseline is available in CI. |
 | OM-006 | Low | §3.17 bootstrap tracing | `scripts/start-jupyterhub.sh` | Wrapper only checked that `vendor/genai-vanilla` directory existed, not whether the submodule files were initialized. | Fixed | Wrapper now checks for `start.sh` and `docker-compose.yml`; local uninitialized-submodule run prints `git submodule update --init --recursive` and exits 1 by design. |
 | OM-007 | Low | §3.6 docs | `README.md`, `.devcontainer/devcontainer.json` | Codespaces wording overpromised all active notebooks despite manual-only quantization. | Fixed | Wording now distinguishes 21 task folders, 29 active notebooks, 28 tier-covered runnable notebooks, and the manual-only quantization notebook. |
 | OM-008 | Medium | §3.6 changelog hygiene | `CHANGELOG.md` | `[Unreleased]` had duplicate `### Fixed` sections. | Fixed | Merged duplicate Fixed block. |
@@ -61,3 +64,11 @@ Skipped checks:
 | OM-016 | Medium | §3.13 tests / §3.15 hygiene | `tests/test_verify_repo.py` | Some verifier tests write temporary files inside the real repo tree. | Deferred | Requires verifier root/config injection design; existing tests pass and cleanup with `try/finally`. |
 | OM-017 | Medium | §3.17 CLI trace | `scripts/verify_repo.py` | Config/YAML loads at import time before argparse `--help`. | Deferred | Requires targeted CLI/import refactor; current `--help` test passes in provisioned environment. |
 | OM-018 | Low | §3.13 tests | `tests/nnx_surface/test_notebook_api_surface.py` | `_active_notebooks()` scans all files, so untracked scratch notebooks can affect local tests. | Deferred | Low local-only risk; candidate for next pass. |
+| OM-019 | Medium | §3.13 tests / §3.31 PyG contract | `tests/nnx_surface/test_notebook_api_surface.py` | Pass-1 `ToSparseTensor` guard used a line regex, missing multiline calls and falsely flagging spaced `remove_edge_index = False`. | Fixed | Added red tests for multiline and spaced forms; replaced the check with AST call inspection; focused tests passed. |
+| OM-020 | Low | §3.4 API compatibility | `image_classification-mnist-ffnn-numpy/utils.py`, `tests/test_numpy_utils.py` | Pass-1 `one_hot_encode` narrowed behavior for scalar labels. | Fixed | Added scalar regression test; labels now normalize via `np.asarray` and preserve scalar/array output shape. |
+| OM-021 | Medium | §3.14 CI/tooling | `.github/workflows/ci.yml` | New `verify-repo` CI job used default shallow checkout, so missing `pre-cleanup-baseline` tag could downgrade E5 enforcement to a warning. | Fixed | Added `fetch-depth: 0` to the `verify-repo` checkout; workflow YAML parsed successfully. |
+| OM-022 | Low | §3.16 dependency security / §3.6 docs | `docs/dependency-contracts.md` | Dependency ledger called `nltk>=3.9.3` a pinned package even though audit resolved `nltk==3.9.4`. | Fixed | Ledger now distinguishes manifest constraint from audited resolved version. |
+| OM-023 | Medium | §3.6 docs / §3.17 runtime trace | `docs/jupyterhub-integration.md` | Standalone JupyterHub path said `import nnx` resolves out of the box despite the documented retired `nnx-pytorch` image layer. | Fixed | Qualified the sentence to require either the image bump or the per-session install workaround. |
+| OM-024 | Low | §3.6 changelog hygiene | `CHANGELOG.md` | `[Unreleased]` section order drifted from the documented Added / Changed / Removed / Fixed convention. | Fixed | Mechanically reordered Unreleased sections without changing entry text. |
+| OM-025 | Low | §3.9 numbered docs | `docs/maintenance/overnight-2026-07-02.md` | New maintenance log used unnumbered H2s despite `NUMBERED_DOCS=yes`. | Fixed | Numbered the maintenance-log H2s hierarchically. |
+| OM-026 | Low | §3.6 docs | `.devcontainer/devcontainer.json` | Codespaces comment implied JupyterLab is the default browser surface; README frames browser VS Code as default. | Fixed | Comment now says browser-based VS Code, or JupyterLab if selected as the Codespaces editor. |
