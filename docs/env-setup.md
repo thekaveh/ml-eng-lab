@@ -113,7 +113,7 @@ The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` varia
   - `sentiment_classification-vader-mlp-pytorch/notebook.ipynb`
   - `preference_alignment-toy-dpo-pytorch/notebook.ipynb`
   - `self_supervised-fmnist-jepa-pytorch/notebook.ipynb`
-- **Tier-B** (`make smoke-tier-b`, on-demand + weekly cron, passes `-p SMOKE_TEST 1` so the parameterized mnist-pytorch notebook shrinks its sweep; the 4 phase2 reddit notebooks run their hardcoded sweep; writes to /tmp):
+- **Tier-B** (`make smoke-tier-b`, on-demand + weekly cron, passes `-p SMOKE_TEST 1` and writes to /tmp; the parameterized mnist-pytorch notebook shrinks its sweep, and the 4 phase2 reddit notebooks run smoke-truncated epochs/subsets, with notebook4 also reducing fanout):
   - `image_classification-mnist-ffnn-pytorch/notebook.ipynb` (full `[9 hidden_dims × 2 dropouts × 500 epochs]` sweep — `~17 min macOS / >90 min Linux`; moved out of Tier-A per [issue #7](https://github.com/thekaveh/ml-lab/issues/7))
   - `node_classification-reddit-gnn-pyg/phase2-model-selection-notebook{1,2,3,4}.ipynb`
 - **Manual-only** (excluded from Tier-A/B/C; cannot run in ml-lab's pinned environment):

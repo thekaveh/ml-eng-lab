@@ -22,7 +22,7 @@ ml-lab/
 ├── CONTRIBUTING.md                            (workflow + conventions)
 ├── CHANGELOG.md                               (release notes)
 ├── Makefile                                   (papermill tier targets)
-├── docs/                                      (env, jupyterhub, vscode-remote, FINDINGS-NNX, FINDINGS-VENDOR)
+├── docs/                                      (env/runtime docs, dependency contracts, findings, maintenance log)
 ├── requirements.txt + torch-*.txt             (pip deps; thekaveh-nnx[lm]==0.2.0)
 ├── scripts/                                   (jupyterhub start, verifier, notebook edit/import helpers)
 ├── deploy/                                    (genai-vanilla compose override)
@@ -32,7 +32,7 @@ ml-lab/
 └── <21 active task folders>                   ([task]-[dataset]-[model]-[framework]/ — full list in §4.1)
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for release history; per-folder docs are linked from [§10 Other documentation](#10-other-documentation).
+See [CHANGELOG.md](CHANGELOG.md) for release history; per-task folders are linked from [§4.1 Active](#41-active), and secondary docs are linked from [§10 Other documentation](#10-other-documentation).
 
 ## 3. Quick start
 
@@ -155,7 +155,7 @@ Notebooks are tiered by execution cost:
 | Tier | What it is | Re-run policy |
 |---|---|---|
 | **A** | Cheap (<5 min) | `make run-tier-a` re-runs and refreshes outputs. Verified in CI on every PR. Tier-A notebooks also accept a `SMOKE_TEST` papermill parameter (default `0` = full run). |
-| **B** | Moderate (model-selection sweeps) | Original outputs preserved. `make smoke-tier-b` runs `SMOKE_TEST=1` on the parameterized `image_classification-mnist-ffnn-pytorch` notebook (shrinks its sweep) + the hardcoded sweep on the 4 phase2 reddit notebooks, writing to `/tmp/`. |
+| **B** | Moderate (model-selection sweeps) | Original outputs preserved. `make smoke-tier-b` runs `SMOKE_TEST=1` and writes to `/tmp/`: the parameterized `image_classification-mnist-ffnn-pytorch` notebook shrinks its sweep, and the 4 phase2 reddit notebooks run smoke-truncated epochs/subsets (notebook4 also reduces fanout). |
 | **C** | Expensive (main GPU training) | Historical Aug-2023 GPU training-run outputs preserved as artifact. `make smoke-tier-c` runs CPU with `SMOKE_TEST=1` to validate the pipeline without overwriting outputs. |
 
 See [docs/env-setup.md](docs/env-setup.md) for the tier mapping.
