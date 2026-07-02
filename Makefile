@@ -65,7 +65,14 @@ TIER_C := \
 
 SMOKE_OUT := /tmp/ml-smoke
 
-.PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify codespace-setup
+TORCH_CORE_DEPS := \
+	torch==2.4.1 \
+	pytorch-lightning==2.4.0 \
+	torchvision==0.19.1 \
+	torchaudio==2.4.1 \
+	torchmetrics==1.4.2
+
+.PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify install-torch-stack codespace-setup
 
 help:
 	@echo "Targets:"
@@ -78,6 +85,7 @@ help:
 	@echo "  lint              Run ruff check . using the [tool.ruff] config in pyproject.toml."
 	@echo "  nlp-assets        Download spaCy en_core_web_sm + NLTK vader_lexicon (needed by the 2 NLP Tier-A notebooks)."
 	@echo "  verify            Run repo verifier (scripts/verify_repo.py --check all --fast)."
+	@echo "  install-torch-stack Install pinned Torch core first, then PyG/runtime deps."
 	@echo "  codespace-setup   Full dep install + NLP assets. Invoked by .devcontainer/devcontainer.json's postCreateCommand."
 
 run-tier-a:
@@ -124,15 +132,16 @@ nlp-assets:
 verify:
 	python scripts/verify_repo.py --check all --fast
 
+install-torch-stack:
+	pip install --upgrade pip
+	pip install $(TORCH_CORE_DEPS)
+	pip install --no-build-isolation -r torch-requirements.txt
+
 # Full one-shot dep install for the GitHub Codespaces / "Reopen in Container"
-# path (README §3.4). Mirrors the install order .github/workflows/ci.yml uses
-# for the tier-a-papermill job (torch-requirements.txt FIRST so torch is pinned
-# before the PyG wheels in requirements.txt try to resolve against it, then
-# requirements.txt, then the 2 NLP assets via the existing nlp-assets target).
+# path (README §3.4). Reuses the same Torch-first install order as CI and
+# Docker so PyG source-build fallback can import torch during extension builds.
 # Recursively invokes nlp-assets so the spaCy + NLTK download steps stay in
 # one place across the §3.2 (Docker), §3.3 (venv), and §3.4 (Codespaces) paths.
-codespace-setup:
-	pip install --upgrade pip
-	pip install -r torch-requirements.txt
+codespace-setup: install-torch-stack
 	pip install -r requirements.txt
 	$(MAKE) nlp-assets

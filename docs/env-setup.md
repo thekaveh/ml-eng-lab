@@ -49,7 +49,7 @@ Notes:
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r torch-requirements.txt
+make install-torch-stack
 pip install -r requirements.txt              # pulls thekaveh-nnx[lm]==0.2.0 from PyPI
 
 # One-time downloads for the two Tier-A NLP tasks (text_classification-agnews-spacy-mlp
@@ -70,7 +70,7 @@ Caveats:
 Click **Code → Codespaces → Create codespace on main** on github.com/thekaveh/ml-lab. The repo ships [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) which declaratively defines the runtime:
 
 - **Base image**: `mcr.microsoft.com/devcontainers/python:3.11-bookworm` (Python 3.11, matches the version pin in `.python-version` + CI).
-- **`postCreateCommand`**: `make codespace-setup` — runs `pip install -r torch-requirements.txt && pip install -r requirements.txt && make nlp-assets` in the same order CI uses. ~2-3 min one-time per Codespace.
+- **`postCreateCommand`**: `make codespace-setup` — runs the Torch-first install target, `pip install -r requirements.txt`, and `make nlp-assets` in the same order CI uses. ~2-3 min one-time per Codespace.
 - **VS Code extensions** preinstalled: `ms-python.python`, `ms-toolsai.jupyter` + `jupyter-cell-tags` (makes the papermill `parameters` tag visible) + `jupyter-keymap` + `jupyter-renderers`.
 - **Repo location**: `/workspaces/ml-lab` — auto-cloned, persistent across kernel restarts within the Codespace. The `image_classification-mnist-ffnn-numpy` notebook's sibling `.py` imports resolve here natively.
 

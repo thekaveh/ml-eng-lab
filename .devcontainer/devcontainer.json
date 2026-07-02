@@ -14,9 +14,9 @@
   "name": "ml-lab",
   "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
 
-  // The Make target is the single source of truth for the install recipe so
-  // the local-venv (§3.3), Docker (§3.2), and Codespaces (§3.4) paths all
-  // land the same dep set in the same order. See Makefile `codespace-setup`.
+  // The Make target is the single source of truth for the Codespaces/venv
+  // install recipe; Docker mirrors this Torch-first order in Dockerfile.
+  // See Makefile `codespace-setup`.
   "postCreateCommand": "make codespace-setup",
 
   // 8888 is the fallback for users running `jupyter lab` manually inside the

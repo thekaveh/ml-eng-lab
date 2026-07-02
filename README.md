@@ -73,7 +73,7 @@ docker run -p 8888:8888 -v "$(pwd):/home/jovyan/work" --shm-size=4g ml-lab
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r torch-requirements.txt
+make install-torch-stack
 pip install -r requirements.txt   # pulls thekaveh-nnx[lm]==0.2.0 from PyPI
 make nlp-assets  # one-time spaCy + NLTK assets used by the 2 NLP Tier-A notebooks
 jupyter lab
@@ -101,12 +101,12 @@ Click **Code → Codespaces → Create codespace on main** on [github.com/thekav
 **How to use**:
 
 1. On [github.com/thekaveh/ml-lab](https://github.com/thekaveh/ml-lab) → green **Code** button → **Codespaces** tab → **Create codespace on main**.
-2. Wait ~2-3 min for `postCreateCommand` to run `make codespace-setup` (= pip install both requirements files + `make nlp-assets`). Progress is visible in the terminal panel.
+2. Wait ~2-3 min for `postCreateCommand` to run `make codespace-setup` (= Torch-first dependency install + `make nlp-assets`). Progress is visible in the terminal panel.
 3. Open any notebook. You can either:
    - **Stay in VS Code (browser)** — the Jupyter / Python extensions are preinstalled per the devcontainer config; works for the 28 tier-covered active notebooks. The quantization notebook is manual-only under `torch>=2.5`.
    - **Switch to JupyterLab** — click the dropdown next to "Open" on github.com → choose JupyterLab. To make JupyterLab the single-click default for all your codespaces, go to [github.com/settings/codespaces → Editor preference → JupyterLab](https://github.com/settings/codespaces).
 
-See [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) for the exact image + extension set, and [`Makefile`](Makefile) `codespace-setup` target for the install recipe (which is also the single source of truth for the §3.2 Docker + §3.3 venv paths). Free-tier Codespaces (60 core-hours/month on personal accounts, 90 on Pro) is enough for typical solo-maintainer usage.
+See [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) for the exact image + extension set, and [`Makefile`](Makefile) `codespace-setup` target for the Codespaces/venv install recipe. The §3.2 Docker path bakes the same Torch-first dependency order into [`Dockerfile`](Dockerfile). Free-tier Codespaces (60 core-hours/month on personal accounts, 90 on Pro) is enough for typical solo-maintainer usage.
 
 ## 4. Tasks
 
