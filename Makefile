@@ -4,8 +4,9 @@
 # Tier B: moderate, smoke-runs to /tmp (preserves original outputs).
 # Tier C: expensive, smoke-runs via SMOKE_TEST parameter to /tmp.
 #
-# Tier A is what CI runs on every PR. B and C are on-demand
-# (`make smoke-tier-b`, `make smoke-tier-c`).
+# Tier A is what CI runs on every PR. B/C smoke targets can run locally or via
+# workflow_dispatch; CI also runs both on the weekly schedule and Tier B on PRs
+# labeled `tier-b-smoke`.
 #
 # All targets assume papermill is on PATH and the notebooks' kernel can
 # import nnx. nnx is consumed from PyPI via the `thekaveh-nnx[lm]==0.2.0`
