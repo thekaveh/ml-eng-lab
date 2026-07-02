@@ -218,6 +218,20 @@ def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
             yield p
 
 
+def _iter_in_scope_markdown_documents(repo: Path) -> Iterator[tuple[Path, Path, str]]:
+    for md in _iter_in_scope_text_files(repo):
+        yield md, md.parent, _read_text(md)
+    for nb_path in _iter_notebooks(repo):
+        try:
+            doc = nbformat.read(nb_path, as_version=4)
+        except Exception:
+            continue
+        text = "\n\n".join(
+            cell.source for cell in doc.cells if cell.cell_type == "markdown"
+        )
+        yield nb_path, nb_path.parent, text
+
+
 def check_structure(repo: Path) -> CheckResult:
     result = CheckResult(name="structure")
     tracked = set(_git_ls_files(repo))
@@ -285,8 +299,8 @@ def check_structure(repo: Path) -> CheckResult:
                         ),
                     ))
 
-    for md in _iter_in_scope_text_files(repo):
-        text = _strip_markdown_code(_read_text(md))
+    for doc_path, base_dir, raw_text in _iter_in_scope_markdown_documents(repo):
+        text = _strip_markdown_code(raw_text)
         for m in _MARKDOWN_LINK_RE.finditer(text):
             path_part, fragment = _split_markdown_link_target(m.group(1))
             target = path_part
@@ -294,11 +308,11 @@ def check_structure(repo: Path) -> CheckResult:
                 continue
             if not target and not fragment:
                 continue
-            target_path = (md.parent / target).resolve() if target else md.resolve()
+            target_path = (base_dir / target).resolve() if target else doc_path.resolve()
             if not target_path.exists():
                 result.findings.append(Finding(
                     id="S3.broken_link", check="structure", severity="error",
-                    location=f"{md.relative_to(repo)}",
+                    location=f"{doc_path.relative_to(repo)}",
                     message=f"internal link target missing: {target}",
                     detail={"link": m.group(0)},
                 ))
@@ -308,7 +322,7 @@ def check_structure(repo: Path) -> CheckResult:
                 if fragment not in slugs:
                     result.findings.append(Finding(
                         id="S3.broken_anchor", check="structure", severity="error",
-                        location=f"{md.relative_to(repo)}",
+                        location=f"{doc_path.relative_to(repo)}",
                         message=f"internal link anchor missing: #{fragment}",
                         detail={"link": m.group(0), "target": str(target_path.relative_to(repo))},
                     ))

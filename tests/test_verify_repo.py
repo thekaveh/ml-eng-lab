@@ -138,6 +138,48 @@ def test_structure_s3_ignores_markdown_link_examples_in_fenced_code(tmp_path):
         fake.unlink(missing_ok=True)
 
 
+def test_structure_s3_checks_notebook_markdown_links(tmp_path):
+    """Notebook markdown links should be covered by the same S3 hygiene."""
+    import nbformat
+
+    name = f"_temp_{tmp_path.name}_bad_link.ipynb"
+    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [nbformat.v4.new_markdown_cell("[bad](missing-local-doc.md)\n")]
+    nbformat.write(nb, str(fake))
+    try:
+        r = run_verify("--check", "structure", "--fast")
+        data = json.loads(r.stdout) if r.stdout else {"findings": []}
+        hits = [
+            f for f in data["findings"]
+            if f["id"] == "S3.broken_link" and name in f["location"]
+        ]
+        assert hits, f"expected S3.broken_link for notebook markdown; got {data.get('findings')}"
+    finally:
+        fake.unlink(missing_ok=True)
+
+
+def test_structure_s3_ignores_notebook_markdown_code_span_links(tmp_path):
+    """Notebook prose can show Markdown link syntax as a literal example."""
+    import nbformat
+
+    name = f"_temp_{tmp_path.name}_code_span_link.ipynb"
+    fake = REPO / "image_classification-mnist-ffnn-numpy" / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [nbformat.v4.new_markdown_cell("Literal: `[bad](missing-local-doc.md)`\n")]
+    nbformat.write(nb, str(fake))
+    try:
+        r = run_verify("--check", "structure", "--fast")
+        data = json.loads(r.stdout) if r.stdout else {"findings": []}
+        hits = [
+            f for f in data["findings"]
+            if f["id"].startswith("S3.") and name in f["location"]
+        ]
+        assert not hits, f"notebook code-span Markdown link was treated as live: {hits}"
+    finally:
+        fake.unlink(missing_ok=True)
+
+
 def test_docs_d1_known_notebooks_have_required_sections():
     """All tracked notebooks must have their REQUIRED_SECTIONS H1s present.
 
