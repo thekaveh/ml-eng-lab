@@ -32,6 +32,7 @@ import io
 import inspect
 import json
 import re
+import subprocess
 import tokenize
 from pathlib import Path
 
@@ -60,13 +61,20 @@ def _visutils_only_methods() -> set[str]:
     return _public_attrs(VisUtils) - _public_attrs(Utils)
 
 
-def _active_notebooks() -> list[Path]:
-    """Every committed notebook except the archived codexglue set + checkpoints."""
+def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
+    """Every git-tracked notebook except the archived codexglue set + checkpoints."""
+    tracked = subprocess.run(
+        ["git", "ls-files", "--", "*.ipynb"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
     return sorted(
-        p
-        for p in REPO_ROOT.rglob("*.ipynb")
-        if "archive/" not in p.relative_to(REPO_ROOT).as_posix()
-        and ".ipynb_checkpoints" not in p.parts
+        repo_root / rel
+        for rel in tracked
+        if not rel.startswith("archive/")
+        and ".ipynb_checkpoints" not in Path(rel).parts
     )
 
 
@@ -159,6 +167,34 @@ def test_active_notebooks_discovered():
     """Guard against the glob silently matching nothing (which would make every
     parametrized scan vacuously pass)."""
     assert len(_NOTEBOOKS) >= 25, f"expected the full active notebook set, found {len(_NOTEBOOKS)}"
+
+
+def test_active_notebooks_uses_git_tracked_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Untracked scratch notebooks on disk must not affect the static surface scans."""
+    tracked_nb = tmp_path / "task" / "notebook.ipynb"
+    archive_nb = tmp_path / "archive" / "old.ipynb"
+    checkpoint_nb = tmp_path / "task" / ".ipynb_checkpoints" / "scratch.ipynb"
+    untracked_nb = tmp_path / "task" / "scratch.ipynb"
+    for path in (tracked_nb, archive_nb, checkpoint_nb, untracked_nb):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+
+    def fake_run(cmd, cwd, capture_output, text, check):
+        assert cmd == ["git", "ls-files", "--", "*.ipynb"]
+        assert cwd == tmp_path
+        assert capture_output is True
+        assert text is True
+        assert check is True
+        stdout = "\n".join([
+            "task/notebook.ipynb",
+            "archive/old.ipynb",
+            "task/.ipynb_checkpoints/scratch.ipynb",
+        ])
+        return subprocess.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert _active_notebooks(tmp_path) == [tracked_nb]
 
 
 @pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
