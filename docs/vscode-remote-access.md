@@ -16,7 +16,7 @@ A new VS Code window opens inside the container. The container's CWD is `/home/j
 What works inside:
 - Native VS Code notebook UI with kernel = `python3` (the container's interpreter, with all deps installed via genai-vanilla PR #26).
 - Integrated terminal with `git`, `pip`, etc.
-- If using the §2-wrapper path, the host's `~/.ssh` is mounted read-only at `/home/jovyan/.ssh`; `git push` works with the host identity.
+- If using the §2-wrapper path, `/home/jovyan/.ssh` is empty by default. Set `HOST_SSH_DIR=/path/to/keys` before `scripts/start-jupyterhub.sh` only when you want to opt into a read-only host-key mount for `git push`.
 
 Use this when you want the full container shell experience.
 

@@ -62,6 +62,22 @@ def test_idempotent_on_already_rewritten(tmp_path):
     assert _cell_source(p, 0) == src
 
 
+def test_module_path_rewrite_ignores_comments_and_strings(tmp_path):
+    src = (
+        "# from common.nn_model import NNModel\n"
+        "example = 'from common.nn_model import NNModel'\n"
+        "from common.nn_model import NNModel\n"
+    )
+    p = _make_notebook(tmp_path, "comments_strings.ipynb", [_code_cell(src)])
+
+    _run(p)
+
+    rewritten = _cell_source(p, 0)
+    assert "# from common.nn_model import NNModel" in rewritten
+    assert "example = 'from common.nn_model import NNModel'" in rewritten
+    assert "from nnx.nn.nn_model import NNModel" in rewritten
+
+
 # ----- NEW: symbol-consolidation rules --------------------------------------
 
 def test_graph_att_params_import_consolidates_to_nnparams(tmp_path):

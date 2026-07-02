@@ -139,11 +139,12 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                 break
         if split_applied:
             continue
-        # Apply simple prefix mappings
+        # Apply simple prefix mappings only to real import statements.
         new_line = line
-        for old, new in SIMPLE_MAPPINGS:
-            if old in new_line:
-                new_line = new_line.replace(old, new)
+        if new_line.lstrip().startswith(("from common", "import common.")):
+            for old, new in SIMPLE_MAPPINGS:
+                if old in new_line:
+                    new_line = new_line.replace(old, new)
         # 2026-05-27: drop deprecated per-net Params from import lines
         if new_line.lstrip().startswith("from "):
             rewritten, ch = _drop_deprecated_from_import(new_line)

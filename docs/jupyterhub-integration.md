@@ -51,9 +51,9 @@ git submodule update --init --recursive
 scripts/start-jupyterhub.sh
 ```
 
-The wrapper sets `ML_REPO_PATH` (the ml-lab repo root) and `HOST_SSH_DIR` (defaults to `~/.ssh`), exports `COMPOSE_FILE` to layer [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml) onto genai-vanilla's base compose, and execs the submodule's `./start.sh`. The override bind-mounts `${ML_REPO_PATH}:/home/jovyan/work/ml-lab`, so from the running container's perspective, the repo is at `/home/jovyan/work/ml-lab/`.
+The wrapper sets `ML_REPO_PATH` (the ml-lab repo root), exports `COMPOSE_FILE` to layer [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml) onto genai-vanilla's base compose, and execs the submodule's `./start.sh`. The override bind-mounts `${ML_REPO_PATH}:/home/jovyan/work/ml-lab`, so from the running container's perspective, the repo is at `/home/jovyan/work/ml-lab/`.
 
-To run with custom paths:
+By default, the wrapper mounts an empty ignored directory at `/home/jovyan/.ssh`; host SSH keys are not exposed to notebook code. To opt into a read-only SSH-key mount for `git push`, set `HOST_SSH_DIR` explicitly:
 
 ```bash
 HOST_SSH_DIR=/path/to/keys scripts/start-jupyterhub.sh

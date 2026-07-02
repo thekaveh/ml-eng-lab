@@ -30,7 +30,7 @@ git submodule update --init --recursive      # one-time, for vendor/genai-vanill
 scripts/start-jupyterhub.sh                  # each session
 ```
 
-The wrapper layers `deploy/genai-vanilla-jupyterhub.override.yml` onto the `vendor/genai-vanilla` submodule's compose, bind-mounting the repo at `/home/jovyan/work/ml-lab/`. See [jupyterhub-integration.md](jupyterhub-integration.md) for the full two-path walkthrough.
+The wrapper layers `deploy/genai-vanilla-jupyterhub.override.yml` onto the `vendor/genai-vanilla` submodule's compose, bind-mounting the repo at `/home/jovyan/work/ml-lab/`. It mounts an empty `.ssh` directory by default; set `HOST_SSH_DIR=/path/to/keys` only when you explicitly want host SSH keys mounted read-only. See [jupyterhub-integration.md](jupyterhub-integration.md) for the full two-path walkthrough.
 
 ## 2. Local Docker
 

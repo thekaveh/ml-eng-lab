@@ -409,6 +409,7 @@ _STALE_IDP_FIELD_RE = re.compile(
 )
 # `NNRun.load("best")` / `NNRun.load('best')` — `"best"` is not a run id.
 _NNRUN_LOAD_BEST_RE = re.compile(r"""NNRun\.load\(\s*["']best["']""")
+_TOSPARSETENSOR_CALL_RE = re.compile(r"ToSparseTensor\((?P<args>[^)]*)\)")
 
 
 def find_stale_idp_fields(nb: dict) -> list[str]:
@@ -429,6 +430,16 @@ def find_nnrun_load_best(nb: dict) -> list[str]:
     return out
 
 
+def find_sparse_tensor_edge_index_drops(nb: dict) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        for line in _live_lines(cell):
+            m = _TOSPARSETENSOR_CALL_RE.search(line)
+            if m and "remove_edge_index=False" not in m.group("args"):
+                out.append(f"code_cell[{idx}]: ToSparseTensor(...) drops edge_index by default")
+    return out
+
+
 @pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
 def test_no_stale_flat_idp_fields(nb_path: Path):
     nb = json.loads(nb_path.read_text(encoding="utf-8"))
@@ -445,6 +456,16 @@ def test_no_nnrun_load_best(nb_path: Path):
     violations = find_nnrun_load_best(nb)
     assert not violations, (
         f"{nb_path.relative_to(REPO_ROOT)} calls NNRun.load(\"best\"):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+@pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)
+def test_no_tosparsetensor_default_edge_index_drop(nb_path: Path):
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_sparse_tensor_edge_index_drops(nb)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} calls ToSparseTensor without preserving edge_index:\n  "
         + "\n  ".join(violations)
     )
 
@@ -496,6 +517,24 @@ def test_nnrun_load_best_guard_allows_real_id_load():
         "outputs": [],
     })
     assert not find_nnrun_load_best(good)
+
+
+def test_tosparsetensor_guard_catches_default_edge_index_drop():
+    bad = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["transform = pyg.transforms.ToSparseTensor()\n"],
+        "outputs": [],
+    })
+    assert find_sparse_tensor_edge_index_drops(bad)
+
+
+def test_tosparsetensor_guard_allows_preserving_edge_index():
+    good = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["transform = pyg.transforms.ToSparseTensor(remove_edge_index=False)\n"],
+        "outputs": [],
+    })
+    assert not find_sparse_tensor_edge_index_drops(good)
 
 
 # --- VisUtils call-signature guard (nnx plotting-API drift) -------------------

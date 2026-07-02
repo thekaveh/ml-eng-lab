@@ -10,6 +10,9 @@ on:
     # Weekly smoke of Tier-B/C papermill targets, surfaces env drift early.
     - cron: "0 7 * * 1"
 
+permissions:
+  contents: read
+
 jobs:
   pytest-nnx-surface:
     runs-on: ubuntu-latest
@@ -17,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -42,6 +47,33 @@ jobs:
       - name: Run NNx-surface tests
         run: make test-nnx-surface
 
+  verify-repo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            torch-requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r torch-requirements.txt
+          pip install -r requirements.txt
+
+      - name: Run repo verifier
+        run: make verify
+
   tier-a-papermill:
     runs-on: ubuntu-latest
     # 19 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch originally moved to Tier-B per issue #10, then removed from TIER_B on 2026-06-16 after the weekly cron confirmed it cannot run in CI's pinned env — manual-only now). Cumulative ~7 min on a macOS M-series CPU but Linux
@@ -54,6 +86,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -133,6 +167,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -159,6 +195,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6

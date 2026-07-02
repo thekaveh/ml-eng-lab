@@ -24,7 +24,7 @@ ml-lab/
 ├── Makefile                                   (papermill tier targets)
 ├── docs/                                      (env, jupyterhub, vscode-remote, FINDINGS-NNX, FINDINGS-VENDOR)
 ├── requirements.txt + torch-requirements.txt  (pip deps; thekaveh-nnx[lm]==0.2.0)
-├── scripts/                                   (start, setup, verify, helpers)
+├── scripts/                                   (jupyterhub start, verifier, notebook edit/import helpers)
 ├── deploy/                                    (genai-vanilla compose override)
 ├── tests/                                     (pytest: nnx_surface contract + verifier + helpers)
 ├── vendor/genai-vanilla/                      (git submodule, JupyterHub stack)
@@ -83,7 +83,7 @@ See [docs/env-setup.md](docs/env-setup.md) for environment details.
 
 ### 3.4. GitHub Codespaces (zero-click cloud dev)
 
-Click **Code → Codespaces → Create codespace on main** on [github.com/thekaveh/ml-lab](https://github.com/thekaveh/ml-lab). After ~2-3 minutes of one-time dep install you have a browser-based VS Code (or JupyterLab — see below) with all 21 active notebooks runnable.
+Click **Code → Codespaces → Create codespace on main** on [github.com/thekaveh/ml-lab](https://github.com/thekaveh/ml-lab). After ~2-3 minutes of one-time dep install you have a browser-based VS Code (or JupyterLab — see below) with the 21 active task folders available and 28 of 29 active notebooks runnable under the pinned environment.
 
 **Why this path was added.** The §3.1 / §3.2 / §3.3 paths each require ~10-15 minutes of first-time setup on a new machine (Docker pulls, `git submodule update --init --recursive` for `vendor/genai-vanilla`, `pip install -r` against two requirements files, `make nlp-assets` predownloads for spaCy + NLTK). They also each have a coupling cost: §3.1 depends on the genai-vanilla image's pip layer staying in sync with ml-lab's `requirements.txt` (the [`nnx-pytorch[lm]` → `thekaveh-nnx[lm]==0.2.0` follow-up](CHANGELOG.md) is a long-running example of what happens when it drifts); §3.2 and §3.3 require local Docker / a working venv on the dev's machine. Codespaces eliminates both: the `.devcontainer/devcontainer.json` declaratively bakes the install recipe (so the dep set is auto-synced to `requirements.txt` + `torch-requirements.txt` at session start with no image-rebuild loop), and the repo is auto-cloned into `/workspaces/ml-lab` inside the container.
 
@@ -96,14 +96,14 @@ Click **Code → Codespaces → Create codespace on main** on [github.com/thekav
 **Scenarios this does NOT support**:
 - GPU workloads — GitHub deprecated GPU Codespaces 2025-08-29 (Azure NCv3 retirement). The few GPU-benefiting notebooks (heaviest is `self_supervised-fmnist-jepa-pytorch`) still run on CPU here, just slowly; for real GPU you want a separate path (Modal `function.spawn`, a self-hosted GPU box behind Jupyter Enterprise Gateway, or Vertex AI Workbench / Colab Enterprise).
 - Data persistence across Codespace deletions — anything written to `./data/` or `./runs/` is gone when the Codespace is deleted (Codespaces are intended to be cheap and disposable). Commit any results you want to keep, or use Codespaces' "prebuild" feature if dep install time becomes a bottleneck.
-- The quantization-mnist-ffnn-pytorch notebook still won't run here — it has the same `torch.int1` vs `torch==2.4.1` incompatibility documented in its task README (manual-only).
+- The quantization-mnist-ffnn-pytorch notebook still won't run here — it has the same `torch.int1` vs `torch==2.4.1` incompatibility documented in its task README and in [docs/dependency-contracts.md](docs/dependency-contracts.md) (manual-only).
 
 **How to use**:
 
 1. On [github.com/thekaveh/ml-lab](https://github.com/thekaveh/ml-lab) → green **Code** button → **Codespaces** tab → **Create codespace on main**.
 2. Wait ~2-3 min for `postCreateCommand` to run `make codespace-setup` (= pip install both requirements files + `make nlp-assets`). Progress is visible in the terminal panel.
 3. Open any notebook. You can either:
-   - **Stay in VS Code (browser)** — the Jupyter / Python extensions are preinstalled per the devcontainer config; works for all 21 notebooks.
+   - **Stay in VS Code (browser)** — the Jupyter / Python extensions are preinstalled per the devcontainer config; works for the 28 tier-covered active notebooks. The quantization notebook is manual-only under `torch>=2.5`.
    - **Switch to JupyterLab** — click the dropdown next to "Open" on github.com → choose JupyterLab. To make JupyterLab the single-click default for all your codespaces, go to [github.com/settings/codespaces → Editor preference → JupyterLab](https://github.com/settings/codespaces).
 
 See [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) for the exact image + extension set, and [`Makefile`](Makefile) `codespace-setup` target for the install recipe (which is also the single source of truth for the §3.2 Docker + §3.3 venv paths). Free-tier Codespaces (60 core-hours/month on personal accounts, 90 on Pro) is enough for typical solo-maintainer usage.
@@ -219,6 +219,8 @@ The README is the entry point; the items below are the hub's index of secondary 
 - [docs/env-setup.md](docs/env-setup.md) — the four setup paths (jupyterhub / Docker / venv / Codespaces), GPU notes, Tier mapping.
 - [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) — primary runtime (vendored `genai-vanilla` JupyterHub stack).
 - [docs/vscode-remote-access.md](docs/vscode-remote-access.md) — VS Code remote-attach modes.
+- [docs/dependency-contracts.md](docs/dependency-contracts.md) — dependency audit ledger, Torch-stack pin rationale, manual-only quantization contract, and external asset notes.
+- [docs/maintenance/overnight-2026-07-02.md](docs/maintenance/overnight-2026-07-02.md) — current overnight maintenance pass log and issue tracker.
 
 ### 10.3. Issue sinks for external code
 
