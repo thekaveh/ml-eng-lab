@@ -61,7 +61,7 @@ jupyter lab
 ```
 
 Caveats:
-- PyG wheels: torch + torch_geometric must match. The pins in `torch-requirements.txt` are tested against the `--find-links` wheel index at `https://data.pyg.org/whl/torch-2.4.0+cpu.html`.
+- PyG wheels: torch + torch_geometric must match. The core pins in `torch-core-requirements.txt` and PyG pins in `torch-requirements.txt` are tested against the `--find-links` wheel index at `https://data.pyg.org/whl/torch-2.4.0+cpu.html`.
 - macOS Apple Silicon: PyG wheels for `arm64` are not always available at that index. If pip falls back to source builds, expect ~15 min compile time and Xcode CLT installed.
 - The `docker build`/`docker run` path in §2 above bakes the spaCy + NLTK downloads into the image, so the venv-only path above is the only one that needs them done manually. See [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §5.1 for the same instructions in the contributor workflow.
 

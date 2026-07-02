@@ -6,12 +6,7 @@ COPY . .
 
 RUN pip install --no-cache-dir --upgrade pip \
   && pip install --no-cache-dir --upgrade setuptools \
-  && pip install --no-cache-dir \
-    torch==2.4.1 \
-    pytorch-lightning==2.4.0 \
-    torchvision==0.19.1 \
-    torchaudio==2.4.1 \
-    torchmetrics==1.4.2 \
+  && pip install --no-cache-dir -r torch-core-requirements.txt \
   && pip install --no-cache-dir --no-build-isolation -r torch-requirements.txt \
   && pip install --no-cache-dir -r requirements.txt
 

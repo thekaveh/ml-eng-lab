@@ -48,7 +48,7 @@ TIER_B := \
 # quantization import: `torchao>=0.17` (requirements.txt pin, smallest version
 # exposing nnx.quantize_int8's `Int8WeightOnlyConfig` API) references
 # `torch.int1` at module load; `torch.int1` was added in torch 2.5; ml-lab
-# pins `torch==2.4.1` for genai-vanilla image-parity (see torch-requirements.txt
+# pins `torch==2.4.1` for genai-vanilla image-parity (see torch-core-requirements.txt
 # + issue #10). No torchao version satisfies both nnx's API requirement AND
 # the torch 2.4.1 import surface, so the notebook cannot execute under
 # CI's pinned environment. Notebook stays in the repo as a manual-only task
@@ -64,13 +64,6 @@ TIER_C := \
     node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb
 
 SMOKE_OUT := /tmp/ml-smoke
-
-TORCH_CORE_DEPS := \
-	torch==2.4.1 \
-	pytorch-lightning==2.4.0 \
-	torchvision==0.19.1 \
-	torchaudio==2.4.1 \
-	torchmetrics==1.4.2
 
 .PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify install-torch-stack codespace-setup
 
@@ -134,7 +127,7 @@ verify:
 
 install-torch-stack:
 	pip install --upgrade pip
-	pip install $(TORCH_CORE_DEPS)
+	pip install -r torch-core-requirements.txt
 	pip install --no-build-isolation -r torch-requirements.txt
 
 # Full one-shot dep install for the GitHub Codespaces / "Reopen in Container"

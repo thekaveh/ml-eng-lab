@@ -23,7 +23,7 @@ ml-lab/
 ├── CHANGELOG.md                               (release notes)
 ├── Makefile                                   (papermill tier targets)
 ├── docs/                                      (env, jupyterhub, vscode-remote, FINDINGS-NNX, FINDINGS-VENDOR)
-├── requirements.txt + torch-requirements.txt  (pip deps; thekaveh-nnx[lm]==0.2.0)
+├── requirements.txt + torch-*.txt             (pip deps; thekaveh-nnx[lm]==0.2.0)
 ├── scripts/                                   (jupyterhub start, verifier, notebook edit/import helpers)
 ├── deploy/                                    (genai-vanilla compose override)
 ├── tests/                                     (pytest: nnx_surface contract + verifier + helpers)
@@ -85,7 +85,7 @@ See [docs/env-setup.md](docs/env-setup.md) for environment details.
 
 Click **Code → Codespaces → Create codespace on main** on [github.com/thekaveh/ml-lab](https://github.com/thekaveh/ml-lab). After ~2-3 minutes of one-time dep install you have a browser-based VS Code (or JupyterLab — see below) with the 21 active task folders available and 28 of 29 active notebooks runnable under the pinned environment.
 
-**Why this path was added.** The §3.1 / §3.2 / §3.3 paths each require ~10-15 minutes of first-time setup on a new machine (Docker pulls, `git submodule update --init --recursive` for `vendor/genai-vanilla`, `pip install -r` against two requirements files, `make nlp-assets` predownloads for spaCy + NLTK). They also each have a coupling cost: §3.1 depends on the genai-vanilla image's pip layer staying in sync with ml-lab's `requirements.txt` (the [`nnx-pytorch[lm]` → `thekaveh-nnx[lm]==0.2.0` follow-up](CHANGELOG.md) is a long-running example of what happens when it drifts); §3.2 and §3.3 require local Docker / a working venv on the dev's machine. Codespaces eliminates both: the `.devcontainer/devcontainer.json` declaratively bakes the install recipe (so the dep set is auto-synced to `requirements.txt` + `torch-requirements.txt` at session start with no image-rebuild loop), and the repo is auto-cloned into `/workspaces/ml-lab` inside the container.
+**Why this path was added.** The §3.1 / §3.2 / §3.3 paths each require ~10-15 minutes of first-time setup on a new machine (Docker pulls, `git submodule update --init --recursive` for `vendor/genai-vanilla`, pip installs against the requirements manifests, `make nlp-assets` predownloads for spaCy + NLTK). They also each have a coupling cost: §3.1 depends on the genai-vanilla image's pip layer staying in sync with ml-lab's `requirements.txt` (the [`nnx-pytorch[lm]` → `thekaveh-nnx[lm]==0.2.0` follow-up](CHANGELOG.md) is a long-running example of what happens when it drifts); §3.2 and §3.3 require local Docker / a working venv on the dev's machine. Codespaces eliminates both: the `.devcontainer/devcontainer.json` declaratively bakes the install recipe (so the dep set is auto-synced to `requirements.txt`, `torch-core-requirements.txt`, and `torch-requirements.txt` at session start with no image-rebuild loop), and the repo is auto-cloned into `/workspaces/ml-lab` inside the container.
 
 **Scenarios this supports**:
 - Onboarding a new contributor — they click "Create codespace" and have a working env in ~2-3 minutes, no local install at all.

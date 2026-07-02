@@ -1,12 +1,8 @@
 # Matched to genai-vanilla jupyterhub image versions (Phase 1).
-# When running in that image, pip install is a no-op (already present).
-# Outside that image, these pins ensure reproducibility.
-
-torch==2.4.1
-pytorch-lightning==2.4.0
-torchvision==0.19.1
-torchaudio==2.4.1
-torchmetrics==1.4.2
+# Install torch-core-requirements.txt first when source builds are possible;
+# this include keeps audit/install commands that reference only this file
+# complete.
+-r torch-core-requirements.txt
 
 # Graph Neural Networks (PyG) — wheels matched to torch 2.4 CPU build
 --find-links https://data.pyg.org/whl/torch-2.4.0+cpu.html  # index uses minor version

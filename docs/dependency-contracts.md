@@ -2,8 +2,8 @@
 
 This ledger records consumed dependency contracts that are intentionally pinned,
 manual-only, or known to carry security/tooling constraints. It complements
-`requirements.txt`, `torch-requirements.txt`, and the CI workflow; the manifests
-remain the source of truth for installation.
+`requirements.txt`, `torch-core-requirements.txt`, `torch-requirements.txt`,
+and the CI workflow; the manifests remain the source of truth for installation.
 
 ## 1. Audit Snapshot
 
@@ -57,12 +57,16 @@ Accepted advisory IDs from the 2026-07-02 audit:
 
 ## 2. Torch Stack Pin
 
-`torch-requirements.txt` pins:
+`torch-core-requirements.txt` pins the core Torch stack:
 
 - `torch==2.4.1`
+- `pytorch-lightning==2.4.0`
 - `torchvision==0.19.1`
 - `torchaudio==2.4.1`
 - `torchmetrics==1.4.2`
+
+`torch-requirements.txt` includes `torch-core-requirements.txt` and then pins:
+
 - PyG wheels resolved from `https://data.pyg.org/whl/torch-2.4.0+cpu.html`
 
 Reason: these versions match the genai-vanilla JupyterHub image lineage used by
