@@ -27,9 +27,10 @@ active_task_dirs:
   - self_supervised-fmnist-jepa-pytorch
 
 # Required top-level section headings (markdown H1 `# N. <name>`) per notebook.
-# Adding a new notebook means adding an entry here. Otherwise the default
-# 6-section requirement applies (Overview / Environment & Setup / Data /
-# Model / Training / Evaluation & Results).
+# Every active notebook must be listed here. For ordinary task notebooks, copy
+# the canonical six-heading block (Overview / Environment & Setup / Data /
+# Model / Training / Evaluation & Results); phase exploration notebooks may use
+# their explicit variants below.
 required_sections:
   image_classification-mnist-ffnn-numpy/notebook.ipynb:
     - "1. Overview"

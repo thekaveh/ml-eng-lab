@@ -31,7 +31,7 @@ Convention: top-level folder named `[task]-[dataset]-[model]-[framework]/`.
    ```
 
    For folders with multiple notebooks, link to the folder view at `https://nbviewer.org/github/thekaveh/ml-lab/tree/main/<folder>/` instead.
-4. Add the notebook(s) to `required_sections` in [`scripts/verify_repo_config.yaml`](scripts/verify_repo_config.yaml) — or accept the default 6-section requirement.
+4. Add every active notebook to `required_sections` in [`scripts/verify_repo_config.yaml`](scripts/verify_repo_config.yaml); ordinary task notebooks should copy the canonical six-section block.
 5. If Tier-A, add the notebook path to `tier_a_notebooks` in the same YAML and to `TIER_A` in [`Makefile`](Makefile).
 6. Update the root README's task table.
 7. Tick the box on the root README roadmap.

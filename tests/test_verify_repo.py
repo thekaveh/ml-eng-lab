@@ -324,6 +324,48 @@ def test_run_helper_timeout_normalizes_byte_streams(monkeypatch):
     assert "timed out after 1s" in stderr
 
 
+def test_tier_c_baseline_sources_ignore_parameter_cells():
+    verify_repo = _load_verify_module()
+    import nbformat
+
+    baseline = nbformat.v4.new_notebook()
+    baseline.cells = [
+        nbformat.v4.new_code_cell("SMOKE_TEST = 0  # old parser-hostile comment\n"),
+        nbformat.v4.new_code_cell("model.train()\n"),
+    ]
+    baseline.cells[0].metadata["tags"] = ["parameters"]
+
+    head = nbformat.v4.new_notebook()
+    head.cells = [
+        nbformat.v4.new_code_cell("# parser-friendly comment\nSMOKE_TEST = 0\n"),
+        nbformat.v4.new_code_cell("model.train()\n"),
+    ]
+    head.cells[0].metadata["tags"] = ["parameters"]
+
+    assert verify_repo._code_cell_sources_for_baseline(head) == verify_repo._code_cell_sources_for_baseline(baseline)
+
+    head.cells[1].source = "model.train(n_epochs=1)\n"
+    assert verify_repo._code_cell_sources_for_baseline(head) != verify_repo._code_cell_sources_for_baseline(baseline)
+
+
+def test_parameter_trailing_comment_check_flags_papermill_uninspectable_assignment():
+    verify_repo = _load_verify_module()
+    import nbformat
+
+    nb = nbformat.v4.new_notebook()
+    bad = nbformat.v4.new_code_cell("SMOKE_TEST = 0  # 1 = smoke mode\n")
+    bad.metadata["tags"] = ["parameters"]
+    good = nbformat.v4.new_code_cell("# 1 = smoke mode\nSMOKE_TEST = 0\n")
+    good.metadata["tags"] = ["parameters"]
+
+    nb.cells = [bad]
+    findings = verify_repo._parameter_trailing_comment_findings(nb, "fake.ipynb")
+    assert [f.id for f in findings] == ["E9.parameter_trailing_comment"]
+
+    nb.cells = [good]
+    assert verify_repo._parameter_trailing_comment_findings(nb, "fake.ipynb") == []
+
+
 def test_s7_forbidden_toplevel_detects_resurrected_common():
     """S7.forbidden_toplevel fires if common/ ever comes back."""
     fake_dir = REPO / "common"

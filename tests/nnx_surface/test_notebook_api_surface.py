@@ -28,9 +28,11 @@ actually fires, so a green suite means "checked", not "vacuously passed".
 from __future__ import annotations
 
 import ast
+import io
 import inspect
 import json
 import re
+import tokenize
 from pathlib import Path
 
 import pytest
@@ -85,6 +87,29 @@ def _live_lines(cell: dict) -> list[str]:
     return [ln for ln in _source_lines(cell) if not ln.lstrip().startswith("#")]
 
 
+def _executable_lines(cell: dict) -> list[str]:
+    """Code lines with comments and string literals blanked for regex guards."""
+    source = "".join(_source_lines(cell))
+    lines = source.splitlines(keepends=True)
+    masked = [list(line) for line in lines]
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+        for token in tokens:
+            if token.type not in {tokenize.COMMENT, tokenize.STRING}:
+                continue
+            (start_line, start_col), (end_line, end_col) = token.start, token.end
+            for line_no in range(start_line, end_line + 1):
+                row = masked[line_no - 1]
+                start = start_col if line_no == start_line else 0
+                end = end_col if line_no == end_line else len(row)
+                for idx in range(start, min(end, len(row))):
+                    if row[idx] not in "\r\n":
+                        row[idx] = " "
+    except tokenize.TokenError:
+        return _live_lines(cell)
+    return ["".join(line) for line in masked if "".join(line).strip()]
+
+
 def _output_text(cell: dict) -> str:
     chunks: list[str] = []
     for o in cell.get("outputs", []):
@@ -100,7 +125,7 @@ def _output_text(cell: dict) -> str:
 def find_misplaced_utils_attrs(nb: dict, forbidden: set[str]) -> list[str]:
     out: list[str] = []
     for idx, cell in enumerate(_code_cells(nb)):
-        for line in _live_lines(cell):
+        for line in _executable_lines(cell):
             for m in _UTILS_ATTR_RE.finditer(line):
                 if m.group(1) in forbidden:
                     out.append(f"code_cell[{idx}]: Utils.{m.group(1)} (moved to VisUtils)")
@@ -195,6 +220,19 @@ def test_migration_guard_allows_correct_call_and_real_utils_methods():
         "outputs": [],
     })
     assert not find_misplaced_utils_attrs(good, forbidden)
+
+
+def test_migration_guard_ignores_string_literals_and_docstrings():
+    forbidden = _visutils_only_methods()
+    quoted = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "\"\"\"Example: Utils.multi_line_plot(x=[1])\"\"\"\n",
+            "msg = 'Utils.multi_line_plot(x=[1])'\n",
+        ],
+        "outputs": [],
+    })
+    assert not find_misplaced_utils_attrs(quoted, forbidden)
 
 
 def test_migration_guard_ignores_commented_out_reference():
@@ -420,14 +458,10 @@ def test_signature_guard_allows_complete_call():
 _STALE_IDP_FIELD_RE = re.compile(
     r"\.(train_loss|train_error|val_loss|val_error|snapshot_x|snapshot_y_hat|snapshot_y)\b"
 )
-# `NNRun.load("best")` / `NNRun.load('best')` — `"best"` is not a run id.
-_NNRUN_LOAD_BEST_RE = re.compile(r"""NNRun\.load\(\s*["']best["']""")
-
-
 def find_stale_idp_fields(nb: dict) -> list[str]:
     out: list[str] = []
     for idx, cell in enumerate(_code_cells(nb)):
-        for line in _live_lines(cell):
+        for line in _executable_lines(cell):
             for m in _STALE_IDP_FIELD_RE.finditer(line):
                 out.append(f"code_cell[{idx}]: .{m.group(1)} (removed; use train_edp/val_edp.<loss|error>)")
     return out
@@ -436,8 +470,27 @@ def find_stale_idp_fields(nb: dict) -> list[str]:
 def find_nnrun_load_best(nb: dict) -> list[str]:
     out: list[str] = []
     for idx, cell in enumerate(_code_cells(nb)):
-        for line in _live_lines(cell):
-            if _NNRUN_LOAD_BEST_RE.search(line):
+        lines = [
+            ln for ln in "".join(_live_lines(cell)).splitlines()
+            if not ln.lstrip().startswith(("%", "!"))
+        ]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not (
+                isinstance(func, ast.Attribute)
+                and func.attr == "load"
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "NNRun"
+            ):
+                continue
+            first_arg = node.args[0] if node.args else None
+            if isinstance(first_arg, ast.Constant) and first_arg.value == "best":
                 out.append(f"code_cell[{idx}]: NNRun.load(\"best\") (use NNCheckpoint.load(run=<id>, type=Checkpoints.BEST))")
     return out
 
@@ -535,6 +588,18 @@ def test_stale_idp_guard_ignores_commented_snapshot_block():
     assert not find_stale_idp_fields(commented)
 
 
+def test_stale_idp_guard_ignores_string_literals_and_docstrings():
+    quoted = _synthetic_nb({
+        "cell_type": "code",
+        "source": [
+            "\"\"\"Legacy note: idp.val_error\"\"\"\n",
+            "msg = 'idp.train_loss'\n",
+        ],
+        "outputs": [],
+    })
+    assert not find_stale_idp_fields(quoted)
+
+
 def test_nnrun_load_best_guard_catches_call():
     bad = _synthetic_nb({
         "cell_type": "code",
@@ -560,6 +625,15 @@ def test_nnrun_load_best_guard_allows_real_id_load():
         "outputs": [],
     })
     assert not find_nnrun_load_best(good)
+
+
+def test_nnrun_load_best_guard_ignores_string_literal_example():
+    quoted = _synthetic_nb({
+        "cell_type": "code",
+        "source": ["msg = 'NNRun.load(\"best\")'\n"],
+        "outputs": [],
+    })
+    assert not find_nnrun_load_best(quoted)
 
 
 def test_tosparsetensor_guard_catches_default_edge_index_drop():

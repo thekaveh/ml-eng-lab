@@ -677,6 +677,44 @@ def _subprocess_text(value: str | bytes | None) -> str:
     return value
 
 
+def _cell_tags(cell) -> set[str]:
+    return set(cell.get("metadata", {}).get("tags") or [])
+
+
+def _is_parameters_cell(cell) -> bool:
+    tags = _cell_tags(cell)
+    return "parameters" in tags or "injected-parameters" in tags
+
+
+def _code_cell_sources_for_baseline(doc) -> list[str]:
+    return [
+        cell.source
+        for cell in doc.cells
+        if cell.cell_type == "code" and not _is_parameters_cell(cell)
+    ]
+
+
+def _parameter_trailing_comment_findings(doc, rel: str) -> list[Finding]:
+    findings: list[Finding] = []
+    bad_line_re = re.compile(r"^\s*[A-Za-z_]\w*\s*=.*#.*=")
+    for ci, cell in enumerate(doc.cells):
+        if cell.cell_type != "code" or not _is_parameters_cell(cell):
+            continue
+        for li, line in enumerate(cell.source.splitlines(), start=1):
+            if bad_line_re.search(line):
+                findings.append(Finding(
+                    id="E9.parameter_trailing_comment",
+                    check="execution",
+                    severity="error",
+                    location=f"{rel}:cell[{ci}]:line[{li}]",
+                    message=(
+                        "parameters cell assignment has a trailing comment with "
+                        "'='; papermill 2.7 cannot inspect it reliably"
+                    ),
+                ))
+    return findings
+
+
 def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
@@ -730,8 +768,8 @@ def _phase3_code_cells_unchanged(repo: Path) -> list[Finding]:
                 message=f"baseline notebook unparseable: {e}",
             ))
             continue
-        head_codes = [c.source for c in head_doc.cells if c.cell_type == "code"]
-        base_codes = [c.source for c in base_doc.cells if c.cell_type == "code"]
+        head_codes = _code_cell_sources_for_baseline(head_doc)
+        base_codes = _code_cell_sources_for_baseline(base_doc)
         if head_codes != base_codes:
             findings.append(Finding(
                 id="E5.code_cells_changed", check="execution", severity="error",
@@ -847,6 +885,7 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                     "no-op against this notebook"
                 ),
             ))
+        result.findings.extend(_parameter_trailing_comment_findings(doc, rel))
 
     # V6: Tier-A notebook outputs should match the current source. Cheap check:
     # for each code cell that has outputs, source byte-hash should match the
