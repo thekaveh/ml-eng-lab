@@ -828,6 +828,30 @@ def _parameters_assignment_names(doc) -> set[str]:
     return names
 
 
+def _makefile_variable_items(repo: Path, name: str) -> tuple[str, ...]:
+    lines = _read_text(repo / "Makefile").splitlines()
+    items: list[str] = []
+    collecting = False
+    prefix = f"{name} :="
+    for line in lines:
+        stripped = line.strip()
+        if not collecting:
+            if not stripped.startswith(prefix):
+                continue
+            collecting = True
+            stripped = stripped[len(prefix):].strip()
+        if stripped.endswith("\\"):
+            stripped = stripped[:-1].strip()
+            keep_collecting = True
+        else:
+            keep_collecting = False
+        if stripped:
+            items.extend(stripped.split())
+        if collecting and not keep_collecting:
+            break
+    return tuple(items)
+
+
 def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
@@ -911,6 +935,20 @@ def _runtime_available() -> bool:
 
 def check_execution(repo: Path, fast: bool) -> CheckResult:
     result = CheckResult(name="execution")
+
+    make_tier_a = _makefile_variable_items(repo, "TIER_A")
+    if make_tier_a and make_tier_a != TIER_A_NOTEBOOKS:
+        result.findings.append(Finding(
+            id="E11.tier_a_config_drift",
+            check="execution",
+            severity="error",
+            location="Makefile:TIER_A",
+            message="Makefile TIER_A drifted from scripts/verify_repo_config.yaml tier_a_notebooks",
+            detail={
+                "makefile_only": sorted(set(make_tier_a) - set(TIER_A_NOTEBOOKS)),
+                "config_only": sorted(set(TIER_A_NOTEBOOKS) - set(make_tier_a)),
+            },
+        ))
 
     if not fast:
         if not _runtime_available():
