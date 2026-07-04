@@ -195,6 +195,11 @@ The consumed contract is:
 - `vendor/genai-vanilla/services/jupyterhub/build/Dockerfile` downloads the
   `en_core_web_sm` spaCy model and the `vader_lexicon` NLTK corpus at image
   build time.
+- The current upstream pin still has comments in the JupyterHub
+  `requirements.txt` and `Dockerfile` that use the old `ml-lab` repository
+  name and URL. The URL redirects to `ml-eng-lab`, and the runtime contract is
+  otherwise correct, so this is tracked as an upstream documentation cleanup
+  rather than patched directly from this maintenance branch.
 - `scripts/start-jupyterhub.sh` exports `ML_REPO_PATH`, exports
   `ML_SSH_MOUNT_DIR`, layers `deploy/genai-vanilla-jupyterhub.override.yml`
   through `COMPOSE_FILE`, changes into the submodule directory, and execs

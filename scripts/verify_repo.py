@@ -117,9 +117,29 @@ class CheckResult:
     skip_reason: str = ""
 
 
+@dataclass(frozen=True)
+class ImportedModule:
+    module: str
+    line: int
+    relative: bool = False
+
+
 _MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 _INLINE_CODE_RE = re.compile(r"`+[^`]*`+")
 _IMPORT_RE = re.compile(r"^\s*(?:from\s+([\w\.]+)\s+import|import\s+([\w\.]+))")
+_NON_PYTHON_CELL_MAGICS = frozenset({
+    "bash",
+    "html",
+    "javascript",
+    "js",
+    "latex",
+    "perl",
+    "ruby",
+    "script",
+    "sh",
+    "svg",
+    "writefile",
+})
 _GITIGNORE_REQUIRED_PATTERNS = (
     "docs/superpowers/",
     "plan-*.md", "notes-*.md", "audit-*.md",
@@ -150,8 +170,22 @@ _RUNTIME_ONLY_MODULES = frozenset({
 })
 
 
-def _imported_modules_from_source(source: str) -> Iterator[tuple[str, int]]:
+def _cell_magic_name(line: str) -> str:
+    stripped = line.lstrip()
+    if not stripped.startswith("%%"):
+        return ""
+    return stripped[2:].split(None, 1)[0].strip().lower()
+
+
+def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
     """Yield top-level imported module names and zero-based line numbers."""
+    for line in source.splitlines():
+        if not line.strip():
+            continue
+        if _cell_magic_name(line) in _NON_PYTHON_CELL_MAGICS:
+            return
+        break
+
     cleaned_lines: list[str] = []
     for line in source.splitlines():
         stripped = line.lstrip()
@@ -173,18 +207,22 @@ def _imported_modules_from_source(source: str) -> Iterator[tuple[str, int]]:
             except SyntaxError:
                 module = (m.group(1) or m.group(2) or "").split(".")[0]
                 if module:
-                    yield module, li
+                    yield ImportedModule(module=module, line=li)
                 continue
             for node in ast.walk(line_tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
                         module = alias.name.split(".")[0]
                         if module:
-                            yield module, li
-                elif isinstance(node, ast.ImportFrom) and node.module:
-                    module = node.module.split(".")[0]
-                    if module:
-                        yield module, li
+                            yield ImportedModule(module=module, line=li)
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        module = node.module.split(".")[0]
+                        if module:
+                            yield ImportedModule(module=module, line=li)
+                    elif node.level:
+                        names = ", ".join(alias.name for alias in node.names)
+                        yield ImportedModule(module=names or ".", line=li, relative=True)
         return
 
     for node in ast.walk(tree):
@@ -192,11 +230,19 @@ def _imported_modules_from_source(source: str) -> Iterator[tuple[str, int]]:
             for alias in node.names:
                 module = alias.name.split(".")[0]
                 if module:
-                    yield module, node.lineno - 1
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            module = node.module.split(".")[0]
-            if module:
-                yield module, node.lineno - 1
+                    yield ImportedModule(module=module, line=node.lineno - 1)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                module = node.module.split(".")[0]
+                if module:
+                    yield ImportedModule(module=module, line=node.lineno - 1)
+            elif node.level:
+                names = ", ".join(alias.name for alias in node.names)
+                yield ImportedModule(
+                    module=names or ".",
+                    line=node.lineno - 1,
+                    relative=True,
+                )
 
 
 def _git_ls_files(repo: Path) -> list[str]:
@@ -362,13 +408,27 @@ def check_structure(repo: Path) -> CheckResult:
         for ci, cell in enumerate(doc.cells):
             if cell.cell_type != "code":
                 continue
-            for module, li in _imported_modules_from_source(cell.source):
+            for imported in _imported_modules_from_source(cell.source):
+                module = imported.module
+                li = imported.line
                 if not module or module in seen_in_notebook:
                     continue
                 seen_in_notebook.add(module)
+                location = f"{nb.relative_to(repo)}:cell[{ci}]:line[{li}]"
+                if imported.relative:
+                    result.findings.append(Finding(
+                        id="S2.relative_import",
+                        check="structure",
+                        severity="error",
+                        location=location,
+                        message=(
+                            "notebook uses a relative import that will not resolve "
+                            f"reliably in a top-to-bottom kernel run: {module!r}"
+                        ),
+                    ))
+                    continue
                 if module in sibling_modules:
                     continue
-                location = f"{nb.relative_to(repo)}:cell[{ci}]:line[{li}]"
                 try:
                     spec = importlib.util.find_spec(module)
                 except (ImportError, ValueError) as e:

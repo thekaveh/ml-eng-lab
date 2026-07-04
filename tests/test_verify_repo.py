@@ -185,6 +185,57 @@ def test_structure_s2_checks_multi_import_after_notebook_magic(tmp_path):
     assert hits, f"expected S2.unresolved_import after notebook magic; got {data.get('findings')}"
 
 
+def test_structure_s2_ignores_non_python_cell_magic_body(tmp_path):
+    """Shell cell magics must not make S2 scan shell text as Python imports."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "bash-cell-magic-import-text.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "%%bash\n"
+            "echo import definitely_missing_module_inside_shell_magic\n"
+            "import definitely_missing_module_inside_shell_magic\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if name in f["location"]
+        and "definitely_missing_module_inside_shell_magic" in f["message"]
+    ]
+    assert hits == [], f"shell cell magic body should not be scanned as Python; got {hits}"
+
+
+def test_structure_s2_flags_notebook_relative_imports(tmp_path):
+    """Relative imports in notebooks are runtime-broken and should be explicit findings."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "relative-import.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell("from . import definitely_missing_relative_helper\n")
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.relative_import"
+        and name in f["location"]
+        and "definitely_missing_relative_helper" in f["message"]
+    ]
+    assert hits, f"expected S2.relative_import for notebook relative import; got {data.get('findings')}"
+
+
 def test_structure_s7_no_pycache_tracked():
     """No __pycache__, .ipynb_checkpoints, .DS_Store should be tracked."""
     r = run_verify("--check", "structure", "--fast")
