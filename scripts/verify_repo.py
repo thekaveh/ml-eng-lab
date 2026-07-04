@@ -392,6 +392,7 @@ def _shellcheck_targets(repo: Path) -> tuple[Path, ...]:
         repo / "vendor" / "genai-vanilla" / "start.sh",
         repo / "vendor" / "genai-vanilla" / "stop.sh",
         repo / "vendor" / "genai-vanilla" / "bootstrapper" / "_run.sh",
+        repo / "vendor" / "genai-vanilla" / "services" / "jupyterhub" / "build" / "scripts" / "startup.sh",
     )
     return tuple(path for path in (*local_scripts, *vendor_entrypoints) if path.exists())
 

@@ -180,9 +180,11 @@ that the run intentionally used a local NNx development checkout.
 
 `.gitmodules` consumes `https://github.com/thekaveh/genai-vanilla.git` as the
 `vendor/genai-vanilla` submodule. The repository currently pins tree entry
-`2bee05134d721a152a6ea579d9a65efd7e080701`; a read-only check on 2026-07-04
+`a22b182a0f0cd1bb0be3599a7710d87890491eb8`; a read-only check on 2026-07-04
 found upstream `main` at the same SHA, so the submodule is current as of this
-ledger entry.
+ledger entry. The bump from `2bee05134d721a152a6ea579d9a65efd7e080701`
+contained Browserless research documentation and bootstrapper tests only; the
+JupyterHub runtime files below were re-verified unchanged for ml-eng-lab.
 
 The consumed contract is:
 
@@ -195,6 +197,8 @@ The consumed contract is:
 - `vendor/genai-vanilla/services/jupyterhub/build/Dockerfile` downloads the
   `en_core_web_sm` spaCy model and the `vader_lexicon` NLTK corpus at image
   build time.
+- `vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh` is the
+  JupyterHub image entrypoint copied by that Dockerfile.
 - The current upstream pin still has comments in the JupyterHub
   `requirements.txt` and `Dockerfile` that use the old `ml-lab` repository
   name and URL. The URL redirects to `ml-eng-lab`, and the runtime contract is
@@ -213,7 +217,8 @@ Upgrade criteria:
 2. Confirm `start.sh`, `docker-compose.yml`, and the `jupyterhub` service still
    exist at that SHA.
 3. Run `shellcheck scripts/start-jupyterhub.sh vendor/genai-vanilla/start.sh
-   vendor/genai-vanilla/stop.sh vendor/genai-vanilla/bootstrapper/_run.sh`,
+   vendor/genai-vanilla/stop.sh vendor/genai-vanilla/bootstrapper/_run.sh
+   vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh`,
    run `bash -n scripts/start-jupyterhub.sh`, and parse
    `deploy/genai-vanilla-jupyterhub.override.yml`.
 4. In a Docker-capable environment, run `git submodule update --init --recursive`

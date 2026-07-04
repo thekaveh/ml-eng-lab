@@ -29,20 +29,16 @@ This notebook is the in-repo demo of both, side by side on the same baseline arc
 
 ## 4. How to run
 
-In the recommended runtime ([../docs/jupyterhub-integration.md](../../docs/jupyterhub-integration.md)):
+**Manual-only** (was Tier-B from 2026-06-02 to 2026-06-16, then removed from `Makefile` TIER_B after the weekly cron failed). `torchao>=0.9.0` (the earliest version exposing the `Int8WeightOnlyConfig` API `nnx.quantize_int8` calls) references `torch.int1` at import time. `torch.int1` was added in `torch 2.5`. ml-eng-lab pins `torch==2.4.1` for genai-vanilla image-parity. **No torchao version satisfies both nnx's API requirement AND the torch 2.4.1 import surface**, so the notebook cannot execute under CI's pinned environment or the recommended genai-vanilla runtime. The 2026-06-15 weekly `smoke-tier-b` cron confirmed this (`AttributeError: module 'torch' has no attribute 'int1'`). See [issue #10](https://github.com/thekaveh/ml-eng-lab/issues/10) for full context.
 
-```bash
-# Open the notebook in VS Code attached to the container, or in browser jupyter.
-```
-
-Or manually (the only path in ml-eng-lab's pinned env — see the next paragraph for why):
+To run locally, use a side environment with `torch>=2.5` and `torchao>=0.17`, then execute the notebook manually:
 
 ```bash
 cd notebooks/quantization-mnist-ffnn-pytorch
 python -m papermill --kernel python3 notebook.ipynb /tmp/out.ipynb
 ```
 
-**Manual-only** (was Tier-B from 2026-06-02 to 2026-06-16, then removed from `Makefile` TIER_B after the weekly cron failed). `torchao>=0.9.0` (the earliest version exposing the `Int8WeightOnlyConfig` API `nnx.quantize_int8` calls) references `torch.int1` at import time. `torch.int1` was added in `torch 2.5`. ml-eng-lab pins `torch==2.4.1` for genai-vanilla image-parity. **No torchao version satisfies both nnx's API requirement AND the torch 2.4.1 import surface**, so the notebook cannot execute under CI's pinned environment regardless of tier. The 2026-06-15 weekly `smoke-tier-b` cron confirmed this (`AttributeError: module 'torch' has no attribute 'int1'`). To run locally, install `torch>=2.5` + `torchao>=0.17` in a side-env. See [issue #10](https://github.com/thekaveh/ml-eng-lab/issues/10) for full context. Accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell.
+The notebook accepts `SMOKE_TEST=1` (default 0 = full run) via the papermill `parameters` cell.
 
 ## 5. Dependencies
 

@@ -950,6 +950,7 @@ def test_e6_shellcheck_targets_include_consumed_vendor_entrypoints():
     assert "vendor/genai-vanilla/start.sh" in targets
     assert "vendor/genai-vanilla/stop.sh" in targets
     assert "vendor/genai-vanilla/bootstrapper/_run.sh" in targets
+    assert "vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh" in targets
 
 
 def _load_verify_module():
