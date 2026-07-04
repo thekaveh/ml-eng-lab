@@ -38,7 +38,7 @@ the GitHub Pages workflow will publish it after the workflow lands on `main`.
 
 ## 3. Quick start
 
-Four ways to run these notebooks, in increasing order of "I want my own machine to do the work."
+Four ways to run these notebooks, ordered from managed runtime to local execution.
 
 ### 3.1. genai-vanilla jupyterhub (recommended)
 
@@ -91,8 +91,8 @@ Click **Code → Codespaces → Create codespace on main** on [github.com/thekav
 
 **Scenarios this supports**:
 - Onboarding a new contributor — they click "Create codespace" and have a working env in ~2-3 minutes, no local install at all.
-- Running a notebook on a beefier machine without local install (the smallest Codespace machine is 2-core / 8 GB RAM — comparable to a low-end laptop, sufficient for every Tier-A notebook; bump to 4-core / 16 GB if any Tier-B sweep feels slow).
-- Quick demo / drive-by experiment without polluting the local Python env.
+- Running a notebook on a larger host without local install (the smallest Codespace machine is 2-core / 8 GB RAM — comparable to a low-end laptop, sufficient for every Tier-A notebook; bump to 4-core / 16 GB if any Tier-B sweep feels slow).
+- Short exploratory run without polluting the local Python env.
 - The `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb` edge case (it imports sibling `.py` modules from its own folder) works natively — Codespaces clones the repo into the container's `/workspaces/ml-eng-lab`, so the kernel sees those files without needing the §3.1 wrapper-and-bind-mount path's `scripts/start-jupyterhub.sh`.
 
 **Scenarios this does NOT support**:

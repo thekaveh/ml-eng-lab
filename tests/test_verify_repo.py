@@ -592,6 +592,31 @@ def test_e13_flags_stale_paths_in_active_notebooks(tmp_path, monkeypatch):
     assert hits[0].location.startswith("notebooks/active-task/notebook.ipynb")
 
 
+def test_e13_flags_removed_nnx_source_tree_and_host_python_paths(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    repo = _temp_repo(tmp_path)
+    active_dir = repo / "notebooks" / "active-task"
+    active_dir.mkdir(parents=True)
+    (active_dir / "notebook.ipynb").write_text(
+        "\n".join([
+            '{"outputs":[',
+            '  {"text":["/home/jovyan/work/ml-eng-lab/nnx/src/nnx/nn/params/file.py"]},',
+            '  {"text":["/Users/alice/.pyenv/versions/3.11/site-packages/pkg/file.py"]}',
+            ']}',
+        ]),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ("active-task",))
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E13.stale_active_notebook_path"]
+    assert [f.message for f in hits] == [
+        "stale active-notebook path artifact: removed in-repo nnx source tree",
+        "stale active-notebook path artifact: host-local Python environment path",
+    ]
+
+
 def _load_verify_module():
     import importlib.util
     if "verify_repo" in sys.modules:

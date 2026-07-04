@@ -61,7 +61,7 @@ HOST_SSH_DIR=/path/to/keys scripts/start-jupyterhub.sh
 
 ## 3. nnx development: editable install override
 
-If you're hacking on `nnx` itself (editing source on your host and wanting changes to land in the running kernel without a `pip install` cycle), clone [`thekaveh/NNx`](https://github.com/thekaveh/NNx) anywhere outside the ml-eng-lab tree, then bind-mount your clone into the running container alongside ml-eng-lab (extend `deploy/genai-vanilla-jupyterhub.override.yml` with a second volume) and:
+If you're developing `nnx` itself (editing source on your host and wanting changes to land in the running kernel without a `pip install` cycle), clone [`thekaveh/NNx`](https://github.com/thekaveh/NNx) anywhere outside the ml-eng-lab tree, then bind-mount your clone into the running container alongside ml-eng-lab (extend `deploy/genai-vanilla-jupyterhub.override.yml` with a second volume) and:
 
 ```bash
 docker exec -it <project>-jupyterhub pip install -e /home/jovyan/work/NNx[lm]

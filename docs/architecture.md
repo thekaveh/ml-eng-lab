@@ -15,6 +15,13 @@ the documentation site.
 
 ## 1.2. Runtime Flow
 
+The runtime flow diagram shows the supported entry paths and the invariant that notebook code
+resolves `./data` and `./runs` from the task directory.
+
+<iframe class="architecture-frame" src="../diagrams/ml-eng-lab-runtime-flow.html" title="ml-eng-lab runtime flow"></iframe>
+
+[Open the runtime flow diagram in a full page](diagrams/ml-eng-lab-runtime-flow.html).
+
 1. A contributor opens the repository through a local venv, Docker image, Codespaces, or the
    vendored genai-vanilla JupyterHub stack.
 2. They run or edit an experiment under `notebooks/<task>/`.
@@ -26,7 +33,25 @@ the documentation site.
 6. MkDocs builds this documentation site from checked-in Markdown and publishes it through
    GitHub Pages.
 
-## 1.3. Boundary Decisions
+## 1.3. Notebook Execution Sequence
+
+The execution sequence diagram traces a task notebook from papermill parameters through
+training, ranking, visualization, run persistence, and output-path verification.
+
+<iframe class="architecture-frame" src="../diagrams/ml-eng-lab-notebook-sequence.html" title="ml-eng-lab notebook execution sequence"></iframe>
+
+[Open the notebook execution sequence diagram in a full page](diagrams/ml-eng-lab-notebook-sequence.html).
+
+## 1.4. Documentation Publishing
+
+The publishing diagram describes the canonical documentation sources, generated site, wiki
+signpost, and repository metadata surfaces.
+
+<iframe class="architecture-frame" src="../diagrams/ml-eng-lab-docs-publishing.html" title="ml-eng-lab documentation publishing"></iframe>
+
+[Open the documentation publishing diagram in a full page](diagrams/ml-eng-lab-docs-publishing.html).
+
+## 1.5. Boundary Decisions
 
 - `notebooks/archive/` is preserved as read-only historical material and excluded from active
   notebook validation.

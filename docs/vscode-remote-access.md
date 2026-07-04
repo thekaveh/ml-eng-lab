@@ -44,7 +44,7 @@ The simplest path. After the stack is up:
 - Navigate to `work/ml-eng-lab/...` (wrapper-and-bind-mount path) or upload notebooks individually (standalone path)
 - The `jupyterlab-git` extension (shipped in the image) handles git operations
 
-Use this for quick edits, demos, or when VS Code is overkill.
+Use this for quick edits, demos, or when VS Code is unnecessary.
 
 ## 4. Not pursued
 

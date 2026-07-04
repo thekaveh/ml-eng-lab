@@ -500,6 +500,14 @@ _STALE_ACTIVE_NOTEBOOK_PATHS: tuple[tuple[str, re.Pattern], ...] = (
         "old GitHub repo URL",
         re.compile(r"github\.com/thekaveh/ml-lab\b"),
     ),
+    (
+        "removed in-repo nnx source tree",
+        re.compile(r"/(?:home/jovyan/work|workspaces)/ml-eng-lab/nnx/src/nnx\b"),
+    ),
+    (
+        "host-local Python environment path",
+        re.compile(r"/Users/[^/\s]+/\.pyenv\b"),
+    ),
 )
 
 

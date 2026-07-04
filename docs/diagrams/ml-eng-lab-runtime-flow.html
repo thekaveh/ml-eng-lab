@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ml-eng-lab Runtime Flow</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #020617; color: #e2e8f0; font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px; }
+    h1 { margin: 0; font-size: 22px; letter-spacing: 0; }
+    .subtitle { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+    .panel { margin-top: 18px; border: 1px solid rgba(34, 211, 238, 0.28); border-radius: 8px; overflow: hidden; background: #020617; }
+    svg { display: block; width: 100%; height: auto; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+    .card { border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 8px; padding: 14px; background: rgba(15, 23, 42, 0.75); }
+    .card h2 { margin: 0 0 10px; font-size: 12px; color: #67e8f9; }
+    .card ul { margin: 0; padding-left: 18px; color: #cbd5e1; font-size: 10px; line-height: 1.7; }
+    footer { color: #64748b; font-size: 9px; margin-top: 14px; }
+    @media (max-width: 760px) { .wrap { padding: 16px; } .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ml-eng-lab Runtime Flow</h1>
+      <div class="subtitle">How contributors reach notebook execution while preserving task-local paths.</div>
+    </header>
+    <div class="panel">
+      <svg viewBox="0 0 1100 640" role="img" aria-labelledby="title desc">
+        <title id="title">Runtime flow from entry shell to notebook-local artifacts</title>
+        <desc id="desc">Diagram showing local virtual environment, Docker, Codespaces, and JupyterHub entry paths feeding active notebook task folders with local data and run directories.</desc>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+        </defs>
+        <rect width="1100" height="640" fill="#020617"/>
+        <rect width="1100" height="640" fill="url(#grid)"/>
+
+        <path d="M 258 132 H 394" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 258 260 H 394" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 258 388 H 394" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 258 516 H 394" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 594 324 H 706" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 806 264 V 190 H 914" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+        <path d="M 806 326 H 914" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 806 386 V 462 H 914" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+
+        <rect x="52" y="72" width="206" height="96" rx="6" fill="#0f172a"/>
+        <rect x="52" y="72" width="206" height="96" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="155" y="104" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">Local venv</text>
+        <text x="155" y="123" fill="#94a3b8" font-size="9" text-anchor="middle">make install-torch-stack</text>
+        <text x="155" y="140" fill="#94a3b8" font-size="9" text-anchor="middle">jupyter lab</text>
+
+        <rect x="52" y="200" width="206" height="96" rx="6" fill="#0f172a"/>
+        <rect x="52" y="200" width="206" height="96" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="155" y="232" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">Docker image</text>
+        <text x="155" y="251" fill="#94a3b8" font-size="9" text-anchor="middle">repo mounted at workdir</text>
+        <text x="155" y="268" fill="#94a3b8" font-size="9" text-anchor="middle">shared memory sized for GNNs</text>
+
+        <rect x="52" y="328" width="206" height="96" rx="6" fill="#0f172a"/>
+        <rect x="52" y="328" width="206" height="96" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="155" y="360" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">Codespaces</text>
+        <text x="155" y="379" fill="#94a3b8" font-size="9" text-anchor="middle">postCreateCommand setup</text>
+        <text x="155" y="396" fill="#94a3b8" font-size="9" text-anchor="middle">browser VS Code or JupyterLab</text>
+
+        <rect x="52" y="456" width="206" height="96" rx="6" fill="#0f172a"/>
+        <rect x="52" y="456" width="206" height="96" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="155" y="488" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">JupyterHub wrapper</text>
+        <text x="155" y="507" fill="#94a3b8" font-size="9" text-anchor="middle">genai-vanilla submodule</text>
+        <text x="155" y="524" fill="#94a3b8" font-size="9" text-anchor="middle">bind-mounted persistence</text>
+
+        <rect x="394" y="220" width="200" height="176" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="494" y="250" fill="#fbbf24" font-size="10" font-weight="600" text-anchor="middle">Runtime contract</text>
+        <rect x="424" y="280" width="140" height="64" rx="6" fill="#0f172a"/>
+        <rect x="424" y="280" width="140" height="64" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="494" y="304" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">notebook CWD</text>
+        <text x="494" y="322" fill="#94a3b8" font-size="8" text-anchor="middle">task directory</text>
+
+        <rect x="706" y="264" width="102" height="122" rx="6" fill="#0f172a"/>
+        <rect x="706" y="264" width="102" height="122" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="757" y="312" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Notebook</text>
+        <text x="757" y="330" fill="#94a3b8" font-size="8" text-anchor="middle">top-to-bottom run</text>
+        <text x="757" y="346" fill="#94a3b8" font-size="8" text-anchor="middle">seeded where needed</text>
+
+        <rect x="914" y="148" width="138" height="68" rx="6" fill="#0f172a"/>
+        <rect x="914" y="148" width="138" height="68" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="983" y="174" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">./data</text>
+        <text x="983" y="192" fill="#94a3b8" font-size="8" text-anchor="middle">task-local inputs</text>
+
+        <rect x="914" y="292" width="138" height="68" rx="6" fill="#0f172a"/>
+        <rect x="914" y="292" width="138" height="68" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="983" y="318" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">./runs</text>
+        <text x="983" y="336" fill="#94a3b8" font-size="8" text-anchor="middle">ignored run registry</text>
+
+        <rect x="914" y="436" width="138" height="68" rx="6" fill="#0f172a"/>
+        <rect x="914" y="436" width="138" height="68" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="983" y="462" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Validation</text>
+        <text x="983" y="480" fill="#94a3b8" font-size="8" text-anchor="middle">pytest, ruff, verifier</text>
+
+        <rect x="70" y="588" width="960" height="30" rx="6" fill="#0f172a"/>
+        <text x="92" y="607" fill="#22d3ee" font-size="9">Legend:</text>
+        <text x="152" y="607" fill="#34d399" font-size="9">local execution</text>
+        <text x="300" y="607" fill="#22d3ee" font-size="9">cloud dev shell</text>
+        <text x="458" y="607" fill="#fbbf24" font-size="9">orchestration</text>
+        <text x="602" y="607" fill="#a78bfa" font-size="9">notebook-local data</text>
+      </svg>
+    </div>
+    <section class="cards" aria-label="Runtime summary">
+      <div class="card"><h2>Entry Choices</h2><ul><li>Local venv and Docker use the checked-out tree.</li><li>Codespaces provisions the same dependency order.</li></ul></div>
+      <div class="card"><h2>Path Contract</h2><ul><li>Notebook code resolves `./data` and `./runs` from the task folder.</li><li>Make targets preserve that CWD.</li></ul></div>
+      <div class="card"><h2>Validation</h2><ul><li>Verifier checks active notebook structure and stale output paths.</li><li>Tier targets replay papermill execution.</li></ul></div>
+    </section>
+    <footer>Generated for ml-eng-lab maintenance, 2026-07-04.</footer>
+  </div>
+</body>
+</html>

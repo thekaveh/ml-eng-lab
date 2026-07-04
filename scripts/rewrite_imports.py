@@ -167,6 +167,8 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
     needed_nnparams_imports: set[str] = set()
     existing_nnparams_imports: set[str] = set()
     in_parenthesized_import = False
+    parenthesized_import_open = ""
+    parenthesized_import_kept: list[str] = []
     for line in source_lines:
         stripped_nl = line.rstrip("\n")
         had_nl = line.endswith("\n")
@@ -175,11 +177,26 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
             if replacement:
                 needed_nnparams_imports.add(replacement)
                 if ")" in stripped_nl:
+                    if parenthesized_import_kept:
+                        out.append(parenthesized_import_open)
+                        out.extend(parenthesized_import_kept)
+                        out.append(line)
                     in_parenthesized_import = False
+                    parenthesized_import_open = ""
+                    parenthesized_import_kept = []
                 continue
-            out.append(line)
             if ")" in stripped_nl:
+                if parenthesized_import_kept:
+                    out.append(parenthesized_import_open)
+                    out.extend(parenthesized_import_kept)
+                    out.append(line)
                 in_parenthesized_import = False
+                parenthesized_import_open = ""
+                parenthesized_import_kept = []
+                continue
+            parenthesized_import_kept.append(line)
+            if "NNParams" in line:
+                existing_nnparams_imports.update(_imported_symbol_bindings(stripped_nl.strip().rstrip(",")))
             continue
         # Try split patterns first
         split_applied = False
@@ -203,7 +220,8 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                     new_line = new_line.replace(old, new)
         if new_line.lstrip().startswith("from ") and " import (" in new_line:
             in_parenthesized_import = True
-            out.append(new_line)
+            parenthesized_import_open = new_line
+            parenthesized_import_kept = []
             continue
         # 2026-05-27: drop deprecated per-net Params from import lines
         if new_line.lstrip().startswith("from "):
