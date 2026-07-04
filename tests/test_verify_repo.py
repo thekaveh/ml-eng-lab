@@ -646,6 +646,37 @@ def test_e13_flags_removed_nnx_source_tree_and_host_python_paths(tmp_path, monke
     ]
 
 
+def test_e14_flags_tmp_papermill_output_path(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    task = "tmp-papermill-task"
+    active_dir = repo / "notebooks" / task
+    active_dir.mkdir(parents=True)
+    nb_path = active_dir / "notebook.ipynb"
+
+    nb = nbformat.v4.new_notebook()
+    nb.metadata["papermill"] = {
+        "input_path": "notebook.ipynb",
+        "output_path": "/tmp/smoke-output.ipynb",
+    }
+    cell = nbformat.v4.new_code_cell("# parser-friendly comment\nSMOKE_TEST = 0\n")
+    cell.metadata["tags"] = ["parameters"]
+    nb.cells = [cell]
+    nbformat.write(nb, str(nb_path))
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", (task,))
+    monkeypatch.setattr(verify_repo, "REQUIRED_SECTIONS", {str(nb_path.relative_to(repo)): ()})
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E14.tmp_papermill_output_path"]
+    assert hits
+    assert hits[0].location == str(nb_path.relative_to(repo))
+
+
 def _load_verify_module():
     import importlib.util
     if "verify_repo" in sys.modules:

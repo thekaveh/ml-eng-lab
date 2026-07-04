@@ -21,7 +21,7 @@ The `nnx` megamerge ships the full I-JEPA stack: `ViTNN`, `build_target_encoder`
 
 - §1 Overview — I-JEPA recipe, Fashion-MNIST vs CIFAR substitution, libraries.
 - §2 Environment & Setup — imports, hyperparameters (`PATCH_SIZE=4` → 49 patches/image, `D_MODEL=64`, `N_LAYERS=2`, `N_HEADS=4`, `EMA_MOMENTUM=0.996`), `nnx.set_seed(0)`.
-- §3 Data — Fashion-MNIST via `NNDataset` + custom `DataLoader(batch_size=128)` (same NNDataset-default-batch workaround as diffusion + MoE + transformer tasks).
+- §3 Data — Fashion-MNIST via `NNDataset` + custom `DataLoader(batch_size=128)` (same NNDataset-default-batch workaround as diffusion and MoE).
 - §4 Model — `NNModel` shell with placeholder `FeedFwdNN`, swapped for `ViTNN`; `build_target_encoder` for the frozen EMA target; `JEPAPredictor` attached to `model.net` so the optimizer picks up its params jointly; `random_block_mask` mask sampler.
 - §5 Training — Phase 1: JEPA pretrain via `jepa_train_step_factory(target_encoder, predictor, mask_fn, ema_momentum=0.996)`. Phase 2: build a `LinearProbe(encoder, embed_dim, num_classes)` — freezes the encoder, trains only a `Linear(d_model → 10)` head on top of mean-pooled patch embeddings.
 - §6 Evaluation & Results — summary table + JEPA pretrain loss curve + linear-probe val-accuracy curve; §6.3 discussion of scaling levers (bigger ViT + ImageNet, multi-block mask, longer pretrain, V-JEPA video variant).

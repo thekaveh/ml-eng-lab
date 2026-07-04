@@ -1404,6 +1404,23 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                     location=f"{rel}:line[{line_no}]",
                     message=f"stale active-notebook path artifact: {label}",
                 ))
+        try:
+            doc = nbformat.read(nb, as_version=4)
+        except Exception:
+            continue
+        papermill_meta = doc.get("metadata", {}).get("papermill") or {}
+        output_path = str(papermill_meta.get("output_path", ""))
+        if output_path.startswith("/tmp/"):
+            result.findings.append(Finding(
+                id="E14.tmp_papermill_output_path",
+                check="execution",
+                severity="warning",
+                location=rel,
+                message=(
+                    "notebook metadata.papermill.output_path points at /tmp; "
+                    "strip or refresh papermill metadata before committing"
+                ),
+            ))
 
     result.findings.extend(_phase3_code_cells_unchanged(repo))
 

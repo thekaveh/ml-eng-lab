@@ -181,13 +181,14 @@ that the run intentionally used a local NNx development checkout.
 `.gitmodules` consumes `https://github.com/thekaveh/genai-vanilla.git` as the
 `vendor/genai-vanilla` submodule. The repository currently pins tree entry
 `c89eb5e7bc53a97c9ecea668a86a4f41debe7113`; a read-only check on 2026-07-04
-found upstream `main` at `f196b6d483f7075f4269a062746bb119eb431a67`, so the
+found upstream `main` at `b0bce0fc4e9d2bb282fbc6c97631f3e37233e24e`, so the
 submodule is intentionally behind latest until a coordinated runtime bump.
 
 The consumed contract is:
 
 - `vendor/genai-vanilla/start.sh` exists after `git submodule update --init --recursive`.
-- `vendor/genai-vanilla/docker-compose.yml` defines the `jupyterhub` service.
+- `vendor/genai-vanilla/docker-compose.yml` includes
+  `services/jupyterhub/compose.yml`, which defines the `jupyterhub` service.
 - `scripts/start-jupyterhub.sh` exports `ML_REPO_PATH`, exports
   `ML_SSH_MOUNT_DIR`, layers `deploy/genai-vanilla-jupyterhub.override.yml`
   through `COMPOSE_FILE`, changes into the submodule directory, and execs

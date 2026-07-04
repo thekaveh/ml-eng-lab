@@ -52,7 +52,7 @@ All in the root `requirements.txt` + `torch-requirements.txt`.
 ## 6. Known issues
 
 - **Aux loss decreases but doesn't hit 1.0** at this budget. Recorded run: 1.2794 → 1.2218 (toward the 1.0 floor at uniform routing). Longer training + a larger `aux_loss_weight` push it closer to 1.0 at the cost of supervised-signal quality.
-- **`NNDataset` default batch_size** is the whole train set (54k for Fashion-MNIST). Same caveat as the diffusion + N1 transformer tasks — we rebuild the train loader at `batch_size=128` in §3.1.
+- **`NNDataset` default batch_size** is the whole train set (54k for Fashion-MNIST). Same caveat as the diffusion and JEPA tasks — we rebuild the train loader at `batch_size=128` in §3.1.
 - **Expert utilization is data-dependent.** On Fashion-MNIST's 10 visually-similar apparel classes, even a well-trained router lands closer to 30/30/20/20 than perfect 25/25/25/25. Perfect uniform routing is *not* the goal — specialization is.
 - **Single MoE layer.** Real MoE Transformers stack many MoE layers (one every other transformer block, typically). This notebook uses a single `MoELinear` to keep the demo's load-balancing story unambiguous. Adding more layers would amplify the aux-loss signal (summed across all `MoELinear` instances).
 - **No comparison vs dense baseline.** The pedagogical point is the *MoE recipe and its load-balancing knob*, not "MoE beats dense on Fashion-MNIST" (it usually doesn't at this scale — MoE wins show up on harder problems where genuine specialization is possible).
