@@ -240,7 +240,15 @@ Upgrade criteria:
    run `bash -n scripts/start-jupyterhub.sh`, and parse
    `deploy/genai-vanilla-jupyterhub.override.yml`.
 4. In a Docker-capable environment, run `git submodule update --init --recursive`
-   followed by `docker compose config` with the wrapper-provided environment.
+   followed by this command from the repository root:
+
+   ```bash
+   ML_REPO_PATH="$PWD" ML_SSH_MOUNT_DIR="$HOME/.ssh" docker compose --env-file \
+     vendor/genai-vanilla/.env.example \
+     -f vendor/genai-vanilla/docker-compose.yml \
+     -f deploy/genai-vanilla-jupyterhub.override.yml \
+     config
+   ```
 5. Update this section, README runtime caveats, and `docs/jupyterhub-integration.md`
    if the service names, mount paths, or NNx package layer change.
 
