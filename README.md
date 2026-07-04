@@ -1,6 +1,6 @@
 # ml-eng-lab — personal ML lab
 
-A multi-project repository of machine-learning task demonstrations, organized as a portfolio of self-contained ML experiments. Each top-level folder follows the convention `[task]-[dataset]-[model]-[framework]` and contains its own notebook(s), README, data directory (gitignored), and runs directory (gitignored).
+A multi-project repository of machine-learning task demonstrations, organized as a portfolio of self-contained ML experiments. Active experiments live under `notebooks/[task]-[dataset]-[model]-[framework]/`; each experiment directory contains its notebook(s), README, data directory (gitignored), and runs directory (gitignored).
 
 ## 1. Overview
 
@@ -23,16 +23,17 @@ ml-eng-lab/
 ├── CHANGELOG.md                               (release notes)
 ├── Makefile                                   (papermill tier targets)
 ├── docs/                                      (env/runtime docs, dependency contracts, findings, maintenance log)
+├── mkdocs.yml                                 (generated documentation site)
 ├── requirements.txt + torch-*.txt             (pip deps; thekaveh-nnx[lm]==0.2.0)
 ├── scripts/                                   (jupyterhub start, verifier, notebook edit/import helpers)
 ├── deploy/                                    (genai-vanilla compose override)
 ├── tests/                                     (pytest: nnx_surface contract + verifier + helpers)
 ├── vendor/genai-vanilla/                      (git submodule, JupyterHub stack)
-├── archive/                                   (preserved-as-is experiments)
-└── <21 active task folders>                   ([task]-[dataset]-[model]-[framework]/ — full list in §4.1)
+└── notebooks/                                 (21 active task folders plus notebooks/archive/)
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release history; per-task folders are linked from [§4.1 Active](#41-active), and secondary docs are linked from [§10 Other documentation](#10-other-documentation).
+The generated documentation site is published at [thekaveh.github.io/ml-eng-lab](https://thekaveh.github.io/ml-eng-lab/).
 
 ## 3. Quick start
 
@@ -176,17 +177,17 @@ To extend `nnx` for a new task:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow. Key points:
 
-- Each top-level folder is a self-contained task (`[task]-[dataset]-[model]-[framework]`). No `tasks/` subdirectory.
+- Each active task is a self-contained directory under `notebooks/` using the `[task]-[dataset]-[model]-[framework]` naming convention. No `tasks/` subdirectory.
 - Shared library code lives in `nnx` (the PyPI-installed `thekaveh-nnx` package), not a local `common/`.
 - Notebooks are saved with executed cells (outputs included) for active tasks.
 - Tier-C notebooks have their Aug-2023 outputs preserved; never re-execute them in place.
-- `archive/` is read-only.
+- `notebooks/archive/` is read-only.
 
 ## 8. Roadmap
 
 The `tabular_classification-iris-mlp-pytorch` task added in 2026-05-28 seeds the `tabular_classification-titanic-xgboost-sklearn` roadmap entry below.
 
-Future tasks planned (each will become a new top-level folder):
+Future tasks planned (each will become a new `notebooks/<task>/` directory):
 
 - [ ] `image_classification-cifar10-resnet-pytorch`
 - [ ] `tabular_classification-titanic-xgboost-sklearn`
@@ -220,6 +221,7 @@ The README is the entry point; the items below are the hub's index of secondary 
 - [docs/jupyterhub-integration.md](docs/jupyterhub-integration.md) — primary runtime (vendored `genai-vanilla` JupyterHub stack).
 - [docs/vscode-remote-access.md](docs/vscode-remote-access.md) — VS Code remote-attach modes.
 - [docs/dependency-contracts.md](docs/dependency-contracts.md) — dependency audit ledger, Torch-stack pin rationale, manual-only quantization contract, and external asset notes.
+- [docs/architecture.md](docs/architecture.md) — system/context view for the notebook lab, verifier, CI, runtime environments, and documentation site.
 - [docs/maintenance/overnight-2026-07-02.md](docs/maintenance/overnight-2026-07-02.md) — current overnight maintenance pass log and issue tracker.
 
 ### 10.3. Issue sinks for external code
@@ -229,4 +231,4 @@ The README is the entry point; the items below are the hub's index of secondary 
 
 ### 10.4. Archive
 
-- [archive/README.md](notebooks/archive/README.md) — preserved Aug-2023 codexglue summarization experiments (22 runs); read-only.
+- [notebooks/archive/README.md](notebooks/archive/README.md) — preserved Aug-2023 codexglue summarization experiments (22 runs); read-only.

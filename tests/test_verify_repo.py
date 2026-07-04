@@ -375,6 +375,35 @@ def test_docs_d10_flags_dependency_ledger_count_drift(tmp_path):
     assert hits, f"expected D10.dependency_ledger_count; got {data.get('findings')}"
 
 
+def test_docs_d11_current_layout_guidance_is_not_stale():
+    """Contributor-facing docs should point new tasks at notebooks/<task>/."""
+    r = run_verify("--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    d11 = [f for f in data["findings"] if f["id"] == "D11.stale_notebook_layout"]
+    assert d11 == [], f"D11 reported stale layout guidance: {d11}"
+
+
+def test_docs_d11_flags_old_flat_layout_guidance(tmp_path):
+    """The verifier should catch the pre-migration top-level task convention."""
+    repo = _temp_repo(tmp_path)
+    (repo / "README.md").write_text(
+        "# Fixture\n\n"
+        "## 1. Overview\n\n"
+        "Each top-level folder is a self-contained task.\n\n"
+        "See archive/README.md for preserved work.\n",
+        encoding="utf-8",
+    )
+    (repo / "CONTRIBUTING.md").write_text(
+        "# Contributing\n\n"
+        "Use https://nbviewer.org/github/thekaveh/ml-eng-lab/blob/main/<folder>/<notebook>.ipynb.\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D11.stale_notebook_layout"]
+    assert len(hits) >= 3, f"expected stale-layout findings; got {data.get('findings')}"
+
+
 def test_comments_phase_a_flags_obvious_state_the_what(tmp_path):
     """Synthetic .py file with a known bad comment should produce a finding.
 

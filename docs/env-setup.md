@@ -63,11 +63,11 @@ jupyter lab
 Caveats:
 - PyG wheels: torch + torch_geometric must match. The core pins in `torch-core-requirements.txt` and PyG pins in `torch-requirements.txt` are tested against the `--find-links` wheel index at `https://data.pyg.org/whl/torch-2.4.0+cpu.html`.
 - macOS Apple Silicon: PyG wheels for `arm64` are not always available at that index. If pip falls back to source builds, expect ~15 min compile time and Xcode CLT installed.
-- The `docker build`/`docker run` path in §2 above bakes the spaCy + NLTK downloads into the image, so the venv-only path above is the only one that needs them done manually. See [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §5.1 for the same instructions in the contributor workflow.
+- The `docker build`/`docker run` path in §2 above bakes the spaCy + NLTK downloads into the image, so the venv-only path above is the only one that needs them done manually. See [`CONTRIBUTING.md`](https://github.com/thekaveh/ml-eng-lab/blob/main/CONTRIBUTING.md) §5.1 for the same instructions in the contributor workflow.
 
 ## 4. GitHub Codespaces (zero-click cloud dev)
 
-Click **Code → Codespaces → Create codespace on main** on github.com/thekaveh/ml-eng-lab. The repo ships [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) which declaratively defines the runtime:
+Click **Code → Codespaces → Create codespace on main** on github.com/thekaveh/ml-eng-lab. The repo ships [`.devcontainer/devcontainer.json`](https://github.com/thekaveh/ml-eng-lab/blob/main/.devcontainer/devcontainer.json) which declaratively defines the runtime:
 
 - **Base image**: `mcr.microsoft.com/devcontainers/python:3.11-bookworm` (Python 3.11, matches the version pin in `.python-version` + CI).
 - **`postCreateCommand`**: `make codespace-setup` — runs the Torch-first install target, `pip install -r requirements.txt`, and `make nlp-assets` in the same order CI uses. ~2-3 min one-time per Codespace.
@@ -81,7 +81,7 @@ Click **Code → Codespaces → Create codespace on main** on github.com/thekave
 - **Quantization notebook**: still won't run — same `torch.int1` / `torch==2.4.1` incompatibility documented in its task README.
 - **Persistence**: `./data/` and `./runs/` content is lost when the Codespace is deleted. Commit anything you want to keep.
 
-See [README.md §3.4](../README.md#34-github-codespaces-zero-click-cloud-dev) for the full motivation + scenario list (why this 4th path exists alongside §1 / §2 / §3, what it does and doesn't solve).
+See [README.md §3.4](https://github.com/thekaveh/ml-eng-lab/blob/main/README.md#34-github-codespaces-zero-click-cloud-dev) for the full motivation + scenario list (why this 4th path exists alongside §1 / §2 / §3, what it does and doesn't solve).
 
 ## 5. GPU notes
 

@@ -26,6 +26,9 @@ thekaveh-nnx[lm]==0.2.0
 # Notebook re-execution
 papermill>=2.4
 
+# Documentation site (`make docs-build` and GitHub Pages workflow)
+mkdocs-material>=9.6,<10.0
+
 # Local test runner (CONTRIBUTING §2 "make test" / "pytest tests/")
 pytest
 

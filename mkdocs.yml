@@ -1,0 +1,52 @@
+site_name: ml-eng-lab
+site_description: Self-contained machine-learning notebook experiments with reproducible local runtimes.
+site_url: https://thekaveh.github.io/ml-eng-lab/
+exclude_docs: |
+  superpowers/**
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: slate
+      primary: black
+      accent: cyan
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      primary: black
+      accent: cyan
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - 1. Overview: index.md
+  - 2. Architecture: architecture.md
+  - 3. Environment Setup: env-setup.md
+  - 4. JupyterHub Integration: jupyterhub-integration.md
+  - 5. VS Code Remote Access: vscode-remote-access.md
+  - 6. Dependency Contracts: dependency-contracts.md
+  - 7. NNx Findings: FINDINGS-NNX.md
+  - 8. Vendor Findings: FINDINGS-VENDOR.md
+  - 9. Maintenance Log: maintenance/overnight-2026-07-02.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite

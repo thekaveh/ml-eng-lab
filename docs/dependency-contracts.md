@@ -7,7 +7,7 @@ and the CI workflow; the manifests remain the source of truth for installation.
 
 ## 1. Audit Snapshot
 
-Last reviewed: 2026-07-02, on branch `codex/overnight-maintenance`.
+Last reviewed: 2026-07-04, on branch `codex/overnight-maintenance`.
 
 Command:
 
@@ -16,6 +16,9 @@ pip-audit -r requirements.txt -r torch-requirements.txt
 ```
 
 Result: 23 known vulnerabilities across three resolved packages:
+
+Re-run on 2026-07-04 after adding `mkdocs-material`; the finding count and
+accepted package set were unchanged.
 
 | Package | Manifest Constraint | Audited Resolved Version | Finding Count | Current Disposition |
 | --- | --- | ---: | ---: | --- |
@@ -29,7 +32,7 @@ Because several manifest entries are intentionally ranged or floating today,
 the audited resolved versions and advisory IDs below are the accepted state, not
 just the package-level counts.
 
-Accepted advisory IDs from the 2026-07-02 audit. `pip-audit` currently emits
+Accepted advisory IDs from the 2026-07-04 audit. `pip-audit` currently emits
 23 feed records; two Torch advisory IDs appear twice from overlapping sources.
 
 | Package | Advisory ID | Feed Records | Fix Versions |

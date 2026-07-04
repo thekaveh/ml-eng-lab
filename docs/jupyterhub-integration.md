@@ -35,7 +35,7 @@ Use this when you want any of:
 - The from-scratch `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb` notebook to work (it imports sibling `.py` modules from its own folder).
 - A development workflow where you `git commit` notebook edits + dataset downloads from inside the container.
 
-This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla) and ships a wrapper script that layers an ml-eng-lab override onto the standalone compose:
+This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](https://github.com/thekaveh/ml-eng-lab/tree/main/vendor/genai-vanilla) and ships a wrapper script that layers an ml-eng-lab override onto the standalone compose:
 
 ### 2.1. Clone with submodules
 
@@ -51,7 +51,7 @@ git submodule update --init --recursive
 scripts/start-jupyterhub.sh
 ```
 
-The wrapper sets `ML_REPO_PATH` (the ml-eng-lab repo root), exports `COMPOSE_FILE` to layer [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml) onto genai-vanilla's base compose, and execs the submodule's `./start.sh`. The override bind-mounts `${ML_REPO_PATH}:/home/jovyan/work/ml-eng-lab`, so from the running container's perspective, the repo is at `/home/jovyan/work/ml-eng-lab/`.
+The wrapper sets `ML_REPO_PATH` (the ml-eng-lab repo root), exports `COMPOSE_FILE` to layer [`deploy/genai-vanilla-jupyterhub.override.yml`](https://github.com/thekaveh/ml-eng-lab/blob/main/deploy/genai-vanilla-jupyterhub.override.yml) onto genai-vanilla's base compose, and execs the submodule's `./start.sh`. The override bind-mounts `${ML_REPO_PATH}:/home/jovyan/work/ml-eng-lab`, so from the running container's perspective, the repo is at `/home/jovyan/work/ml-eng-lab/`.
 
 By default, the wrapper mounts an empty ignored directory at `/home/jovyan/.ssh`; host SSH keys are not exposed to notebook code. To opt into a read-only SSH-key mount for `git push`, set `HOST_SSH_DIR` explicitly:
 

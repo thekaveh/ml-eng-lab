@@ -373,7 +373,7 @@ def check_structure(repo: Path) -> CheckResult:
 
     _COMMON_IMPORT_RE = re.compile(r"^\s*(?:from\s+common(?:\.\w+)*\s+import\b|import\s+common(?:\.\w+)*)")
     for path in tracked:
-        if path.startswith(("tests/", "archive/", "vendor/")):
+        if path.startswith(("tests/", "notebooks/archive/", "vendor/")):
             continue
         full = repo / path
         if not full.is_file():
@@ -469,6 +469,20 @@ _H1_RE = re.compile(r"^# ([^\n]+)", re.MULTILINE)
 _H2_RE = re.compile(r"^## ([^\n]+)", re.MULTILINE)
 _MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _NUMBERED_HEADING_RE = re.compile(r"^(\d+(?:\.\d+)*)\.\s+\S")
+_STALE_LAYOUT_PATTERNS: tuple[tuple[str, re.Pattern], ...] = (
+    (
+        "flat top-level task-folder guidance",
+        re.compile(r"\b(?:top-level folder|top-level folders|flat top-level layout|<21 active task folders>)\b"),
+    ),
+    (
+        "old root archive guidance",
+        re.compile(r"(?<!notebooks/)archive/(?:README\.md)?"),
+    ),
+    (
+        "old nbviewer placeholder without notebooks prefix",
+        re.compile(r"nbviewer\.org/github/thekaveh/ml-eng-lab/(?:blob|tree)/main/<folder>"),
+    ),
+)
 
 
 def _markdown_headings(text: str, level: int) -> list[str]:
@@ -542,6 +556,27 @@ def _numbered_heading_findings(repo: Path, path: Path) -> list[Finding]:
                 ),
                 detail={"heading": title},
             ))
+    return findings
+
+
+def _stale_layout_guidance_findings(repo: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    for rel in ("README.md", "CONTRIBUTING.md"):
+        path = repo / rel
+        if not path.exists():
+            continue
+        text = _strip_markdown_code(_read_text(path))
+        for label, pattern in _STALE_LAYOUT_PATTERNS:
+            for m in pattern.finditer(text):
+                line_no = text.count("\n", 0, m.start()) + 1
+                findings.append(Finding(
+                    id="D11.stale_notebook_layout",
+                    check="docs",
+                    severity="error",
+                    location=f"{rel}:{line_no}",
+                    message=f"stale pre-notebooks/ layout guidance: {label}",
+                    detail={"match": m.group(0)},
+                ))
     return findings
 
 
@@ -766,6 +801,7 @@ def check_docs(repo: Path) -> CheckResult:
         result.findings.extend(_numbered_heading_findings(repo, path))
 
     result.findings.extend(_dependency_ledger_findings(repo))
+    result.findings.extend(_stale_layout_guidance_findings(repo))
 
     return result
 

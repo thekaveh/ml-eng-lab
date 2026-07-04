@@ -66,7 +66,7 @@ TIER_C := \
 
 SMOKE_OUT := /tmp/ml-smoke
 
-.PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify install-torch-stack codespace-setup
+.PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint docs-build nlp-assets verify install-torch-stack codespace-setup
 
 help:
 	@echo "Targets:"
@@ -77,6 +77,7 @@ help:
 	@echo "  test              Run pytest on tests/ directory."
 	@echo "  test-nnx-surface  Run only tests/nnx_surface (matches the CI pytest-nnx-surface job)."
 	@echo "  lint              Run ruff check . using the [tool.ruff] config in pyproject.toml."
+	@echo "  docs-build        Build the MkDocs documentation site in strict mode."
 	@echo "  nlp-assets        Download spaCy en_core_web_sm + NLTK vader_lexicon (needed by the 2 NLP Tier-A notebooks)."
 	@echo "  verify            Run repo verifier (scripts/verify_repo.py --check all --fast)."
 	@echo "  install-torch-stack Install pinned Torch core first, then PyG/runtime deps."
@@ -118,6 +119,9 @@ test-nnx-surface:
 
 lint:
 	ruff check .
+
+docs-build:
+	mkdocs build --strict
 
 nlp-assets:
 	python -m spacy download en_core_web_sm
