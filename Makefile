@@ -8,13 +8,16 @@
 # workflow_dispatch; CI also runs both on the weekly schedule and Tier B on PRs
 # labeled `tier-b-smoke`.
 #
-# All targets assume papermill is on PATH and the notebooks' kernel can
-# import nnx. nnx is consumed from PyPI via the `thekaveh-nnx[lm]==0.2.0`
+# All targets assume the selected Python can run papermill and the notebooks'
+# kernel can import nnx. nnx is consumed from PyPI via the `thekaveh-nnx[lm]==0.2.0`
 # pin in requirements.txt (as of 2026-06-14). The `[lm]` extra pulls
 # tokenizers+datasets for the two notebooks that call train_bpe /
 # NNTokenizerParams (text_generation-tinyshakespeare-... and
 # preference_alignment-toy-dpo-...) — issue #12. Without it those
 # notebooks ImportError at the first tokenizer call.
+
+PYTHON ?= python
+PAPERMILL ?= $(PYTHON) -m papermill
 
 TIER_A := \
     notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb \
@@ -87,7 +90,7 @@ run-tier-a:
 	@for nb in $(TIER_A); do \
 		echo "==> $$nb"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && papermill --kernel python3 "$$base" "$$base") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) --kernel python3 "$$base" "$$base") || exit 1; \
 	done
 
 check-tier-a-clean:
@@ -99,7 +102,7 @@ smoke-tier-b:
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
 
 smoke-tier-c:
@@ -108,7 +111,7 @@ smoke-tier-c:
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
 
 test:

@@ -24,7 +24,7 @@ pyyaml  # direct: scripts/verify_repo.py loads scripts/verify_repo_config.yaml v
 thekaveh-nnx[lm]==0.2.0
 
 # Notebook re-execution
-papermill>=2.4
+papermill==2.7.0
 
 # Documentation site (`make docs-build` and GitHub Pages workflow)
 mkdocs-material>=9.6,<10.0

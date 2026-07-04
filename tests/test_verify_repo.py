@@ -559,6 +559,39 @@ def test_e7_papermill_params_tag_check():
         assert f["severity"] == "warning"
 
 
+def test_e13_current_active_notebooks_have_no_stale_repo_paths():
+    """Active notebook metadata and outputs should not retain pre-rename paths."""
+    r = run_verify("--check", "execution", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    e13 = [f for f in data["findings"] if f["id"] == "E13.stale_active_notebook_path"]
+    assert e13 == [], f"E13 reported stale active-notebook paths: {e13}"
+
+
+def test_e13_flags_stale_paths_in_active_notebooks(tmp_path, monkeypatch):
+    """The stale-path guard applies to active notebooks, not the archive."""
+    verify_repo = _load_verify_module()
+    repo = _temp_repo(tmp_path)
+    active_dir = repo / "notebooks" / "active-task"
+    archive_dir = repo / "notebooks" / "archive" / "old-task"
+    active_dir.mkdir(parents=True)
+    archive_dir.mkdir(parents=True)
+    (active_dir / "notebook.ipynb").write_text(
+        '{"outputs":[{"text":["/home/jovyan/work/ml/nnx/src/file.py"]}]}',
+        encoding="utf-8",
+    )
+    (archive_dir / "notebook.ipynb").write_text(
+        '{"outputs":[{"text":["/home/jovyan/work/ml/legacy.py"]}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ("active-task",))
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E13.stale_active_notebook_path"]
+    assert len(hits) == 1
+    assert hits[0].location.startswith("notebooks/active-task/notebook.ipynb")
+
+
 def _load_verify_module():
     import importlib.util
     if "verify_repo" in sys.modules:

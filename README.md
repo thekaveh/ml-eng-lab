@@ -33,7 +33,8 @@ ml-eng-lab/
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release history; per-task folders are linked from [§4.1 Active](#41-active), and secondary docs are linked from [§10 Other documentation](#10-other-documentation).
-The generated documentation site is published at [thekaveh.github.io/ml-eng-lab](https://thekaveh.github.io/ml-eng-lab/).
+This branch configures a generated MkDocs site for `https://thekaveh.github.io/ml-eng-lab/`;
+the GitHub Pages workflow will publish it after the workflow lands on `main`.
 
 ## 3. Quick start
 

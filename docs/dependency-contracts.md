@@ -105,7 +105,30 @@ Expected local environment for this notebook:
 Do not add the quantization notebook back to `Makefile` Tier-A/B/C until the
 repository-wide Torch stack supports it.
 
-## 4. External Assets
+## 4. Papermill CLI Contract
+
+`requirements.txt` pins `papermill==2.7.0` because notebook re-execution is a
+consumed CLI contract, not just a Python import. The Makefile invokes it as
+`python -m papermill` by default through `PAPERMILL ?= $(PYTHON) -m papermill`
+so stale console-script shebangs cannot break notebook targets.
+
+Verified contract for `papermill==2.7.0`:
+
+- `python -m papermill --version` resolves the installed module.
+- `python -m papermill --help` exposes `--kernel` / `-k` and `--parameters` /
+  `-p`, which the Tier-A/B/C Makefile targets use.
+- The injected `SMOKE_TEST` parameters cell remains parser-friendly for
+  papermill 2.7; `tests/test_inject_smoke_test_cell.py` guards this shape.
+
+Upgrade criteria:
+
+1. Confirm `python -m papermill --version` reports the intended version.
+2. Confirm `python -m papermill --help` still accepts the Makefile flags.
+3. Run `pytest tests/test_inject_smoke_test_cell.py tests/test_verify_repo.py`.
+4. Run at least one cheap notebook target through `make run-tier-a` or a
+   targeted papermill command from the notebook directory.
+
+## 5. External Assets
 
 `make nlp-assets` downloads:
 
@@ -117,7 +140,7 @@ They are not locked by checksum today. If reproducibility becomes stricter than
 the current educational-notebook standard, add a lock/verification mechanism and
 update this section.
 
-## 5. Deferred Reproducibility Hardening
+## 6. Deferred Reproducibility Hardening
 
 The current manifests still include floating and ranged Python dependencies, and
 the Docker/devcontainer bases are tag-pinned rather than digest-pinned. A full

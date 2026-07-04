@@ -483,6 +483,24 @@ _STALE_LAYOUT_PATTERNS: tuple[tuple[str, re.Pattern], ...] = (
         re.compile(r"nbviewer\.org/github/thekaveh/ml-eng-lab/(?:blob|tree)/main/<folder>"),
     ),
 )
+_STALE_ACTIVE_NOTEBOOK_PATHS: tuple[tuple[str, re.Pattern], ...] = (
+    (
+        "old local repo path",
+        re.compile(r"/Users/[^/\s]+/repos/ml(?!-eng-lab)\b"),
+    ),
+    (
+        "old JupyterHub repo path",
+        re.compile(r"/home/jovyan/work/ml(?!-eng-lab)\b"),
+    ),
+    (
+        "old Codespaces repo path",
+        re.compile(r"/workspaces/ml(?!-eng-lab)\b"),
+    ),
+    (
+        "old GitHub repo URL",
+        re.compile(r"github\.com/thekaveh/ml-lab\b"),
+    ),
+)
 
 
 def _markdown_headings(text: str, level: int) -> list[str]:
@@ -1350,6 +1368,20 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                     id="E8.stale_output", check="execution", severity="warning",
                     location=f"{rel}:cell[{ci}]",
                     message="cell source changed since last execution; re-run to refresh outputs",
+                ))
+
+    for nb in _iter_notebooks(repo):
+        rel = _notebook_rel(nb, repo)
+        text = _read_text(nb)
+        for label, pattern in _STALE_ACTIVE_NOTEBOOK_PATHS:
+            for match in pattern.finditer(text):
+                line_no = text.count("\n", 0, match.start()) + 1
+                result.findings.append(Finding(
+                    id="E13.stale_active_notebook_path",
+                    check="execution",
+                    severity="warning",
+                    location=f"{rel}:line[{line_no}]",
+                    message=f"stale active-notebook path artifact: {label}",
                 ))
 
     result.findings.extend(_phase3_code_cells_unchanged(repo))
