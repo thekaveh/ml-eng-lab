@@ -24,6 +24,12 @@ from nnx import (
 )
 
 
+def _import_torchao_or_skip():
+    if not hasattr(torch, "int1"):
+        pytest.skip("torchao quantization path requires torch.int1 from torch >= 2.5")
+    return pytest.importorskip("torchao")
+
+
 def test_quantization_facade_signatures_match_notebook_contract():
     assert inspect.signature(nnx.quantize_int8) == inspect.Signature(
         parameters=[
@@ -47,10 +53,19 @@ def test_quantization_facade_signatures_match_notebook_contract():
     assert cb_sig.parameters["groupsize"].default == 32
 
 
+def test_torchao_guard_skips_before_import_when_torch_lacks_int1(monkeypatch):
+    monkeypatch.delattr(torch, "int1", raising=False)
+
+    def fail_importorskip(name):
+        raise AssertionError(f"{name} should not be imported without torch.int1")
+
+    monkeypatch.setattr(pytest, "importorskip", fail_importorskip)
+    with pytest.raises(pytest.skip.Exception, match="torch.int1"):
+        _import_torchao_or_skip()
+
+
 def test_quantize_int8_predicts_with_same_output_shape_when_backend_available(tiny_image_batch):
-    pytest.importorskip("torchao")
-    if not hasattr(torch, "int1"):
-        pytest.skip("torchao quantization path requires torch.int1 from torch >= 2.5")
+    _import_torchao_or_skip()
 
     model = NNModel(
         params=NNModelParams(net=Nets.FEED_FWD, device=Devices.CPU, loss=Losses.CROSS_ENTROPY),
@@ -72,9 +87,7 @@ def test_quantize_int8_predicts_with_same_output_shape_when_backend_available(ti
 
 
 def test_qat_facade_constructs_callback_and_train_step_when_backend_available():
-    pytest.importorskip("torchao")
-    if not hasattr(torch, "int1"):
-        pytest.skip("torchao QAT path requires torch.int1 from torch >= 2.5")
+    _import_torchao_or_skip()
 
     callback = nnx.QATLifecycleCallback(qat_config="8da4w")
     train_step = nnx.qat_train_step_factory(qat_config="8da4w")
