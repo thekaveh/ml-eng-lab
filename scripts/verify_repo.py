@@ -237,18 +237,22 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
         tree = ast.parse(cleaned_source)
     except SyntaxError:
         fallback_lines = _blank_multiline_string_lines(cleaned_source)
+        importlib_aliases = {"importlib"}
+        import_module_aliases: set[str] = set()
         for li, line in enumerate(fallback_lines, 1):
-            m = _IMPORT_RE.match(line)
-            if not m:
-                continue
             try:
                 line_tree = ast.parse(line)
             except SyntaxError:
+                m = _IMPORT_RE.match(line)
+                if not m:
+                    continue
                 module = (m.group(1) or m.group(2) or "").split(".")[0]
                 if module:
                     yield ImportedModule(module=module, line=li)
                 continue
-            importlib_aliases, import_module_aliases = _importlib_aliases(line_tree)
+            line_importlib_aliases, line_import_module_aliases = _importlib_aliases(line_tree)
+            importlib_aliases.update(line_importlib_aliases)
+            import_module_aliases.update(line_import_module_aliases)
             for node in ast.walk(line_tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
@@ -455,6 +459,10 @@ def _required_shellcheck_targets(repo: Path) -> tuple[Path, ...]:
 def _shellcheck_targets(repo: Path) -> tuple[Path, ...]:
     local_scripts = tuple(sorted((repo / "scripts").glob("*.sh")))
     return tuple(path for path in (*local_scripts, *_required_shellcheck_targets(repo)) if path.exists())
+
+
+def _required_submodule_paths() -> tuple[str, ...]:
+    return ("vendor/genai-vanilla",)
 
 
 def check_structure(repo: Path) -> CheckResult:
@@ -1643,6 +1651,31 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
             ))
 
     result.findings.extend(_phase3_code_cells_unchanged(repo))
+
+    for submodule in _required_submodule_paths():
+        rc, out, err = _run(["git", "submodule", "status", "--", submodule], repo)
+        if rc != 0:
+            result.findings.append(Finding(
+                id="E6.submodule_status",
+                check="execution",
+                severity="warning",
+                location=submodule,
+                message=f"could not inspect required submodule status: {(out + err).strip()[-300:]}",
+            ))
+            continue
+        status = out.strip()
+        if status.startswith(("+", "-", "U")):
+            result.findings.append(Finding(
+                id="E6.submodule_dirty",
+                check="execution",
+                severity="error",
+                location=submodule,
+                message=(
+                    "required submodule checkout does not match the superproject "
+                    "gitlink; stage the intended gitlink or run git submodule update"
+                ),
+                detail={"status": status},
+            ))
 
     for sh in _required_shellcheck_targets(repo):
         if not sh.exists():

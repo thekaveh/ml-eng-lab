@@ -338,6 +338,34 @@ def test_structure_s2_checks_literal_dynamic_import_aliases(tmp_path):
     assert any("definitely_missing_module_alias" in m for m in messages), data.get("findings")
 
 
+def test_structure_s2_fallback_checks_literal_dynamic_import_aliases(tmp_path):
+    """Syntax-error fallback should still check importlib alias calls."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "literal-dynamic-import-alias-fallback.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import importlib as il\n"
+            "il.import_module('definitely_missing_alias_fallback')\n"
+            "x = [\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_alias_fallback" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for fallback dynamic alias; got {data.get('findings')}"
+
+
 def test_structure_s2_ignores_non_python_cell_magic_body(tmp_path):
     """Shell cell magics must not make S2 scan shell text as Python imports."""
     import nbformat
@@ -1163,6 +1191,28 @@ def test_e6_flags_missing_required_vendor_shellcheck_targets_without_shellcheck(
         "vendor/genai-vanilla/bootstrapper/_run.sh",
         "vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh",
     } == {f.location for f in missing_targets}
+
+
+def test_e6_flags_dirty_required_submodule(monkeypatch):
+    verify_repo = _load_verify_module()
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "submodule", "status", "--", "vendor/genai-vanilla"]:
+            return 0, "+163134451a19d024e0e1c0df51139fd8c0a2ca52 vendor/genai-vanilla\n", ""
+        if cmd == ["which", "shellcheck"]:
+            return 1, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ())
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+    monkeypatch.setattr(verify_repo, "_phase3_code_cells_unchanged", lambda _repo: [])
+
+    result = verify_repo.check_execution(REPO, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E6.submodule_dirty"]
+    assert hits
+    assert hits[0].location == "vendor/genai-vanilla"
 
 
 def _load_verify_module():

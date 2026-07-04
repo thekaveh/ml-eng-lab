@@ -197,6 +197,34 @@ def test_single_line_parenthesized_params_only_import_drops_empty_import(tmp_pat
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_multiline_source_chunk_is_split_before_rewriting(tmp_path):
+    nb = {
+        "cells": [{
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "from nnx.nn.net.graph_att_nn import (\n    GraphAttNN,\n    GraphAttNNParams,\n)\nprint(GraphAttNN)\n"
+            ],
+        }],
+        "metadata": {"kernelspec": {"name": "python3", "display_name": "Python 3"}},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+    p = tmp_path / "multiline_chunk.ipynb"
+    p.write_text(json.dumps(nb, indent=1) + "\n")
+
+    _run(p)
+
+    src = _cell_source(p, 0)
+    assert "GraphAttNNParams" not in src
+    assert "GraphAttNN" in src
+    assert "print(GraphAttNN)" in src
+    assert "from nnx.nn.params.nn_params import NNParams" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_parenthesized_params_only_import_drops_empty_block(tmp_path):
     p = _make_notebook(tmp_path, "gat_parenthesized_only_params.ipynb", [
         _code_cell(
