@@ -133,6 +133,48 @@ def test_structure_s7_no_pycache_tracked():
     assert s7 == [], f"S7 found tracked bloat: {s7}"
 
 
+def test_structure_s6_allows_committed_superpowers_specs_and_plans(tmp_path):
+    """Committed Superpowers spec/plan docs are intentional planning records."""
+    repo = _temp_repo(tmp_path)
+    (repo / ".gitignore").write_text("docs/superpowers/\n", encoding="utf-8")
+    spec = repo / "docs" / "superpowers" / "specs" / "design.md"
+    plan = repo / "docs" / "superpowers" / "plans" / "plan.md"
+    spec.parent.mkdir(parents=True, exist_ok=True)
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    spec.write_text("# Design\n", encoding="utf-8")
+    plan.write_text("# Plan\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-f", str(spec), str(plan)], cwd=repo, check=True)
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+
+    forbidden = {str(spec.relative_to(repo)), str(plan.relative_to(repo))}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S6.tracked_bloat" and f["location"] in forbidden
+    ]
+    assert not hits, f"intentional planning docs were flagged as bloat: {hits}"
+
+
+def test_structure_s6_flags_other_tracked_superpowers_files(tmp_path):
+    """Only committed spec/plan records are exempt from docs/superpowers bloat."""
+    repo = _temp_repo(tmp_path)
+    (repo / ".gitignore").write_text("docs/superpowers/\n", encoding="utf-8")
+    scratch = repo / "docs" / "superpowers" / "scratch.md"
+    scratch.parent.mkdir(parents=True, exist_ok=True)
+    scratch.write_text("# Scratch\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-f", str(scratch)], cwd=repo, check=True)
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S6.tracked_bloat" and f["location"] == str(scratch.relative_to(repo))
+    ]
+    assert hits, f"expected non-plan docs/superpowers file to be flagged; got {data.get('findings')}"
+
+
 def test_structure_s8_script_shebang_executable_parity():
     """Direct CLI scripts should keep shebang and executable bit in sync."""
     r = run_verify("--check", "structure", "--fast")

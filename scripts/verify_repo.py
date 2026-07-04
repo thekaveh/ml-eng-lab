@@ -124,6 +124,10 @@ _GITIGNORE_REQUIRED_PATTERNS = (
     "plan-*.md", "notes-*.md", "audit-*.md",
     ".mypy_cache/", ".trunk/", ".vscode/",
 )
+_TRACKED_SUPERPOWERS_DOC_PREFIXES = (
+    "docs/superpowers/specs/",
+    "docs/superpowers/plans/",
+)
 _BLOAT_PATTERNS = (
     "__pycache__", ".ipynb_checkpoints", ".DS_Store",
     ".mypy_cache", ".pytest_cache",
@@ -150,6 +154,15 @@ def _git_ls_files(repo: Path) -> list[str]:
         ["git", "ls-files"], cwd=repo, capture_output=True, text=True, check=True
     )
     return out.stdout.splitlines()
+
+
+def _is_allowed_tracked_superpowers_doc(path: str) -> bool:
+    if not path.endswith(".md"):
+        return False
+    for prefix in _TRACKED_SUPERPOWERS_DOC_PREFIXES:
+        if path.startswith(prefix) and "/" not in path.removeprefix(prefix):
+            return True
+    return False
 
 
 def _read_text(path: Path) -> str:
@@ -389,7 +402,7 @@ def check_structure(repo: Path) -> CheckResult:
                 message=f"required pattern absent: {pat}",
             ))
     for path in tracked:
-        if path.startswith(("docs/superpowers/",)):
+        if path.startswith(("docs/superpowers/",)) and not _is_allowed_tracked_superpowers_doc(path):
             result.findings.append(Finding(
                 id="S6.tracked_bloat", check="structure", severity="error",
                 location=path,
