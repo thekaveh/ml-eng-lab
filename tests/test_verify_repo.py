@@ -159,6 +159,32 @@ def test_structure_s2_checks_every_module_in_multi_import(tmp_path):
     assert hits, f"expected S2.unresolved_import for second import; got {data.get('findings')}"
 
 
+def test_structure_s2_checks_multi_import_after_notebook_magic(tmp_path):
+    """Notebook magics must not push S2 back to a first-module-only regex fallback."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "magic-multi-import-missing.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "%matplotlib inline\nimport json, definitely_missing_module_after_magic\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_module_after_magic" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import after notebook magic; got {data.get('findings')}"
+
+
 def test_structure_s7_no_pycache_tracked():
     """No __pycache__, .ipynb_checkpoints, .DS_Store should be tracked."""
     r = run_verify("--check", "structure", "--fast")

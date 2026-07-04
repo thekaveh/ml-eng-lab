@@ -152,16 +152,39 @@ _RUNTIME_ONLY_MODULES = frozenset({
 
 def _imported_modules_from_source(source: str) -> Iterator[tuple[str, int]]:
     """Yield top-level imported module names and zero-based line numbers."""
+    cleaned_lines: list[str] = []
+    for line in source.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith(("%", "!")):
+            cleaned_lines.append("")
+        else:
+            cleaned_lines.append(line)
+    cleaned_source = "\n".join(cleaned_lines)
+
     try:
-        tree = ast.parse(source)
+        tree = ast.parse(cleaned_source)
     except SyntaxError:
-        for li, line in enumerate(source.splitlines()):
+        for li, line in enumerate(cleaned_lines):
             m = _IMPORT_RE.match(line)
             if not m:
                 continue
-            module = (m.group(1) or m.group(2) or "").split(".")[0]
-            if module:
-                yield module, li
+            try:
+                line_tree = ast.parse(line)
+            except SyntaxError:
+                module = (m.group(1) or m.group(2) or "").split(".")[0]
+                if module:
+                    yield module, li
+                continue
+            for node in ast.walk(line_tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        module = alias.name.split(".")[0]
+                        if module:
+                            yield module, li
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    module = node.module.split(".")[0]
+                    if module:
+                        yield module, li
         return
 
     for node in ast.walk(tree):
