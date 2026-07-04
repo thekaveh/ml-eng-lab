@@ -534,6 +534,31 @@ def find_nnrun_load_best(nb: dict) -> list[str]:
     return out
 
 
+def find_nnrun_all_calls(nb: dict) -> list[str]:
+    out: list[str] = []
+    for idx, cell in enumerate(_code_cells(nb)):
+        lines = [
+            ln for ln in "".join(_live_lines(cell)).splitlines()
+            if not ln.lstrip().startswith(("%", "!"))
+        ]
+        try:
+            tree = ast.parse("\n".join(lines))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if (
+                isinstance(func, ast.Attribute)
+                and func.attr == "all"
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "NNRun"
+            ):
+                out.append(f"code_cell[{idx}]: NNRun.all() (use this notebook's local runs list)")
+    return out
+
+
 def find_sparse_tensor_edge_index_drops(nb: dict) -> list[str]:
     out: list[str] = []
     for idx, cell in enumerate(_code_cells(nb)):
@@ -573,6 +598,16 @@ def test_no_nnrun_load_best(nb_path: Path):
     violations = find_nnrun_load_best(nb)
     assert not violations, (
         f"{nb_path.relative_to(REPO_ROOT)} calls NNRun.load(\"best\"):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+def test_phase2_notebook4_ranks_local_runs_not_cross_experiment_registry():
+    nb_path = REPO_ROOT / "notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb"
+    nb = json.loads(nb_path.read_text(encoding="utf-8"))
+    violations = find_nnrun_all_calls(nb)
+    assert not violations, (
+        f"{nb_path.relative_to(REPO_ROOT)} ranks the shared NNRun registry instead of its local runs:\n  "
         + "\n  ".join(violations)
     )
 

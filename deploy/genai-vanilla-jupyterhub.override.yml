@@ -3,7 +3,7 @@
 # This file lives in the ml-eng-lab repo. It is NOT auto-discovered by Docker
 # Compose. Use `scripts/start-jupyterhub.sh` which sets the required
 # env vars and layers this file onto genai-vanilla's base compose
-# (the submodule at vendor/genai-vanilla, pinned to main).
+# (the pinned submodule snapshot at vendor/genai-vanilla).
 #
 # Required env vars:
 #   ML_REPO_PATH    absolute path to the ml-eng-lab repo root

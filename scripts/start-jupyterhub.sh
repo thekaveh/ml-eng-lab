@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start genai-vanilla (vendored at vendor/genai-vanilla, pinned to main)
+# Start genai-vanilla (vendored at vendor/genai-vanilla as a pinned submodule snapshot)
 # with the ml-eng-lab integration override layered on top.
 #
 # Usage:

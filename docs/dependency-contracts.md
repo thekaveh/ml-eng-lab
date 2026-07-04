@@ -235,12 +235,12 @@ The bootstrap paths still upgrade or install the Python packaging toolchain
 without exact pip/setuptools pins:
 
 - `Makefile` target `install-torch-stack` runs `pip install --upgrade pip`.
-- `Dockerfile` installs `pip setuptools wheel` before project requirements.
+- `Dockerfile` upgrades `pip` and `setuptools` before project requirements.
 
 This is accepted temporarily because pinning bootstrap tools changes every
 environment creation path and belongs with the coordinated dependency-lock
-work. Until then, maintenance passes should treat unexpected resolver behavior,
-build-isolation changes, or wheel-build drift as dependency-contract findings.
+work. Until then, maintenance passes should treat unexpected resolver behavior
+or build-isolation changes as dependency-contract findings.
 
 ## 10. Deferred Reproducibility Hardening
 
