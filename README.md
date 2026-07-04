@@ -1,6 +1,6 @@
 # ml-eng-lab — personal ML lab
 
-A multi-project repository of machine-learning task demonstrations, organized as a portfolio of self-contained ML experiments. Active experiments live under `notebooks/[task]-[dataset]-[model]-[framework]/`; each experiment directory contains its notebook(s), README, data directory (gitignored), and runs directory (gitignored).
+A multi-project repository of machine-learning task demonstrations, organized as a portfolio of self-contained ML experiments. Active experiments live under `notebooks/[task]-[dataset]-[model]-[framework]/`; each experiment directory contains its notebook(s) and README, with gitignored `data/` and `runs/` directories created as needed by runtime downloads and training/evaluation runs.
 
 ## 1. Overview
 
@@ -42,7 +42,7 @@ Four ways to run these notebooks, ordered from managed runtime to local executio
 
 ### 3.1. genai-vanilla jupyterhub (recommended)
 
-As of genai-vanilla `329f883` (pinned in `vendor/genai-vanilla`), the `jupyterhub` image natively ships the ml-eng-lab dependency set, `thekaveh-nnx[lm]==0.2.0`, and the two NLP model assets. Two paths, pick by need:
+As of genai-vanilla `c2ffe8d` (pinned in `vendor/genai-vanilla`), the `jupyterhub` image natively ships the ml-eng-lab dependency set, `thekaveh-nnx[lm]==0.2.0`, and the two NLP model assets. Two paths, pick by need:
 
 **Default — standalone genai-vanilla + VS Code Mode 2** (works for tier-covered notebooks from a current genai-vanilla checkout; one tier-covered exception remains: `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the persistence variant below. The quantization notebook is still manual-only under `torch>=2.5` + `torchao>=0.17`):
 

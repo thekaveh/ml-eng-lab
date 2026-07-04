@@ -116,6 +116,23 @@ def _imported_symbol_bindings(symbols: str) -> set[str]:
     return bindings
 
 
+def _rewrite_parenthesized_import_member_line(line: str) -> tuple[list[str], list[str], bool]:
+    stripped_nl = line.rstrip("\n")
+    closes_import = ")" in stripped_nl
+    symbol_text = stripped_nl.split(")", 1)[0] if closes_import else stripped_nl
+    indent = re.match(r"^(\s*)", line).group(1)
+    kept_lines: list[str] = []
+    nnparams_imports: list[str] = []
+    for part in (p.strip() for p in symbol_text.split(",") if p.strip()):
+        if part.startswith("#"):
+            continue
+        if replacement := _nnparams_replacement_for_symbol(part):
+            nnparams_imports.append(replacement)
+        else:
+            kept_lines.append(f"{indent}{part.rstrip(',')},\n")
+    return kept_lines, nnparams_imports, closes_import
+
+
 def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
     """Given a `from ... import A, B[, ...]` line, drop any deprecated
     Params names from the symbol list. Returns (new_line,
@@ -231,30 +248,21 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         stripped_nl = line.rstrip("\n")
         had_nl = line.endswith("\n")
         if in_parenthesized_import:
-            replacement = _nnparams_replacement_for_symbol(stripped_nl.strip())
-            if replacement:
-                needed_nnparams_imports.add(replacement)
-                if ")" in stripped_nl:
-                    if parenthesized_import_kept:
-                        out.append(parenthesized_import_open)
-                        out.extend(parenthesized_import_kept)
-                        out.append(_closing_paren_line(line))
-                    in_parenthesized_import = False
-                    parenthesized_import_open = ""
-                    parenthesized_import_kept = []
-                continue
-            if ")" in stripped_nl:
+            kept_lines, nnparams_imports, closes_import = _rewrite_parenthesized_import_member_line(line)
+            needed_nnparams_imports.update(nnparams_imports)
+            parenthesized_import_kept.extend(kept_lines)
+            if closes_import:
                 if parenthesized_import_kept:
                     out.append(parenthesized_import_open)
                     out.extend(parenthesized_import_kept)
-                    out.append(line)
+                    out.append(_closing_paren_line(line))
                 in_parenthesized_import = False
                 parenthesized_import_open = ""
                 parenthesized_import_kept = []
                 continue
-            parenthesized_import_kept.append(line)
-            if "NNParams" in line:
-                existing_nnparams_imports.update(_imported_symbol_bindings(stripped_nl.strip().rstrip(",")))
+            for kept_line in kept_lines:
+                if "NNParams" in kept_line:
+                    existing_nnparams_imports.update(_imported_symbol_bindings(kept_line.strip().rstrip(",")))
             continue
         # Try split patterns first
         split_applied = False
