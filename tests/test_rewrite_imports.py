@@ -442,6 +442,25 @@ def test_param_name_references_preserve_binding_positions(tmp_path):
     assert _cell_source(p, 0) == src
 
 
+def test_imported_param_name_reads_rewrite_even_with_later_local_binding(tmp_path):
+    p = _make_notebook(tmp_path, "mixed_import_and_local_binding.ipynb", [
+        _code_cell(
+            "from nnx.nn.net.graph_att_nn import GraphAttNNParams\n"
+            "params = GraphAttNNParams(n_heads=2, input_dim=4, output_dim=2)\n"
+            "def train(GraphAttNNParams):\n"
+            "    return GraphAttNNParams\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "from nnx.nn.net.graph_att_nn import GraphAttNNParams" not in src
+    assert "from nnx.nn.params.nn_params import NNParams" in src
+    assert "params = NNParams(n_heads=2, input_dim=4, output_dim=2)" in src
+    assert "def train(GraphAttNNParams):" in src
+    assert "    return GraphAttNNParams" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_params_call_site_with_backslash_continuation_renamed_to_nnparams(tmp_path):
     p = _make_notebook(tmp_path, "gat_call_backslash.ipynb", [
         _code_cell(

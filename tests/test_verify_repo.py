@@ -127,6 +127,31 @@ def test_structure_s1_flags_missing_notebook_cell_id(tmp_path):
     assert hits, f"expected S1.cell_id for {name}; got {data.get('findings')}"
 
 
+def test_structure_s1_flags_missing_archive_notebook_cell_id(tmp_path):
+    """Archive notebooks must satisfy the same raw nbformat cell-id policy."""
+    repo = _temp_repo(tmp_path)
+    name = "archive-missing-cell-id.ipynb"
+    archive = repo / "notebooks" / "archive" / "old-task" / name
+    archive.parent.mkdir(parents=True)
+    archive.write_text(json.dumps({
+        "cells": [{
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": "# Archived\n",
+        }],
+        "metadata": {},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }))
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S1.cell_id" and name in f["location"]
+    ]
+    assert hits, f"expected S1.cell_id for archive {name}; got {data.get('findings')}"
+
+
 def test_structure_s1_flags_invalid_notebook_schema(tmp_path):
     """Raw notebook schema validation should catch id/minor-version mismatches."""
     repo = _temp_repo(tmp_path)

@@ -16,7 +16,7 @@ import json
 import re
 import sys
 import tokenize
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 USAGE = "Usage: rewrite_imports.py NOTEBOOK [NOTEBOOK ...]"
@@ -291,14 +291,125 @@ def _deprecated_binding_names(source: str) -> set[str]:
     return bindings
 
 
-def _rewrite_param_name_references(line: str, protected_names: set[str] | None = None) -> tuple[str, bool]:
+def _deprecated_binding_reference_positions(source: str) -> set[tuple[int, int]]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+
+    positions: set[tuple[int, int]] = set()
+    scope_types = (
+        ast.FunctionDef,
+        ast.AsyncFunctionDef,
+        ast.ClassDef,
+        ast.Lambda,
+        ast.ListComp,
+        ast.SetComp,
+        ast.DictComp,
+        ast.GeneratorExp,
+    )
+
+    def position(node: ast.AST) -> tuple[int, int] | None:
+        lineno = getattr(node, "lineno", None)
+        col_offset = getattr(node, "col_offset", None)
+        if lineno is None or col_offset is None:
+            return None
+        return lineno, col_offset
+
+    def earliest(left: tuple[int, int] | None, right: tuple[int, int]) -> tuple[int, int]:
+        return right if left is None or right < left else left
+
+    def collect_target_bindings(target: ast.AST, bindings: dict[str, tuple[int, int]]) -> None:
+        if isinstance(target, ast.Name) and target.id in DEPRECATED_PARAM_NAMES:
+            pos = position(target)
+            if pos is not None:
+                bindings[target.id] = earliest(bindings.get(target.id), pos)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for element in target.elts:
+                collect_target_bindings(element, bindings)
+
+    def same_scope_nodes(scope: ast.AST) -> Iterator[ast.AST]:
+        for child in ast.iter_child_nodes(scope):
+            if isinstance(child, scope_types):
+                continue
+            yield child
+            yield from same_scope_nodes(child)
+
+    def nested_scopes(scope: ast.AST) -> Iterator[ast.AST]:
+        for child in ast.iter_child_nodes(scope):
+            if isinstance(child, scope_types):
+                yield child
+                continue
+            yield from nested_scopes(child)
+
+    def visit_scope(scope: ast.AST) -> None:
+        bindings: dict[str, tuple[int, int]] = {}
+        if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            args = scope.args
+            all_args = [
+                *getattr(args, "posonlyargs", ()),
+                *args.args,
+                *args.kwonlyargs,
+            ]
+            if args.vararg is not None:
+                all_args.append(args.vararg)
+            if args.kwarg is not None:
+                all_args.append(args.kwarg)
+            for arg in all_args:
+                if arg.arg in DEPRECATED_PARAM_NAMES:
+                    pos = position(arg)
+                    if pos is not None:
+                        bindings[arg.arg] = earliest(bindings.get(arg.arg), pos)
+
+        for node in same_scope_nodes(scope):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    collect_target_bindings(target, bindings)
+            elif isinstance(node, ast.AnnAssign):
+                collect_target_bindings(node.target, bindings)
+            elif isinstance(node, ast.AugAssign):
+                collect_target_bindings(node.target, bindings)
+            elif isinstance(node, (ast.For, ast.AsyncFor)):
+                collect_target_bindings(node.target, bindings)
+            elif isinstance(node, (ast.With, ast.AsyncWith)):
+                for item in node.items:
+                    if item.optional_vars is not None:
+                        collect_target_bindings(item.optional_vars, bindings)
+            elif isinstance(node, ast.ExceptHandler) and node.name in DEPRECATED_PARAM_NAMES:
+                pos = position(node)
+                if pos is not None:
+                    bindings[node.name] = earliest(bindings.get(node.name), pos)
+
+        if bindings:
+            for node in same_scope_nodes(scope):
+                if isinstance(node, ast.Name) and node.id in bindings:
+                    pos = position(node)
+                    if pos is not None and pos >= bindings[node.id]:
+                        positions.add(pos)
+                elif isinstance(node, ast.arg) and node.arg in bindings:
+                    pos = position(node)
+                    if pos is not None and pos >= bindings[node.arg]:
+                        positions.add(pos)
+
+        for child_scope in nested_scopes(scope):
+            visit_scope(child_scope)
+
+    visit_scope(tree)
+    return positions
+
+
+def _rewrite_param_name_references(
+    line: str,
+    protected_positions: set[tuple[int, int]] | None = None,
+    line_offset: int = 0,
+) -> tuple[str, bool]:
     """Rewrite executable unqualified deprecated Params references to `NNParams`.
 
     Tokenization keeps comments and string literals untouched, so prose-only
     cells do not gain executable imports. Qualified attributes and declaration
     names are left alone.
     """
-    protected_names = protected_names or set()
+    protected_positions = protected_positions or set()
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(line).readline))
     except tokenize.TokenError:
@@ -320,7 +431,12 @@ def _rewrite_param_name_references(line: str, protected_names: set[str] | None =
 
     replacements: list[tuple[int, int]] = []
     for idx, token in enumerate(tokens):
-        if token.type != tokenize.NAME or token.string not in DEPRECATED_PARAM_NAMES or token.string in protected_names:
+        token_position = (token.start[0] + line_offset, token.start[1])
+        if (
+            token.type != tokenize.NAME
+            or token.string not in DEPRECATED_PARAM_NAMES
+            or token_position in protected_positions
+        ):
             continue
         prev_token = next(
             (
@@ -345,7 +461,7 @@ def _rewrite_param_name_references(line: str, protected_names: set[str] | None =
 
 def _rewrite_call_sites_across_continuations(
     lines: list[str],
-    protected_names: set[str] | None = None,
+    protected_positions: set[tuple[int, int]] | None = None,
 ) -> tuple[list[str], bool]:
     rewritten: list[str] = []
     changed = False
@@ -356,7 +472,11 @@ def _rewrite_call_sites_across_continuations(
             idx += 1
             chunk.append(lines[idx])
         if len(chunk) > 1:
-            new_chunk, chunk_changed = _rewrite_param_name_references("".join(chunk), protected_names)
+            new_chunk, chunk_changed = _rewrite_param_name_references(
+                "".join(chunk),
+                protected_positions,
+                line_offset=idx - len(chunk) + 1,
+            )
             if chunk_changed:
                 changed = True
                 rewritten.extend(new_chunk.splitlines(keepends=True))
@@ -394,7 +514,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
     out: list[str] = []
     needed_nnparams_imports: set[str] = set()
     existing_nnparams_imports: set[str] = set()
-    protected_names = _deprecated_binding_names("".join(source_lines))
+    protected_positions = _deprecated_binding_reference_positions("".join(source_lines))
     protected_lines = _multiline_string_line_numbers(source_lines)
     in_parenthesized_import = False
     parenthesized_import_open = ""
@@ -507,7 +627,11 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                     continue
                 new_line = rewritten
         # 2026-05-27: rewrite executable uses of deprecated per-net Params.
-        new_line, param_reference_changed = _rewrite_param_name_references(new_line, protected_names)
+        new_line, param_reference_changed = _rewrite_param_name_references(
+            new_line,
+            protected_positions,
+            line_offset=line_no - 1,
+        )
         if param_reference_changed:
             needed_nnparams_imports.add("NNParams")
         # Track whether NNParams is being imported in this cell already.
@@ -517,7 +641,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         if nnparams_import:
             existing_nnparams_imports.update(_nnparams_import_requirements(nnparams_import.group(1)))
         out.append(new_line)
-    out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(out, protected_names)
+    out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(out, protected_positions)
     if continuation_call_site_changed:
         needed_nnparams_imports.add("NNParams")
     # If any call site or rewrite needs NNParams but the cell never imports it,

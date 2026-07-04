@@ -465,6 +465,16 @@ def _iter_notebooks(repo: Path) -> Iterator[Path]:
             yield nb_path
 
 
+def _iter_notebook_schema_files(repo: Path) -> Iterator[Path]:
+    notebook_root = repo / NOTEBOOK_ROOT
+    if not notebook_root.exists():
+        return
+    for nb_path in sorted(notebook_root.rglob("*.ipynb")):
+        if ".ipynb_checkpoints" in nb_path.parts:
+            continue
+        yield nb_path
+
+
 def _active_task_path(repo: Path, task: str) -> Path:
     return repo / NOTEBOOK_ROOT / task
 
@@ -530,8 +540,8 @@ def check_structure(repo: Path) -> CheckResult:
     tracked = set(_git_ls_files(repo))
 
     valid_types = {"code", "markdown", "raw"}
-    notebooks = list(_iter_notebooks(repo))
-    for nb in notebooks:
+    schema_notebooks = list(_iter_notebook_schema_files(repo))
+    for nb in schema_notebooks:
         try:
             raw_doc = json.loads(nb.read_text(encoding="utf-8"))
             for i, c in enumerate(raw_doc.get("cells", [])):
@@ -566,6 +576,7 @@ def check_structure(repo: Path) -> CheckResult:
                 message=f"failed to parse: {e}",
             ))
 
+    notebooks = list(_iter_notebooks(repo))
     for nb in notebooks:
         try:
             doc = nbformat.read(nb, as_version=4)
