@@ -6,7 +6,9 @@ Move every experiment notebook into a dedicated top-level `notebooks/` tree, mak
 `notebooks/<experiment>/` directory the canonical runnable home for that experiment. Active
 experiments, archived CodeXGLUE experiments, per-experiment READMEs, local helper code, and
 runtime artifact directories move together so notebooks remain rerunnable from their new
-locations.
+locations. In the same migration, rename the repository identity from `ml-lab` to
+`ml-eng-lab` across live documentation, tooling, container names, GitHub URLs, nbviewer URLs,
+and runtime path examples.
 
 ## 2. Goals
 
@@ -20,6 +22,9 @@ locations.
   `.gitignore`) with their archived experiments.
 - Update all tooling, tests, CI paths, verifier rules, documentation links, nbviewer links,
   and notebook markdown links to the new paths.
+- Update live references from `ml-lab` to `ml-eng-lab`, including GitHub repository URLs,
+  nbviewer URLs, Docker image tags, Codespaces paths, container bind-mount paths, examples,
+  and prose that describes the current repository.
 - Leave the repository with passing verification or clearly document any environment-limited
   check that cannot be run locally.
 
@@ -31,6 +36,9 @@ locations.
   required.
 - Do not preserve compatibility with old notebook paths beyond updated documentation and git
   history.
+- Do not rewrite historical changelog entries or preserved notebook outputs merely because
+  they mention `ml-lab`; only update them when the text is current guidance, a live link, or
+  an active path contract.
 - Do not introduce a new package layout for shared ML code; `thekaveh-nnx` remains the shared
   library dependency.
 
@@ -134,34 +142,63 @@ Update every path contract that currently assumes notebooks live in root task di
 
 ## 7. Documentation Changes
 
-Update documentation so the new structure is explicit and old paths are not advertised:
+Update documentation so the new structure and repository identity are explicit and old paths
+are not advertised:
 
 - Root `README.md`
+  - Title and repository name.
   - Repository layout section.
   - Quick start examples.
   - Task table links.
   - Notebook re-execution policy.
   - Archive links.
+  - GitHub, Codespaces, Docker, and nbviewer examples using `ml-eng-lab`.
 - `CONTRIBUTING.md`
   - Replace the old flat task-folder convention with the new `notebooks/<task>/` convention.
   - Update new-task scaffolding instructions.
   - Update nbviewer examples.
   - Update verifier and Makefile registration instructions.
+  - Update current-repo prose from `ml-lab` to `ml-eng-lab`.
 - Per-experiment `README.md` files
   - Update links to notebooks and docs after the README moves under `notebooks/<task>/`.
   - Update nbviewer URLs to include `notebooks/`.
+  - Update nbviewer URLs to use `thekaveh/ml-eng-lab`.
   - Update relative links to root docs, usually from `../docs/...` to `../../docs/...`.
 - `docs/*.md`
   - Update runtime, environment, VS Code, JupyterHub, dependency, and findings references to
-    old notebook paths.
+    old notebook paths and live `ml-lab` repository paths.
 - `CHANGELOG.md`
-  - Add a new unreleased entry describing the move.
+  - Add a new unreleased entry describing the notebook move and repo rename.
   - Historical entries may remain historically accurate unless they contain live guidance,
     live links, or current path contracts.
 - Notebook markdown cells
-  - Update links that point to old notebook paths or docs.
+  - Update links that point to old notebook paths, docs, GitHub URLs, or nbviewer URLs.
 
-## 8. Data And Artifact Handling
+## 8. Repository Rename Handling
+
+Treat the repo rename from `ml-lab` to `ml-eng-lab` as part of the same implementation:
+
+- Update current repository branding and prose from `ml-lab` to `ml-eng-lab`.
+- Update GitHub URLs from `github.com/thekaveh/ml-lab` to
+  `github.com/thekaveh/ml-eng-lab`.
+- Update nbviewer URLs from `nbviewer.org/github/thekaveh/ml-lab/...` to
+  `nbviewer.org/github/thekaveh/ml-eng-lab/...`, while also inserting the new
+  `notebooks/` path segment for moved notebooks.
+- Update Codespaces path examples from `/workspaces/ml-lab` to
+  `/workspaces/ml-eng-lab`.
+- Update JupyterHub and Docker bind-mount examples from `/home/jovyan/work/ml-lab` to
+  `/home/jovyan/work/ml-eng-lab`.
+- Update Docker tags such as `ml-lab` and `ml-lab-ci` to `ml-eng-lab` and
+  `ml-eng-lab-ci`.
+- Update scripts and deploy comments or variables only when they encode user-facing
+  names, paths, or container-visible mount points. Keep generic variable names such as
+  `ML_REPO_PATH` if they remain semantically useful and do not expose the old repo name.
+- Preserve historical mentions in old changelog entries, findings, and notebook outputs
+  when they describe past events or recorded execution output rather than current usage.
+- Add focused stale-reference scans that distinguish live references requiring updates from
+  intentionally preserved historical references.
+
+## 9. Data And Artifact Handling
 
 Tracked files move through git so history is preserved as much as possible:
 
@@ -184,7 +221,7 @@ Before moving ignored artifacts, inventory them and avoid overwriting existing d
 directories. If source and destination both exist, merge only when the contents are clearly
 non-conflicting; otherwise stop and report the conflict.
 
-## 9. Verification Plan
+## 10. Verification Plan
 
 The implementation is complete only after verification passes or a local environment
 limitation is explicitly reported:
@@ -199,8 +236,10 @@ limitation is explicitly reported:
 8. Focused stale-path scans for old active and archive notebook locations
 9. Focused notebook parse checks for all moved notebooks
 10. Targeted papermill smoke checks where feasible without replaying the full expensive fleet
+11. Focused stale-reference scans for live `ml-lab`, `thekaveh/ml-lab`,
+    `/workspaces/ml-lab`, `/home/jovyan/work/ml-lab`, and `nbviewer` references
 
-## 10. Risks And Mitigations
+## 11. Risks And Mitigations
 
 - Risk: path updates miss a verifier, CI, or test contract.
   - Mitigation: run stale-path scans and full local verification.
@@ -215,8 +254,14 @@ limitation is explicitly reported:
     via an explicit mapping, or document the structural rename in the verifier logic.
 - Risk: git diff is noisy because notebooks are large JSON files.
   - Mitigation: use git moves where possible and avoid unnecessary notebook rewrites.
+- Risk: repository rename updates accidentally rewrite historical records.
+  - Mitigation: separate live guidance/path contracts from historical changelog and
+    preserved output text; update only the former.
+- Risk: external links break until the remote GitHub repository is actually renamed.
+  - Mitigation: make the code/docs internally consistent with the intended `ml-eng-lab`
+    target and call out that remote repository rename is an external follow-up if needed.
 
-## 11. Acceptance Criteria
+## 12. Acceptance Criteria
 
 - All active notebooks live under `notebooks/<task>/`.
 - All archived CodeXGLUE notebooks live under `notebooks/archive/codexglue_summarization/`.
@@ -226,6 +271,10 @@ limitation is explicitly reported:
   `./model`, and sibling imports.
 - CI, Makefile, verifier config, verifier code, ruff config, tests, and docs reference the
   new paths.
+- Live repository identity references use `ml-eng-lab`, including GitHub URLs, nbviewer URLs,
+  Docker tags, Codespaces examples, and JupyterHub bind-mount examples.
 - Stale scans find no live references to old notebook paths except historical changelog or
+  preserved output contexts that are intentionally documented.
+- Stale scans find no live references to `ml-lab` except historical changelog, findings, or
   preserved output contexts that are intentionally documented.
 - Required verification commands pass or have explicit environment-limited exceptions.
