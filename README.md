@@ -160,6 +160,8 @@ Notebooks are tiered by execution cost:
 | **B** | Moderate (model-selection sweeps) | Original outputs preserved. `make smoke-tier-b` runs `SMOKE_TEST=1` and writes to `/tmp/`: the parameterized `image_classification-mnist-ffnn-pytorch` notebook shrinks its sweep, and the 4 phase2 reddit notebooks run smoke-truncated epochs/subsets (notebook4 also reduces fanout). |
 | **C** | Expensive (main GPU training) | Historical Aug-2023 GPU training-run outputs preserved as artifact. `make smoke-tier-c` runs CPU with `SMOKE_TEST=1` to validate the pipeline without overwriting outputs. |
 
+Tier-B/C smoke targets write the executed notebook copies under `/tmp/ml-smoke`, but papermill intentionally runs each notebook from its own task directory so relative paths behave like an interactive run. Training and evaluation may therefore create ignored task-local `./data/` or `./runs/` artifacts even when source notebook outputs are preserved; committed output text such as `Run saved to ./runs/...` describes that notebook-local runtime location, not files guaranteed to exist in a clean checkout.
+
 See [docs/env-setup.md](docs/env-setup.md) for the tier mapping.
 
 ## 6. NNx library

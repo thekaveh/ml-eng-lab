@@ -338,6 +338,34 @@ def test_structure_s2_checks_literal_dynamic_import_aliases(tmp_path):
     assert any("definitely_missing_module_alias" in m for m in messages), data.get("findings")
 
 
+def test_structure_s2_checks_missing_dotted_submodules(tmp_path):
+    """An importable top-level package must not hide a missing dotted submodule."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "missing-dotted-submodules.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import json.definitely_missing_submodule_for_s2\n"
+            "from json.definitely_missing_from_submodule import VALUE\n"
+            "importlib.import_module('json.definitely_missing_dynamic_submodule')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    messages = [
+        f["message"] for f in data["findings"]
+        if f["id"] == "S2.unresolved_import" and name in f["location"]
+    ]
+    assert any("json.definitely_missing_submodule_for_s2" in m for m in messages), data.get("findings")
+    assert any("json.definitely_missing_from_submodule" in m for m in messages), data.get("findings")
+    assert any("json.definitely_missing_dynamic_submodule" in m for m in messages), data.get("findings")
+
+
 def test_structure_s2_fallback_checks_literal_dynamic_import_aliases(tmp_path):
     """Syntax-error fallback should still check importlib alias calls."""
     import nbformat
@@ -966,6 +994,68 @@ def test_docs_d10_flags_missing_dependency_ledger_gitlink(tmp_path, monkeypatch)
     assert hits
     assert "gitlink" in hits[0].message
     assert hits[0].detail == {"ledger_sha": ledger_sha, "gitlink_sha": None}
+
+
+def test_docs_d10_flags_workflow_action_refs_that_are_not_sha_pinned(tmp_path):
+    repo = _temp_repo(tmp_path)
+    workflow = repo / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text(
+        "jobs:\n"
+        "  test:\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v7\n",
+        encoding="utf-8",
+    )
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 8. GitHub Actions Pins\n\n"
+        "| Action | Reviewed Tag | Pinned SHA |\n"
+        "| --- | --- | --- |\n"
+        "| `actions/checkout` | `v7` | `9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0` |\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.workflow_action_pin"]
+    assert hits, f"expected D10.workflow_action_pin; got {data.get('findings')}"
+    assert "actions/checkout@v7" in hits[0]["message"]
+
+
+def test_docs_d10_flags_workflow_action_refs_missing_from_ledger(tmp_path):
+    repo = _temp_repo(tmp_path)
+    workflow = repo / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text(
+        "jobs:\n"
+        "  test:\n"
+        "    steps:\n"
+        "      - uses: actions/cache@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # v5\n",
+        encoding="utf-8",
+    )
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 8. GitHub Actions Pins\n\n"
+        "| Action | Reviewed Tag | Pinned SHA |\n"
+        "| --- | --- | --- |\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.workflow_action_pin"]
+    assert hits, f"expected D10.workflow_action_pin; got {data.get('findings')}"
+    assert "ledger" in hits[0]["message"]
+
+
+def test_docs_d10_current_workflow_action_pins_match_ledger():
+    r = run_verify("--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.workflow_action_pin"]
+    assert hits == []
 
 
 def test_docs_d11_current_layout_guidance_is_not_stale():

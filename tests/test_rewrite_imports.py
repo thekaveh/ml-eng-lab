@@ -380,6 +380,26 @@ def test_params_call_site_with_backslash_continuation_renamed_to_nnparams(tmp_pa
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_qualified_and_declaration_param_names_are_not_rewritten(tmp_path):
+    p = _make_notebook(tmp_path, "qualified_and_decl_names.ipynb", [
+        _code_cell(
+            "import legacy\n"
+            "qualified = legacy.GraphAttNNParams(n_heads=4)\n"
+            "class GraphAttNNParams(BaseParams):\n"
+            "    pass\n"
+            "def GraphConvNNParams(value):\n"
+            "    return value\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "legacy.GraphAttNNParams(n_heads=4)" in src
+    assert "class GraphAttNNParams(BaseParams):" in src
+    assert "def GraphConvNNParams(value):" in src
+    assert "from nnx.nn.params.nn_params import NNParams" not in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_nnparams_import_inserted_after_cell_magic(tmp_path):
     p = _make_notebook(tmp_path, "gat_call_cell_magic.ipynb", [
         _code_cell(
@@ -420,6 +440,18 @@ def test_commented_out_and_string_call_sites_are_preserved(tmp_path):
     assert _cell_source(p, 0) == src
 
 
+def test_parenthesized_non_deprecated_import_preserves_comments(tmp_path):
+    src = (
+        "from some.module import (\n"
+        "    # needed for registry side effect\n"
+        "    UsefulSymbol,  # keep this inline note\n"
+        ")\n"
+    )
+    p = _make_notebook(tmp_path, "non_deprecated_parenthesized_import.ipynb", [_code_cell(src)])
+    _run(p)
+    assert _cell_source(p, 0) == src
+
+
 def test_common_nn_model_split_import_with_inline_comment(tmp_path):
     p = _make_notebook(tmp_path, "common_nn_model_comment.ipynb", [
         _code_cell("from common.nn_model import NNModel, NNTrainParams  # training params\n"),
@@ -430,3 +462,17 @@ def test_common_nn_model_split_import_with_inline_comment(tmp_path):
     assert "from nnx.nn.params.nn_train_params import NNTrainParams" in src
     assert "from nnx.nn.nn_model import NNModel, NNTrainParams" not in src
     compile(src, "<rewritten-cell>", "exec")
+
+
+def test_missing_input_path_returns_nonzero(tmp_path):
+    repo_root = Path(__file__).resolve().parent.parent
+    missing = tmp_path / "missing.ipynb"
+    result = subprocess.run(
+        [sys.executable, str(repo_root / "scripts" / "rewrite_imports.py"), str(missing)],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+    assert result.returncode == 1
+    assert "SKIP (not found)" in result.stderr

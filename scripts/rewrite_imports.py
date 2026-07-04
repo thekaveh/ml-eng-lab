@@ -188,6 +188,16 @@ def _rewrite_call_sites(line: str) -> tuple[str, bool]:
     for idx, token in enumerate(tokens):
         if token.type != tokenize.NAME or token.string not in DEPRECATED_PARAM_NAMES:
             continue
+        prev_token = next(
+            (
+                candidate
+                for candidate in reversed(tokens[:idx])
+                if candidate.type not in {tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT}
+            ),
+            None,
+        )
+        if prev_token is not None and prev_token.string in {".", "class", "def"}:
+            continue
         next_token = next(
             (
                 candidate
@@ -257,25 +267,39 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
     in_parenthesized_import = False
     parenthesized_import_open = ""
     parenthesized_import_kept: list[str] = []
+    parenthesized_import_raw: list[str] = []
+    parenthesized_import_changed = False
     for line in source_lines:
         stripped_nl = line.rstrip("\n")
         had_nl = line.endswith("\n")
         if in_parenthesized_import:
+            parenthesized_import_raw.append(line)
             kept_lines, nnparams_imports, closes_import = _rewrite_parenthesized_import_member_line(line)
             needed_nnparams_imports.update(nnparams_imports)
+            parenthesized_import_changed = parenthesized_import_changed or bool(nnparams_imports)
             parenthesized_import_kept.extend(kept_lines)
             if _is_nnparams_parenthesized_import(parenthesized_import_open):
                 for kept_line in kept_lines:
                     if "NNParams" in kept_line:
                         existing_nnparams_imports.update(_imported_symbol_bindings(kept_line.strip().rstrip(",")))
             if closes_import:
-                if parenthesized_import_kept:
+                if not parenthesized_import_changed:
+                    out.extend(parenthesized_import_raw)
+                    if _is_nnparams_parenthesized_import(parenthesized_import_open):
+                        for raw_line in parenthesized_import_raw:
+                            if "NNParams" in raw_line:
+                                existing_nnparams_imports.update(
+                                    _imported_symbol_bindings(raw_line.split(")", 1)[0].strip().rstrip(","))
+                                )
+                elif parenthesized_import_kept:
                     out.append(parenthesized_import_open)
                     out.extend(parenthesized_import_kept)
                     out.append(_closing_paren_line(line))
                 in_parenthesized_import = False
                 parenthesized_import_open = ""
                 parenthesized_import_kept = []
+                parenthesized_import_raw = []
+                parenthesized_import_changed = False
                 continue
             continue
         # Try split patterns first
@@ -301,6 +325,8 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         new_line = _single_line_parenthesized_import(new_line)
         if new_line.lstrip().startswith("from ") and " import (" in new_line:
             in_parenthesized_import = True
+            parenthesized_import_raw = [new_line]
+            parenthesized_import_changed = False
             opener_parts = _parenthesized_import_opener(new_line)
             parenthesized_import_open = opener_parts[0] if opener_parts else new_line
             parenthesized_import_kept = []
@@ -309,19 +335,30 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                 member_line = f"{opener_indent}    {opener_parts[1]}"
                 kept_lines, nnparams_imports, closes_import = _rewrite_parenthesized_import_member_line(member_line)
                 needed_nnparams_imports.update(nnparams_imports)
+                parenthesized_import_changed = parenthesized_import_changed or bool(nnparams_imports)
                 parenthesized_import_kept.extend(kept_lines)
                 if _is_nnparams_parenthesized_import(parenthesized_import_open):
                     for kept_line in kept_lines:
                         if "NNParams" in kept_line:
                             existing_nnparams_imports.update(_imported_symbol_bindings(kept_line.strip().rstrip(",")))
                 if closes_import:
-                    if parenthesized_import_kept:
+                    if not parenthesized_import_changed:
+                        out.extend(parenthesized_import_raw)
+                        if _is_nnparams_parenthesized_import(parenthesized_import_open):
+                            for raw_line in parenthesized_import_raw:
+                                if "NNParams" in raw_line:
+                                    existing_nnparams_imports.update(
+                                        _imported_symbol_bindings(raw_line.split(")", 1)[0].strip().rstrip(","))
+                                    )
+                    elif parenthesized_import_kept:
                         out.append(parenthesized_import_open)
                         out.extend(parenthesized_import_kept)
                         out.append(_closing_paren_line(new_line))
                     in_parenthesized_import = False
                     parenthesized_import_open = ""
                     parenthesized_import_kept = []
+                    parenthesized_import_raw = []
+                    parenthesized_import_changed = False
             continue
         # 2026-05-27: drop deprecated per-net Params from import lines
         if new_line.lstrip().startswith("from "):
@@ -390,10 +427,12 @@ def main(argv: list[str]) -> int:
         print(USAGE)
         return 0
     changed_count = 0
+    missing_count = 0
     for arg in argv:
         p = Path(arg)
         if not p.exists():
             print(f"SKIP (not found): {p}", file=sys.stderr)
+            missing_count += 1
             continue
         if process_notebook(p):
             print(f"REWRITTEN: {p}")
@@ -401,6 +440,9 @@ def main(argv: list[str]) -> int:
         else:
             print(f"unchanged: {p}")
     print(f"\n{changed_count} notebook(s) rewritten.")
+    if missing_count:
+        print(f"{missing_count} input path(s) were missing.", file=sys.stderr)
+        return 1
     return 0
 
 

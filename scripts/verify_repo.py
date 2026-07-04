@@ -212,7 +212,7 @@ def _literal_dynamic_import(
     first_arg = node.args[0]
     if not isinstance(first_arg, ast.Constant) or not isinstance(first_arg.value, str):
         return ""
-    return first_arg.value.split(".")[0]
+    return first_arg.value
 
 
 def _fallback_statement(lines: list[str], start: int) -> tuple[str, int]:
@@ -272,7 +272,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                             location = li + getattr(node, "lineno", 1) - 1
                             if isinstance(node, ast.Import):
                                 for alias in node.names:
-                                    module = alias.name.split(".")[0]
+                                    module = alias.name
                                     if module:
                                         yield ImportedModule(module=module, line=location)
                             elif isinstance(node, ast.ImportFrom):
@@ -280,7 +280,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                                     module = node.module or ", ".join(alias.name for alias in node.names)
                                     yield ImportedModule(module=module or ".", line=location, relative=True)
                                 elif node.module:
-                                    module = node.module.split(".")[0]
+                                    module = node.module
                                     if module:
                                         yield ImportedModule(module=module, line=location)
                             elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
@@ -291,7 +291,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                 if not m:
                     idx += 1
                     continue
-                module = (m.group(1) or m.group(2) or "").split(".")[0]
+                module = m.group(1) or m.group(2) or ""
                 if module:
                     yield ImportedModule(module=module, line=li)
                 idx += 1
@@ -302,7 +302,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
             for node in ast.walk(line_tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        module = alias.name.split(".")[0]
+                        module = alias.name
                         if module:
                             yield ImportedModule(module=module, line=li)
                 elif isinstance(node, ast.ImportFrom):
@@ -310,7 +310,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                         module = node.module or ", ".join(alias.name for alias in node.names)
                         yield ImportedModule(module=module or ".", line=li, relative=True)
                     elif node.module:
-                        module = node.module.split(".")[0]
+                        module = node.module
                         if module:
                             yield ImportedModule(module=module, line=li)
                 elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
@@ -322,7 +322,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                module = alias.name.split(".")[0]
+                module = alias.name
                 if module:
                     yield ImportedModule(module=module, line=node.lineno)
         elif isinstance(node, ast.ImportFrom):
@@ -334,7 +334,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                     relative=True,
                 )
             elif node.module:
-                module = node.module.split(".")[0]
+                module = node.module
                 if module:
                     yield ImportedModule(module=module, line=node.lineno)
         elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
@@ -557,6 +557,7 @@ def check_structure(repo: Path) -> CheckResult:
                 continue
             for imported in _imported_modules_from_source(cell.source):
                 module = imported.module
+                module_root = module.split(".", 1)[0]
                 li = imported.line
                 location = f"{nb.relative_to(repo)}:cell[{ci}]:line[{li}]"
                 if imported.relative:
@@ -574,9 +575,9 @@ def check_structure(repo: Path) -> CheckResult:
                 if not module or module in seen_in_notebook:
                     continue
                 seen_in_notebook.add(module)
-                if module in sibling_modules:
+                if module_root in sibling_modules:
                     continue
-                if module in _RUNTIME_ONLY_MODULES:
+                if module_root in _RUNTIME_ONLY_MODULES:
                     continue
                 try:
                     spec = importlib.util.find_spec(module)
@@ -588,14 +589,14 @@ def check_structure(repo: Path) -> CheckResult:
                     ))
                     continue
                 if spec is None:
-                    severity = "warning" if module in _RUNTIME_ONLY_MODULES else "error"
+                    severity = "warning" if module_root in _RUNTIME_ONLY_MODULES else "error"
                     result.findings.append(Finding(
                         id="S2.unresolved_import", check="structure", severity=severity,
                         location=location,
                         message=(
                             f"module {module!r} not importable in verifier env"
                             + (" (expected only in runtime container)"
-                               if module in _RUNTIME_ONLY_MODULES else "")
+                               if module_root in _RUNTIME_ONLY_MODULES else "")
                         ),
                     ))
 
@@ -960,6 +961,82 @@ def _dependency_ledger_findings(repo: Path) -> list[Finding]:
     return findings
 
 
+def _workflow_action_pin_ledger(text: str) -> dict[str, tuple[str, str]]:
+    return {
+        action: (tag, sha)
+        for action, tag, sha in re.findall(
+            r"^\| `([^`]+)` \| `([^`]+)` \| `([0-9a-f]{40})` \|", text, re.M
+        )
+    }
+
+
+def _workflow_action_pin_findings(repo: Path) -> list[Finding]:
+    ledger_path = repo / "docs" / "dependency-contracts.md"
+    if not ledger_path.exists():
+        return []
+    ledger = _workflow_action_pin_ledger(_read_text(ledger_path))
+    findings: list[Finding] = []
+    for workflow in sorted((repo / ".github" / "workflows").glob("*.yml")):
+        for line_no, line in enumerate(_read_text(workflow).splitlines(), start=1):
+            m = re.search(r"\buses:\s*([^\s#]+)(?:\s*#\s*(\S+))?", line)
+            if not m:
+                continue
+            uses_ref = m.group(1).strip("'\"")
+            tag_comment = (m.group(2) or "").strip()
+            if uses_ref.startswith(("./", "../")):
+                continue
+            if "@" not in uses_ref:
+                findings.append(Finding(
+                    id="D10.workflow_action_pin",
+                    check="docs",
+                    severity="error",
+                    location=f"{workflow.relative_to(repo)}:{line_no}",
+                    message=f"workflow action reference must include @ref: {uses_ref}",
+                ))
+                continue
+            action, ref = uses_ref.rsplit("@", 1)
+            if not re.fullmatch(r"[0-9a-f]{40}", ref):
+                findings.append(Finding(
+                    id="D10.workflow_action_pin",
+                    check="docs",
+                    severity="error",
+                    location=f"{workflow.relative_to(repo)}:{line_no}",
+                    message=f"workflow action reference must be pinned to a full SHA: {uses_ref}",
+                    detail={"action": action, "ref": ref},
+                ))
+                continue
+            if action not in ledger:
+                findings.append(Finding(
+                    id="D10.workflow_action_pin",
+                    check="docs",
+                    severity="error",
+                    location=f"{workflow.relative_to(repo)}:{line_no}",
+                    message=f"workflow action is SHA-pinned but missing from dependency ledger: {action}",
+                    detail={"action": action, "sha": ref},
+                ))
+                continue
+            ledger_tag, ledger_sha = ledger[action]
+            if ref != ledger_sha or tag_comment != ledger_tag:
+                findings.append(Finding(
+                    id="D10.workflow_action_pin",
+                    check="docs",
+                    severity="error",
+                    location=f"{workflow.relative_to(repo)}:{line_no}",
+                    message=(
+                        "workflow action SHA/comment must match dependency ledger "
+                        f"for {action}"
+                    ),
+                    detail={
+                        "action": action,
+                        "workflow_sha": ref,
+                        "workflow_tag_comment": tag_comment,
+                        "ledger_sha": ledger_sha,
+                        "ledger_tag": ledger_tag,
+                    },
+                ))
+    return findings
+
+
 def _notebook_markdown_text(nb_path: Path) -> str:
     try:
         doc = nbformat.read(nb_path, as_version=4)
@@ -1133,6 +1210,7 @@ def check_docs(repo: Path) -> CheckResult:
         result.findings.extend(_numbered_heading_findings(repo, path))
 
     result.findings.extend(_dependency_ledger_findings(repo))
+    result.findings.extend(_workflow_action_pin_findings(repo))
     result.findings.extend(_stale_layout_guidance_findings(repo))
 
     return result
