@@ -318,6 +318,22 @@ def test_params_call_site_with_backslash_continuation_renamed_to_nnparams(tmp_pa
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_nnparams_import_inserted_after_cell_magic(tmp_path):
+    p = _make_notebook(tmp_path, "gat_call_cell_magic.ipynb", [
+        _code_cell(
+            "%%time\n"
+            "params = GraphAttNNParams(n_heads=4, input_dim=10, output_dim=2)\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    lines = src.splitlines(keepends=True)
+    assert lines[0] == "%%time\n"
+    assert lines[1] == "from nnx.nn.params.nn_params import NNParams\n"
+    assert "params = NNParams(n_heads=4, input_dim=10, output_dim=2)" in src
+    assert "GraphAttNNParams" not in src
+
+
 def test_other_per_net_params_renamed_defensively(tmp_path):
     """Defensive rules: even if no notebook currently uses these, the rewriter
     handles them so future audits don't repeat the miss."""

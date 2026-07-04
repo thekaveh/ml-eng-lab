@@ -213,6 +213,12 @@ def _rewrite_call_sites_across_continuations(lines: list[str]) -> tuple[list[str
     return rewritten, changed
 
 
+def _nnparams_import_insert_index(lines: list[str]) -> int:
+    if lines and lines[0].lstrip().startswith("%%"):
+        return 1
+    return 0
+
+
 def rewrite_lines(source_lines: list[str]) -> list[str]:
     """Apply all rewrites to a list of source lines (each preserving its trailing \\n if present)."""
     out: list[str] = []
@@ -304,7 +310,10 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
     # inject one.
     missing_nnparams_imports = sorted(needed_nnparams_imports - existing_nnparams_imports)
     if missing_nnparams_imports:
-        out.insert(0, f"from nnx.nn.params.nn_params import {', '.join(missing_nnparams_imports)}\n")
+        out.insert(
+            _nnparams_import_insert_index(out),
+            f"from nnx.nn.params.nn_params import {', '.join(missing_nnparams_imports)}\n",
+        )
     return out
 
 
