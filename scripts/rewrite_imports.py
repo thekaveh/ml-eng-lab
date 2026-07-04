@@ -108,6 +108,32 @@ def _single_line_parenthesized_import(line: str) -> str:
     return f"{m.group(1)}{m.group(2).strip()}{m.group(3)}{m.group(4)}"
 
 
+def _rewrite_common_import_aliases(line: str) -> str:
+    m = re.match(r"^(\s*)import\s+(.+?)(\n?)$", line)
+    if not m:
+        return line
+    indent, aliases_text, newline = m.group(1), m.group(2), m.group(3)
+    code_text, comment_marker, comment_text = aliases_text.partition("#")
+    aliases = [part.strip() for part in code_text.split(",")]
+    if not aliases or any(not alias for alias in aliases):
+        return line
+
+    changed = False
+    rewritten_aliases: list[str] = []
+    for alias in aliases:
+        rewritten = re.sub(r"^common(?=\.|\s+as\b|$)", "nnx", alias)
+        changed = changed or rewritten != alias
+        rewritten_aliases.append(rewritten)
+    if not changed:
+        return line
+
+    trailing = ""
+    if comment_marker:
+        before_comment = code_text[len(code_text.rstrip()) :]
+        trailing = f"{before_comment or ' '}#{comment_text}"
+    return f"{indent}import {', '.join(rewritten_aliases)}{trailing}{newline}"
+
+
 def _imported_symbol_bindings(symbols: str) -> set[str]:
     bindings = set()
     for part in (p.strip() for p in symbols.split(",") if p.strip()):
@@ -334,6 +360,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
             for old, new in SIMPLE_MAPPINGS:
                 if old in new_line:
                     new_line = new_line.replace(old, new)
+        new_line = _rewrite_common_import_aliases(new_line)
         new_line = _single_line_parenthesized_import(new_line)
         if new_line.lstrip().startswith("from ") and " import (" in new_line:
             in_parenthesized_import = True

@@ -71,6 +71,13 @@ def test_module_path_rewrite_common_to_nnx(tmp_path):
     assert "from nnx.nn.nn_model import NNModel" in _cell_source(p, 0)
 
 
+def test_module_path_rewrite_common_alias_inside_multi_import(tmp_path):
+    src = "import os, common.utils as common_utils  # migrate this alias\n"
+    p = _make_notebook(tmp_path, "multi_import_common_alias.ipynb", [_code_cell(src)])
+    _run(p)
+    assert _cell_source(p, 0) == "import os, nnx.utils as common_utils  # migrate this alias\n"
+
+
 def test_idempotent_on_already_rewritten(tmp_path):
     src = "from nnx.nn.nn_model import NNModel\n"
     p = _make_notebook(tmp_path, "ok.ipynb", [_code_cell(src)])

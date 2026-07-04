@@ -184,6 +184,61 @@ def test_structure_s5_no_common_imports():
     assert s5 == [], f"S5 found stray common.* imports: {s5}"
 
 
+def test_structure_s5_flags_common_alias_inside_python_multi_import(tmp_path):
+    """A valid first import must not hide a forbidden common import alias."""
+    repo = _temp_repo(tmp_path)
+    module = repo / "stray_common_multi_import.py"
+    module.write_text("import os, common.utils\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "-f", str(module)],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S5.common_import"
+        and f["location"] == "stray_common_multi_import.py:1"
+    ]
+    assert hits, f"expected S5.common_import for multi-import alias; got {data.get('findings')}"
+
+
+def test_structure_s5_flags_common_alias_inside_notebook_multi_import(tmp_path):
+    """Notebook cells should get the same multi-import common scan as scripts."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "multi-import-common.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell("import os, common.utils\n")
+    ]
+    nbformat.write(nb, str(fake))
+    subprocess.run(
+        ["git", "add", "-f", str(fake)],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S5.common_import"
+        and f["location"] == f"{ACTIVE_FIXTURE_DIR}/{name}:cell[0]:line[1]"
+    ]
+    assert hits, f"expected S5.common_import for notebook multi-import alias; got {data.get('findings')}"
+
+
 def test_structure_s2_checks_every_module_in_multi_import(tmp_path):
     """A valid first import must not hide a missing second import on the same line."""
     import nbformat

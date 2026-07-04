@@ -638,7 +638,19 @@ def check_structure(repo: Path) -> CheckResult:
                         detail={"link": m.group(0), "target": str(target_path.relative_to(repo))},
                     ))
 
-    _COMMON_IMPORT_RE = re.compile(r"^\s*(?:from\s+common(?:\.\w+)*\s+import\b|import\s+common(?:\.\w+)*)")
+    def add_common_import_findings(source: str, location_for_line: Callable[[int], str]) -> None:
+        for imported in _imported_modules_from_source(source):
+            if imported.relative:
+                continue
+            if imported.module == "common" or imported.module.startswith("common."):
+                result.findings.append(Finding(
+                    id="S5.common_import",
+                    check="structure",
+                    severity="error",
+                    location=location_for_line(imported.line),
+                    message="forbidden import; use `from nnx.` instead",
+                ))
+
     for path in tracked:
         if path.startswith(("tests/", "notebooks/archive/", "vendor/")):
             continue
@@ -647,13 +659,7 @@ def check_structure(repo: Path) -> CheckResult:
             continue
         suffix = full.suffix.lower()
         if suffix == ".py":
-            for i, line in enumerate(_read_text(full).splitlines(), 1):
-                if _COMMON_IMPORT_RE.match(line):
-                    result.findings.append(Finding(
-                        id="S5.common_import", check="structure", severity="error",
-                        location=f"{path}:{i}",
-                        message="forbidden import; use `from nnx.` instead",
-                    ))
+            add_common_import_findings(_read_text(full), lambda line, path=path: f"{path}:{line}")
         elif suffix == ".ipynb":
             try:
                 doc = nbformat.read(full, as_version=4)
@@ -662,13 +668,10 @@ def check_structure(repo: Path) -> CheckResult:
             for ci, cell in enumerate(doc.cells):
                 if cell.cell_type != "code":
                     continue
-                for li, line in enumerate(cell.source.splitlines(), 1):
-                    if _COMMON_IMPORT_RE.match(line):
-                        result.findings.append(Finding(
-                            id="S5.common_import", check="structure", severity="error",
-                            location=f"{path}:cell[{ci}]:line[{li}]",
-                            message="forbidden import; use `from nnx.` instead",
-                        ))
+                add_common_import_findings(
+                    cell.source,
+                    lambda line, path=path, ci=ci: f"{path}:cell[{ci}]:line[{line}]",
+                )
 
     gitignore_lines = {
         line.strip() for line in _read_text(repo / ".gitignore").splitlines()
