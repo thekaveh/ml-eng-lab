@@ -215,6 +215,18 @@ def _literal_dynamic_import(
     return first_arg.value.split(".")[0]
 
 
+def _fallback_statement(lines: list[str], start: int) -> tuple[str, int]:
+    statement_lines = [lines[start]]
+    balance = lines[start].count("(") - lines[start].count(")")
+    end = start
+    while balance > 0 and end + 1 < len(lines):
+        end += 1
+        next_line = lines[end]
+        statement_lines.append(next_line)
+        balance += next_line.count("(") - next_line.count(")")
+    return "\n".join(statement_lines), end
+
+
 def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
     """Yield top-level imported module names and one-based line numbers."""
     for line in source.splitlines():
@@ -246,20 +258,10 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
             try:
                 line_tree = ast.parse(line)
             except SyntaxError:
-                statement_lines = [line]
-                balance = line.count("(") - line.count(")")
-                while (
-                    balance > 0
-                    and line.lstrip().startswith("from importlib import")
-                    and idx + 1 < len(fallback_lines)
-                ):
-                    idx += 1
-                    next_line = fallback_lines[idx]
-                    statement_lines.append(next_line)
-                    balance += next_line.count("(") - next_line.count(")")
-                if len(statement_lines) > 1:
+                statement, end_idx = _fallback_statement(fallback_lines, idx)
+                if end_idx > idx:
                     try:
-                        line_tree = ast.parse("\n".join(statement_lines))
+                        line_tree = ast.parse(statement)
                     except SyntaxError:
                         line_tree = None
                     if line_tree is not None:
@@ -283,7 +285,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                                         yield ImportedModule(module=module, line=location)
                             elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
                                 yield ImportedModule(module=module, line=location)
-                        idx += 1
+                        idx = end_idx + 1
                         continue
                 m = _IMPORT_RE.match(line)
                 if not m:
@@ -915,6 +917,25 @@ def _dependency_ledger_findings(repo: Path) -> list[Finding]:
                 ),
                 detail={"expected": expected_total, "actual": actual_total},
             ))
+    ledger_sha_match = re.search(r"currently pins tree entry\s+`([0-9a-f]{40})`", text)
+    if ledger_sha_match:
+        ledger_sha = ledger_sha_match.group(1)
+        rc, out, _err = _run(["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"], repo)
+        gitlink_match = re.search(r"160000 ([0-9a-f]{40}) \d+\s+vendor/genai-vanilla", out)
+        if rc == 0 and gitlink_match:
+            gitlink_sha = gitlink_match.group(1)
+            if ledger_sha != gitlink_sha:
+                findings.append(Finding(
+                    id="D10.dependency_ledger_submodule_sha",
+                    check="docs",
+                    severity="error",
+                    location="docs/dependency-contracts.md",
+                    message=(
+                        "genai-vanilla ledger SHA does not match the superproject "
+                        "gitlink"
+                    ),
+                    detail={"ledger_sha": ledger_sha, "gitlink_sha": gitlink_sha},
+                ))
     return findings
 
 

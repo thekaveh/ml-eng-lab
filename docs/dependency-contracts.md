@@ -187,14 +187,16 @@ that the run intentionally used a local NNx development checkout.
 
 `.gitmodules` consumes `https://github.com/thekaveh/genai-vanilla.git` as the
 `vendor/genai-vanilla` submodule. The repository currently pins tree entry
-`163134451a19d024e0e1c0df51139fd8c0a2ca52`; a read-only check on 2026-07-04
+`b96a2924b5d30aa30eddb2fa43f9b7a47fc81bcb`; a read-only check on 2026-07-04
 found upstream `main` at the same SHA, so the submodule is current as of this
 ledger entry. The bump from `2bee05134d721a152a6ea579d9a65efd7e080701`
 through `a22b182a0f0cd1bb0be3599a7710d87890491eb8`, `448333d3b1a530fafd76d224ee1066181de8fac4`,
 `0bc3abd3cafb35b340f90c4efa89d64375ac9152`,
 `2997143758f58f4c40ecd6e258fa8422942cb7cd`, and
-`163134451a19d024e0e1c0df51139fd8c0a2ca52` contained Browserless, Supabase,
-OpenLIT, live-trading, and FinRL FinGPT research documentation plus bootstrapper tests only;
+`163134451a19d024e0e1c0df51139fd8c0a2ca52` through
+`b96a2924b5d30aa30eddb2fa43f9b7a47fc81bcb` contained Browserless, Supabase,
+OpenLIT, live-trading, FinRL FinGPT, and heavy 3D infrastructure research
+documentation plus bootstrapper tests only;
 the JupyterHub runtime files below were re-verified unchanged for ml-eng-lab.
 
 The consumed contract is:

@@ -42,7 +42,7 @@ Four ways to run these notebooks, ordered from managed runtime to local executio
 
 ### 3.1. genai-vanilla jupyterhub (recommended)
 
-As of genai-vanilla `1631344` (pinned in `vendor/genai-vanilla`), the `jupyterhub` image natively ships the ml-eng-lab dependency set, `thekaveh-nnx[lm]==0.2.0`, and the two NLP model assets. Two paths, pick by need:
+As of genai-vanilla `b96a292` (pinned in `vendor/genai-vanilla`), the `jupyterhub` image natively ships the ml-eng-lab dependency set, `thekaveh-nnx[lm]==0.2.0`, and the two NLP model assets. Two paths, pick by need:
 
 **Default — standalone genai-vanilla + VS Code Mode 2** (works for tier-covered notebooks from a current genai-vanilla checkout; one tier-covered exception remains: `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb` imports sibling `.py` modules from its own folder and needs the persistence variant below. The quantization notebook is still manual-only under `torch>=2.5` + `torchao>=0.17`):
 

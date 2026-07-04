@@ -396,6 +396,36 @@ def test_structure_s2_fallback_checks_multiline_literal_dynamic_import_aliases(t
     assert hits, f"expected S2.unresolved_import for multiline fallback alias; got {data.get('findings')}"
 
 
+def test_structure_s2_fallback_checks_multiline_literal_dynamic_import_calls(tmp_path):
+    """Syntax-error fallback should still check multiline import_module calls."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "literal-dynamic-import-multiline-call-fallback.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import importlib\n"
+            "importlib.import_module(\n"
+            "    'definitely_missing_multiline_call_fallback'\n"
+            ")\n"
+            "if True print('force fallback')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_multiline_call_fallback" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for multiline fallback call; got {data.get('findings')}"
+
+
 def test_structure_s2_ignores_non_python_cell_magic_body(tmp_path):
     """Shell cell magics must not make S2 scan shell text as Python imports."""
     import nbformat
@@ -820,6 +850,36 @@ def test_docs_d10_flags_dependency_ledger_count_drift(tmp_path):
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
     hits = [f for f in data["findings"] if f["id"] == "D10.dependency_ledger_count"]
     assert hits, f"expected D10.dependency_ledger_count; got {data.get('findings')}"
+
+
+def test_docs_d10_flags_dependency_ledger_submodule_sha_drift(tmp_path, monkeypatch):
+    """The genai-vanilla ledger SHA should match the superproject gitlink."""
+    repo = _temp_repo(tmp_path)
+    docs = repo / "docs"
+    docs.mkdir()
+    ledger_sha = "b96a2924b5d30aa30eddb2fa43f9b7a47fc81bcb"
+    gitlink_sha = "163134451a19d024e0e1c0df51139fd8c0a2ca52"
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 7. genai-vanilla Submodule Contract\n\n"
+        "`vendor/genai-vanilla` submodule. The repository currently pins tree entry\n"
+        f"`{ledger_sha}`; a read-only check found upstream `main` at the same SHA.\n",
+        encoding="utf-8",
+    )
+    verify_repo = _load_verify_module()
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"]:
+            return 0, f"160000 {gitlink_sha} 0\tvendor/genai-vanilla\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    findings = verify_repo._dependency_ledger_findings(repo)
+
+    hits = [f for f in findings if f.id == "D10.dependency_ledger_submodule_sha"]
+    assert hits
+    assert hits[0].detail == {"ledger_sha": ledger_sha, "gitlink_sha": gitlink_sha}
 
 
 def test_docs_d11_current_layout_guidance_is_not_stale():
@@ -1247,11 +1307,13 @@ def test_e6_flags_dirty_required_submodule(monkeypatch):
 
 def test_e6_flags_required_submodule_with_modified_worktree(monkeypatch):
     verify_repo = _load_verify_module()
+    submodule_cwd = REPO / "vendor/genai-vanilla"
 
     def fake_run(cmd, cwd, timeout=None):
         if cmd == ["git", "submodule", "status", "--", "vendor/genai-vanilla"]:
             return 0, " 163134451a19d024e0e1c0df51139fd8c0a2ca52 vendor/genai-vanilla\n", ""
         if cmd == ["git", "status", "--porcelain", "--", "."]:
+            assert cwd == submodule_cwd
             return 0, " M services/jupyterhub/build/requirements.txt\n", ""
         if cmd == ["which", "shellcheck"]:
             return 1, "", ""
