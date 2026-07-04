@@ -283,6 +283,33 @@ def test_structure_s2_ignores_acknowledged_runtime_only_imports(tmp_path):
     assert not hits, f"runtime-only import should be acknowledged, got {hits}"
 
 
+def test_structure_s2_checks_literal_dynamic_imports(tmp_path):
+    """Literal importlib/__import__ calls should not bypass unresolved-import checks."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "literal-dynamic-imports.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import importlib\n"
+            "importlib.import_module('definitely_missing_dynamic_import')\n"
+            "__import__('also_missing_dynamic_import')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    messages = [
+        f["message"] for f in data["findings"]
+        if f["id"] == "S2.unresolved_import" and name in f["location"]
+    ]
+    assert any("definitely_missing_dynamic_import" in m for m in messages), data.get("findings")
+    assert any("also_missing_dynamic_import" in m for m in messages), data.get("findings")
+
+
 def test_structure_s2_ignores_non_python_cell_magic_body(tmp_path):
     """Shell cell magics must not make S2 scan shell text as Python imports."""
     import nbformat

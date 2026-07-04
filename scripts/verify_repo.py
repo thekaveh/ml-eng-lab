@@ -191,6 +191,24 @@ def _cell_magic_name(line: str) -> str:
     return stripped[2:].split(None, 1)[0].strip().lower()
 
 
+def _literal_dynamic_import(node: ast.AST) -> str:
+    if not isinstance(node, ast.Call) or not node.args:
+        return ""
+    func = node.func
+    if isinstance(func, ast.Name):
+        is_import = func.id == "__import__"
+    elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+        is_import = func.value.id == "importlib" and func.attr == "import_module"
+    else:
+        is_import = False
+    if not is_import:
+        return ""
+    first_arg = node.args[0]
+    if not isinstance(first_arg, ast.Constant) or not isinstance(first_arg.value, str):
+        return ""
+    return first_arg.value.split(".")[0]
+
+
 def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
     """Yield top-level imported module names and one-based line numbers."""
     for line in source.splitlines():
@@ -238,6 +256,8 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                         module = node.module.split(".")[0]
                         if module:
                             yield ImportedModule(module=module, line=li)
+                elif module := _literal_dynamic_import(node):
+                    yield ImportedModule(module=module, line=li)
         return
 
     for node in ast.walk(tree):
@@ -258,6 +278,8 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                 module = node.module.split(".")[0]
                 if module:
                     yield ImportedModule(module=module, line=node.lineno)
+        elif module := _literal_dynamic_import(node):
+            yield ImportedModule(module=module, line=node.lineno)
 
 
 def _blank_multiline_string_lines(source: str) -> list[str]:

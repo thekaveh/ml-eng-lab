@@ -42,14 +42,14 @@ SIMPLE_MAPPINGS: list[tuple[str, str]] = [
 SPLIT_PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], list[str]]]] = [
     # `from common.nn_model import NNModel, NNTrainParams` → two lines (modern paths)
     (
-        re.compile(r"^(\s*)from common\.nn_model import NNModel,\s*NNTrainParams(\s*)$"),
+        re.compile(r"^(\s*)from common\.nn_model import NNModel,\s*NNTrainParams(\s*(?:#.*)?)$"),
         lambda m: [
             f"{m.group(1)}from nnx.nn.nn_model import NNModel{m.group(2)}",
             f"{m.group(1)}from nnx.nn.params.nn_train_params import NNTrainParams{m.group(2)}",
         ],
     ),
     (
-        re.compile(r"^(\s*)from common\.nn_model import NNTrainParams,\s*NNModel(\s*)$"),
+        re.compile(r"^(\s*)from common\.nn_model import NNTrainParams,\s*NNModel(\s*(?:#.*)?)$"),
         lambda m: [
             f"{m.group(1)}from nnx.nn.params.nn_train_params import NNTrainParams{m.group(2)}",
             f"{m.group(1)}from nnx.nn.nn_model import NNModel{m.group(2)}",
@@ -85,11 +85,18 @@ def _symbol_without_inline_comment(symbol: str) -> str:
 
 def _nnparams_replacement_for_symbol(symbol: str) -> str | None:
     symbol = _symbol_without_inline_comment(symbol)
+    symbol = symbol.rstrip(")").strip()
     m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?,?$", symbol)
     if not m or m.group(1) not in DEPRECATED_PARAM_NAMES:
         return None
     alias = m.group(2)
     return f"NNParams as {alias}" if alias else "NNParams"
+
+
+def _closing_paren_line(line: str) -> str:
+    indent = re.match(r"^(\s*)", line).group(1)
+    suffix = "\n" if line.endswith("\n") else ""
+    return f"{indent}){suffix}"
 
 
 def _imported_symbol_bindings(symbols: str) -> set[str]:
@@ -186,7 +193,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                     if parenthesized_import_kept:
                         out.append(parenthesized_import_open)
                         out.extend(parenthesized_import_kept)
-                        out.append(line)
+                        out.append(_closing_paren_line(line))
                     in_parenthesized_import = False
                     parenthesized_import_open = ""
                     parenthesized_import_kept = []

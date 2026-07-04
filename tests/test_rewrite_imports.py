@@ -157,6 +157,22 @@ def test_parenthesized_graph_att_params_import_with_inline_comment(tmp_path):
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_parenthesized_graph_att_params_import_with_closing_paren_same_line(tmp_path):
+    p = _make_notebook(tmp_path, "gat_parenthesized_closing_same_line.ipynb", [
+        _code_cell(
+            "from nnx.nn.net.graph_att_nn import (\n"
+            "    GraphAttNN,\n"
+            "    GraphAttNNParams)\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "GraphAttNNParams" not in src
+    assert "from nnx.nn.net.graph_att_nn import (\n    GraphAttNN,\n    )" in src
+    assert "from nnx.nn.params.nn_params import NNParams" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_parenthesized_params_only_import_drops_empty_block(tmp_path):
     p = _make_notebook(tmp_path, "gat_parenthesized_only_params.ipynb", [
         _code_cell(
@@ -227,3 +243,15 @@ def test_commented_out_and_string_call_sites_are_preserved(tmp_path):
     p = _make_notebook(tmp_path, "commented.ipynb", [_code_cell(src)])
     _run(p)
     assert _cell_source(p, 0) == src
+
+
+def test_common_nn_model_split_import_with_inline_comment(tmp_path):
+    p = _make_notebook(tmp_path, "common_nn_model_comment.ipynb", [
+        _code_cell("from common.nn_model import NNModel, NNTrainParams  # training params\n"),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "from nnx.nn.nn_model import NNModel" in src
+    assert "from nnx.nn.params.nn_train_params import NNTrainParams" in src
+    assert "from nnx.nn.nn_model import NNModel, NNTrainParams" not in src
+    compile(src, "<rewritten-cell>", "exec")

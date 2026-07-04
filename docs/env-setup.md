@@ -4,7 +4,7 @@ Four paths, pick whichever fits the moment.
 
 ## 1. genai-vanilla jupyterhub (recommended)
 
-As of genai-vanilla `0bc3abd` (pinned in `vendor/genai-vanilla`), the `jupyterhub` image natively ships the ml-eng-lab dependency set — `thekaveh-nnx[lm]==0.2.0`, `python-louvain`, `nltk`, `spacy`, `torchao`, and `prettytable` — plus the `en_core_web_sm` spaCy model and `vader_lexicon` NLTK corpus baked at image-build time. Two paths, pick by need.
+As of genai-vanilla `2997143` (pinned in `vendor/genai-vanilla`), the `jupyterhub` image natively ships the ml-eng-lab dependency set — `thekaveh-nnx[lm]==0.2.0`, `python-louvain`, `nltk`, `spacy`, `torchao`, and `prettytable` — plus the `en_core_web_sm` spaCy model and `vader_lexicon` NLTK corpus baked at image-build time. Two paths, pick by need.
 
 ### 1.1. Default — standalone genai-vanilla + VS Code Mode 2
 
