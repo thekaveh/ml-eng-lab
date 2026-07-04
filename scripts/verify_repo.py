@@ -59,6 +59,7 @@ NOTEBOOK_ROOT = Path("notebooks")
 ARCHIVE_NOTEBOOK_ROOT = NOTEBOOK_ROOT / "archive"
 
 VERIFY_ONLY_DIRS = ("notebooks/archive", "vendor")
+DEFAULT_SUBPROCESS_TIMEOUT = 120
 
 
 def _required_sections_from_config() -> dict[str, tuple[str, ...]]:
@@ -153,7 +154,8 @@ _RUNTIME_ONLY_MODULES = frozenset({
 
 def _git_ls_files(repo: Path) -> list[str]:
     out = subprocess.run(
-        ["git", "ls-files"], cwd=repo, capture_output=True, text=True, check=True
+        ["git", "ls-files"], cwd=repo, capture_output=True, text=True, check=True,
+        timeout=DEFAULT_SUBPROCESS_TIMEOUT,
     )
     return out.stdout.splitlines()
 
@@ -247,7 +249,9 @@ def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
     yield repo / "README.md"
     yield repo / "CONTRIBUTING.md"
     yield repo / "CHANGELOG.md"
-    for p in (repo / "docs").glob("*.md"):
+    for p in sorted((repo / "docs").rglob("*.md")):
+        if p.relative_to(repo).as_posix().startswith("docs/superpowers/"):
+            continue
         yield p
     for d in ACTIVE_TASK_DIRS:
         for p in _active_task_path(repo, d).glob("*.md"):
@@ -1120,7 +1124,9 @@ def _ci_tier_a_artifact_paths(repo: Path) -> tuple[str, ...]:
     return ()
 
 
-def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
+def _run(
+    cmd: list[str], cwd: Path, timeout: int | None = DEFAULT_SUBPROCESS_TIMEOUT
+) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired as e:
@@ -1191,13 +1197,22 @@ def _runtime_available() -> bool:
     """True when the heavyweight ML runtime (torch, PyG) is importable in this env.
 
     The Tier-A/B/C papermill targets exercise notebooks that import torch,
-    torch_geometric, etc. When these are missing, running the make targets
-    fails with environment errors that have nothing to do with the notebooks'
-    correctness — so we downgrade E1-E3 to env-limited skips (warning), not
-    errors. The full execution check is meaningful only in the genai-vanilla
-    container or an equivalent fully-provisioned env.
+    torch_geometric, and PyG's compiled extension stack. When these are
+    missing, running the make targets fails with environment errors that have
+    nothing to do with the notebooks' correctness — so we downgrade E1-E3 to
+    env-limited skips (warning), not errors. The full execution check is
+    meaningful only in the genai-vanilla container or an equivalent
+    fully-provisioned env.
     """
-    for canary in ("torch", "torch_geometric"):
+    for canary in (
+        "torch",
+        "torch_geometric",
+        "torch_sparse",
+        "torch_scatter",
+        "torch_cluster",
+        "torch_spline_conv",
+        "pyg_lib",
+    ):
         if importlib.util.find_spec(canary) is None:
             return False
     return True

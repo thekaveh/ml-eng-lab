@@ -1,16 +1,16 @@
-# 1. Notebooks Reorganization Implementation Record
+# Notebooks Reorganization Implementation Record
 
-## 1.1. Status
+## 1. Status
 
 Completed. This file is retained as a concise historical record instead of an active
 checkbox plan.
 
-## 1.2. Objective
+## 2. Objective
 
 Move every active and archived experiment into `notebooks/`, make each notebook rerunnable
 from its new directory, and update live repository identity references to `ml-eng-lab`.
 
-## 1.3. Implemented Changes
+## 3. Implemented Changes
 
 - Moved active experiment directories to `notebooks/<task>/`.
 - Moved preserved CodeXGLUE experiments to `notebooks/archive/codexglue_summarization/`.
@@ -23,7 +23,7 @@ from its new directory, and update live repository identity references to `ml-en
   path references.
 - Updated live repository identity references to `ml-eng-lab`.
 
-## 1.4. Canonical Runtime Contract
+## 4. Canonical Runtime Contract
 
 Each notebook is executed from its own directory. Task-local relative paths therefore resolve
 as follows:
@@ -35,7 +35,7 @@ as follows:
 - Archived notebooks are preserved for historical reference and are not part of active
   rerun guarantees.
 
-## 1.5. Follow-Up Guardrails
+## 5. Follow-Up Guardrails
 
 - New active task folders must be created under `notebooks/`.
 - `notebooks/archive/` remains read-only unless a future migration explicitly supersedes it.

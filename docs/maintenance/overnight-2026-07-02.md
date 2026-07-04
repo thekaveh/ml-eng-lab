@@ -2,7 +2,7 @@
 
 Branch: `codex/overnight-maintenance`
 Upstream: `origin/codex/overnight-maintenance`
-Spec: `/Users/kaveh/.agents/skills/overnight-maintenance/maintenance-spec.md`
+Spec: external `overnight-maintenance/maintenance-spec.md` skill spec
 Parameters: `PASSES=25`, `MAX_PASSES=75`, `PUSH=yes`, `NUMBERED_DOCS=yes`
 
 ## 1. Coverage Decisions

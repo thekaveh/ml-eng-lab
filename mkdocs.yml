@@ -40,7 +40,11 @@ nav:
   - 6. Dependency Contracts: dependency-contracts.md
   - 7. NNx Findings: FINDINGS-NNX.md
   - 8. Vendor Findings: FINDINGS-VENDOR.md
-  - 9. Maintenance Log: maintenance/overnight-2026-07-02.md
+  - 9. Maintenance:
+      - 9.1. Current Maintenance Log: maintenance/overnight-2026-07-04.md
+      - 9.2. July 2 Maintenance Log: maintenance/overnight-2026-07-02.md
+      - 9.3. Notebook Reorganization Design: maintenance/notebooks-reorganization-design.md
+      - 9.4. Notebook Reorganization Implementation: maintenance/notebooks-reorganization-implementation.md
 
 markdown_extensions:
   - admonition

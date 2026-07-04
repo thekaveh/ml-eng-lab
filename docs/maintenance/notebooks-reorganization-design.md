@@ -1,11 +1,11 @@
-# 1. Notebook Reorganization Design Record
+# Notebook Reorganization Design Record
 
-## 1.1. Status
+## 1. Status
 
 This document is a completed historical design record for the 2026-07-04 notebook
 reorganization. It is not an active implementation checklist.
 
-## 1.2. Decision
+## 2. Decision
 
 The repository now uses `notebooks/<experiment>/` as the canonical runnable home for every
 active experiment. Archived CodeXGLUE experiments live under `notebooks/archive/`.
@@ -15,7 +15,7 @@ JupyterHub, and documentation-site references should use that name. Historical c
 maintenance, and preserved notebook-output text may retain older names only when it is clearly
 recording past state.
 
-## 1.3. Goals Satisfied
+## 3. Goals Satisfied
 
 - Active notebooks live under `notebooks/<task>/`.
 - Archived CodeXGLUE notebooks live under `notebooks/archive/codexglue_summarization/`.
@@ -26,7 +26,7 @@ recording past state.
 - Papermill execution continues to change into each notebook directory before execution, so
   notebook-local `./data` and `./runs` references stay local to the experiment directory.
 
-## 1.4. Canonical Layout
+## 4. Canonical Layout
 
 ```text
 notebooks/
@@ -45,7 +45,7 @@ notebooks/
         model/  # tracked result artifacts for some experiments
 ```
 
-## 1.5. Verification Evidence
+## 5. Verification Evidence
 
 The implementation was validated with the repository verifier, pytest, ruff, Makefile dry-runs,
 stale-reference scans, notebook path scans, and git layout checks. Later maintenance passes

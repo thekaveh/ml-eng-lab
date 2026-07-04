@@ -252,6 +252,22 @@ def test_structure_s3_checks_notebook_markdown_links(tmp_path):
     assert hits, f"expected S3.broken_link for notebook markdown; got {data.get('findings')}"
 
 
+def test_structure_s3_checks_nested_docs_markdown_links(tmp_path):
+    """Nested docs should be covered by the same S3 link hygiene as shallow docs."""
+    repo = _temp_repo(tmp_path)
+    nested = repo / "docs" / "maintenance" / "history.md"
+    nested.parent.mkdir(parents=True, exist_ok=True)
+    nested.write_text("# History\n\n[missing](missing-local-doc.md)\n", encoding="utf-8")
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S3.broken_link" and "docs/maintenance/history.md" in f["location"]
+    ]
+    assert hits, f"expected S3.broken_link for nested docs markdown; got {data.get('findings')}"
+
+
 def test_structure_s3_ignores_notebook_markdown_code_span_links(tmp_path):
     """Notebook prose can show Markdown link syntax as a literal example."""
     import nbformat
@@ -491,6 +507,19 @@ def test_execution_e5_baseline_missing_warns_not_errors():
     if e5:
         for f in e5:
             assert f["severity"] == "warning", f"E5.no_baseline must be warning, got {f}"
+
+
+def test_runtime_available_requires_pyg_extension_stack(monkeypatch):
+    """Full notebook execution needs the PyG binary extension stack, not just torch_geometric."""
+    verify_repo = _load_verify_module()
+    present = {"torch", "torch_geometric"}
+
+    def fake_find_spec(name):
+        return object() if name in present else None
+
+    monkeypatch.setattr(verify_repo.importlib.util, "find_spec", fake_find_spec)
+
+    assert verify_repo._runtime_available() is False
 
 
 def test_required_sections_loaded_from_yaml_config():
@@ -807,6 +836,22 @@ def test_run_helper_timeout_normalizes_byte_streams(monkeypatch):
     assert stdout == "partial stdout"
     assert "partial stderr" in stderr
     assert "timed out after 1s" in stderr
+
+
+def test_run_helper_supplies_default_timeout(monkeypatch):
+    """Callers should not have to remember a timeout for short external commands."""
+    verify_repo = _load_verify_module()
+    seen: dict[str, int | None] = {}
+
+    def fake_run(cmd, cwd, capture_output, text, timeout):
+        seen["timeout"] = timeout
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(verify_repo.subprocess, "run", fake_run)
+    rc, _, _ = verify_repo._run(["fake"], REPO)
+
+    assert rc == 0
+    assert seen["timeout"] == verify_repo.DEFAULT_SUBPROCESS_TIMEOUT
 
 
 def test_tier_c_baseline_sources_ignore_parameter_cells():

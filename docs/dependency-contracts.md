@@ -140,7 +140,70 @@ They are not locked by checksum today. If reproducibility becomes stricter than
 the current educational-notebook standard, add a lock/verification mechanism and
 update this section.
 
-## 6. Deferred Reproducibility Hardening
+## 6. NNx PyPI Pin and Editable Override Boundary
+
+`requirements.txt` pins `thekaveh-nnx[lm]==0.2.0`. That PyPI distribution is
+the canonical contract for ml-eng-lab notebook verification and CI. The static
+NNx surface tests intentionally inspect the installed `nnx` import surface, so
+they are only exact release-contract evidence when the environment resolves
+`nnx` from the pinned PyPI wheel.
+
+Editable installs are allowed only for active upstream NNx development, using
+the workflow in README §6 and `docs/jupyterhub-integration.md` §3. When an
+editable checkout is active, local tests are development-surface evidence, not
+release-contract evidence. Before treating local `tests/nnx_surface` results as
+release evidence, confirm:
+
+```bash
+python - <<'PY'
+import importlib.metadata as md
+import json
+from pathlib import Path
+
+dist = md.distribution("thekaveh-nnx")
+direct_url = Path(dist._path) / "direct_url.json"
+print(md.version("thekaveh-nnx"))
+print(json.loads(direct_url.read_text()) if direct_url.exists() else "wheel install")
+PY
+```
+
+Expected release-contract state: version `0.2.0` and no editable
+`direct_url.json`. If the output reports `{"editable": true}`, reinstall from
+`requirements.txt` before recording exact pinned-contract evidence, or document
+that the run intentionally used a local NNx development checkout.
+
+## 7. genai-vanilla Submodule Contract
+
+`.gitmodules` consumes `https://github.com/thekaveh/genai-vanilla.git` as the
+`vendor/genai-vanilla` submodule. The repository currently pins tree entry
+`c89eb5e7bc53a97c9ecea668a86a4f41debe7113`; a read-only check on 2026-07-04
+found upstream `main` at `f196b6d483f7075f4269a062746bb119eb431a67`, so the
+submodule is intentionally behind latest until a coordinated runtime bump.
+
+The consumed contract is:
+
+- `vendor/genai-vanilla/start.sh` exists after `git submodule update --init --recursive`.
+- `vendor/genai-vanilla/docker-compose.yml` defines the `jupyterhub` service.
+- `scripts/start-jupyterhub.sh` exports `ML_REPO_PATH`, exports
+  `ML_SSH_MOUNT_DIR`, layers `deploy/genai-vanilla-jupyterhub.override.yml`
+  through `COMPOSE_FILE`, changes into the submodule directory, and execs
+  `./start.sh`.
+- The override bind-mounts ml-eng-lab at `/home/jovyan/work/ml-eng-lab` and
+  mounts SSH keys only through the wrapper-controlled `ML_SSH_MOUNT_DIR`.
+
+Upgrade criteria:
+
+1. Update the submodule to the intended upstream SHA.
+2. Confirm `start.sh`, `docker-compose.yml`, and the `jupyterhub` service still
+   exist at that SHA.
+3. Run `bash -n scripts/start-jupyterhub.sh` and parse
+   `deploy/genai-vanilla-jupyterhub.override.yml`.
+4. In a Docker-capable environment, run `git submodule update --init --recursive`
+   followed by `docker compose config` with the wrapper-provided environment.
+5. Update this section, README runtime caveats, and `docs/jupyterhub-integration.md`
+   if the service names, mount paths, or NNx package layer change.
+
+## 8. Deferred Reproducibility Hardening
 
 The current manifests still include floating and ranged Python dependencies, and
 the Docker/devcontainer bases are tag-pinned rather than digest-pinned. A full
