@@ -25,7 +25,6 @@ PAPERMILL_TIMEOUT_FLAGS = --start-timeout $(PAPERMILL_START_TIMEOUT) --execution
 
 TIER_A := \
     notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb \
-    notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
     notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb \
     notebooks/model_surgery-mnist-ffnn-pytorch/notebook.ipynb \
     notebooks/pruning-mnist-ffnn-pytorch/notebook.ipynb \
@@ -46,6 +45,7 @@ TIER_A := \
 
 TIER_B := \
     notebooks/image_classification-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
     notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
     notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb \
     notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb \
@@ -62,7 +62,7 @@ TIER_B := \
 # CI's pinned environment. Notebook stays in the repo as a manual-only task
 # (run locally under a `torch>=2.5` env). The Tier-B move (PR #11) was made
 # under the assumption the weekly cron would still exercise it — that turned
-# out to be wrong; removing it here unblocks the 5 remaining Tier-B notebooks
+# out to be wrong; removing it here unblocks the remaining Tier-B notebooks
 # the cron was supposed to cover.
 
 TIER_C := \

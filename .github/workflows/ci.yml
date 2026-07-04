@@ -113,12 +113,16 @@ jobs:
 
   tier-a-papermill:
     runs-on: ubuntu-24.04
-    # 19 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch originally moved to Tier-B per issue #10, then removed from TIER_B on 2026-06-16 after the weekly cron confirmed it cannot run in CI's pinned env — manual-only now). Cumulative ~7 min on a macOS M-series CPU but Linux
+    # 18 Tier-A notebooks (mnist-pytorch moved to Tier-B per issue #7; reddit
+    # phase1 moved to Tier-B after the 2026-07-04 CI run showed its fresh
+    # Google Drive Reddit2 download is too fragile for every-PR gating;
+    # quantization-mnist-pytorch originally moved to Tier-B per issue #10, then
+    # removed from TIER_B on 2026-06-16 after the weekly cron confirmed it cannot
+    # run in CI's pinned env — manual-only now). Cumulative ~7 min on a macOS M-series CPU but Linux
     # GH Actions runners are ~3-4× slower for hand-coded numpy training
     # (image_classification-mnist-ffnn-numpy is the worst offender — observed
     # ~30 min on its own at PR-#5 HEAD edcab84). 90 min cap leaves headroom
-    # for the heaviest notebook AND room for the issue-#3 phase1 dataset
-    # download, while still failing fast vs GH's default 6 h.
+    # for the heaviest notebook while still failing fast vs GH's default 6 h.
     timeout-minutes: 90
     steps:
       - name: Checkout
@@ -166,7 +170,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: tier-a-notebooks
-          # All 19 Tier-A notebooks — keep in sync with Makefile TIER_A.
+          # All 18 Tier-A notebooks — keep in sync with Makefile TIER_A.
           # (mnist-pytorch moved to Tier-B per issue #7; quantization-mnist-pytorch
           # originally moved to Tier-B per issue #10 — torchao>=0.17 (the
           # requirements.txt pin) imports `torch.int1` at module load, which
@@ -177,7 +181,6 @@ jobs:
           # Makefile TIER_B section for full rationale.)
           path: |
             notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb
-            notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb
             notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb
             notebooks/model_surgery-mnist-ffnn-pytorch/notebook.ipynb
             notebooks/pruning-mnist-ffnn-pytorch/notebook.ipynb
