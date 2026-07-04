@@ -1,6 +1,6 @@
 # JupyterHub integration
 
-The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. As of genai-vanilla `c2ffe8d` (pinned in this repo's `vendor/genai-vanilla` submodule), that image natively ships the ml-eng-lab dependency set:
+The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. As of genai-vanilla `10f8402` (pinned in this repo's `vendor/genai-vanilla` submodule), that image natively ships the ml-eng-lab dependency set:
 
 - `thekaveh-nnx[lm]==0.2.0`
 - `python-louvain`, `nltk`, `spacy`, `torchao`, `prettytable`
@@ -87,11 +87,11 @@ The submodule pin matters for the §2 path; the §1 path uses your standalone ge
 
 ## 5. Tested against
 
-genai-vanilla `c2ffe8d10f5f21c549b411d87861c83e518073ba`, which includes the ml-eng-lab runtime dependency block, `thekaveh-nnx[lm]==0.2.0`, and the spaCy/NLTK asset downloads in the JupyterHub image.
+genai-vanilla `10f840252404eb5399550f96fbb560153f1a47c7`, which includes the ml-eng-lab runtime dependency block, `thekaveh-nnx[lm]==0.2.0`, and the spaCy/NLTK asset downloads in the JupyterHub image.
 
 ## 6. Common failure modes
 
-- **`Could not find a version that satisfies the requirement nnx-pytorch`** during `docker compose build jupyterhub` — the checkout is older than the `c2ffe8d` runtime pin. Pull current genai-vanilla `main` or update this repo's submodule with `git submodule update --init --recursive`.
+- **`Could not find a version that satisfies the requirement nnx-pytorch`** during `docker compose build jupyterhub` — the checkout is older than the `10f8402` runtime pin. Pull current genai-vanilla `main` or update this repo's submodule with `git submodule update --init --recursive`.
 - **`ModuleNotFoundError: No module named 'nnx'`** in the §1 path — the image was built from an older genai-vanilla checkout. Pull current genai-vanilla `main`, rebuild the `jupyterhub` image, and confirm `services/jupyterhub/build/requirements.txt` contains `thekaveh-nnx[lm]==0.2.0`.
 - **Submodule not found at `vendor/genai-vanilla/`** — run `git submodule update --init --recursive` at the repo root.
 - **`ML_REPO_PATH variable is not set`** during compose up — you ran `cd vendor/genai-vanilla && ./start.sh` directly instead of using the wrapper. Use `scripts/start-jupyterhub.sh`.

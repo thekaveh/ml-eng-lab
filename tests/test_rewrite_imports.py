@@ -203,6 +203,22 @@ def test_parenthesized_mixed_closing_line_keeps_symbol_after_params(tmp_path):
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_same_line_closing_parenthesized_nnparams_import_prevents_duplicate_injection(tmp_path):
+    p = _make_notebook(tmp_path, "parenthesized_nnparams_and_call.ipynb", [
+        _code_cell(
+            "from nnx.nn.params.nn_params import (\n"
+            "    NNParams)\n"
+            "params = GraphAttNNParams(n_heads=4, input_dim=10, output_dim=2)\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert src.count("from nnx.nn.params.nn_params import") == 1
+    assert "params = NNParams(n_heads=4, input_dim=10, output_dim=2)" in src
+    assert "GraphAttNNParams" not in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_single_line_parenthesized_params_import_is_preserved_and_rewritten(tmp_path):
     p = _make_notebook(tmp_path, "gat_parenthesized_single_line.ipynb", [
         _code_cell("from nnx.nn.net.graph_att_nn import (GraphAttNN, GraphAttNNParams)\n"),

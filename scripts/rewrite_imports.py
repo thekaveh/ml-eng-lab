@@ -236,6 +236,10 @@ def _nnparams_import_insert_index(lines: list[str]) -> int:
     return 0
 
 
+def _is_nnparams_parenthesized_import(line: str) -> bool:
+    return bool(re.match(r"^\s*from\s+nnx\.nn\.params\.nn_params\s+import\s+\(", line))
+
+
 def rewrite_lines(source_lines: list[str]) -> list[str]:
     """Apply all rewrites to a list of source lines (each preserving its trailing \\n if present)."""
     out: list[str] = []
@@ -251,6 +255,10 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
             kept_lines, nnparams_imports, closes_import = _rewrite_parenthesized_import_member_line(line)
             needed_nnparams_imports.update(nnparams_imports)
             parenthesized_import_kept.extend(kept_lines)
+            if _is_nnparams_parenthesized_import(parenthesized_import_open):
+                for kept_line in kept_lines:
+                    if "NNParams" in kept_line:
+                        existing_nnparams_imports.update(_imported_symbol_bindings(kept_line.strip().rstrip(",")))
             if closes_import:
                 if parenthesized_import_kept:
                     out.append(parenthesized_import_open)
@@ -260,9 +268,6 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                 parenthesized_import_open = ""
                 parenthesized_import_kept = []
                 continue
-            for kept_line in kept_lines:
-                if "NNParams" in kept_line:
-                    existing_nnparams_imports.update(_imported_symbol_bindings(kept_line.strip().rstrip(",")))
             continue
         # Try split patterns first
         split_applied = False
