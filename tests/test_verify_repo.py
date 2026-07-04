@@ -236,6 +236,32 @@ def test_structure_s2_flags_notebook_relative_imports(tmp_path):
     assert hits, f"expected S2.relative_import for notebook relative import; got {data.get('findings')}"
 
 
+def test_structure_s2_flags_dotted_notebook_relative_imports(tmp_path):
+    """Sibling helper files must not hide dotted relative imports in notebooks."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "dotted-relative-import.ipynb"
+    task_dir = repo / ACTIVE_FIXTURE_DIR
+    (task_dir / "helpers.py").write_text("VALUE = 1\n", encoding="utf-8")
+    fake = task_dir / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell("from .helpers import VALUE\n")
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.relative_import"
+        and name in f["location"]
+        and "helpers" in f["message"]
+    ]
+    assert hits, f"expected S2.relative_import for dotted relative import; got {data.get('findings')}"
+
+
 def test_structure_s7_no_pycache_tracked():
     """No __pycache__, .ipynb_checkpoints, .DS_Store should be tracked."""
     r = run_verify("--check", "structure", "--fast")
@@ -827,6 +853,19 @@ def test_e14_flags_source_notebook_papermill_metadata(tmp_path, monkeypatch):
     hits = [f for f in result.findings if f.id == "E14.source_papermill_metadata"]
     assert hits
     assert hits[0].location == str(nb_path.relative_to(repo))
+
+
+def test_e6_shellcheck_targets_include_consumed_vendor_entrypoints():
+    verify_repo = _load_verify_module()
+
+    targets = {
+        str(path.relative_to(REPO))
+        for path in verify_repo._shellcheck_targets(REPO)
+    }
+
+    assert "scripts/start-jupyterhub.sh" in targets
+    assert "vendor/genai-vanilla/start.sh" in targets
+    assert "vendor/genai-vanilla/stop.sh" in targets
 
 
 def _load_verify_module():

@@ -216,13 +216,13 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                         if module:
                             yield ImportedModule(module=module, line=li)
                 elif isinstance(node, ast.ImportFrom):
-                    if node.module:
+                    if node.level:
+                        module = node.module or ", ".join(alias.name for alias in node.names)
+                        yield ImportedModule(module=module or ".", line=li, relative=True)
+                    elif node.module:
                         module = node.module.split(".")[0]
                         if module:
                             yield ImportedModule(module=module, line=li)
-                    elif node.level:
-                        names = ", ".join(alias.name for alias in node.names)
-                        yield ImportedModule(module=names or ".", line=li, relative=True)
         return
 
     for node in ast.walk(tree):
@@ -232,17 +232,17 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                 if module:
                     yield ImportedModule(module=module, line=node.lineno - 1)
         elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                module = node.module.split(".")[0]
-                if module:
-                    yield ImportedModule(module=module, line=node.lineno - 1)
-            elif node.level:
-                names = ", ".join(alias.name for alias in node.names)
+            if node.level:
+                module = node.module or ", ".join(alias.name for alias in node.names)
                 yield ImportedModule(
-                    module=names or ".",
+                    module=module or ".",
                     line=node.lineno - 1,
                     relative=True,
                 )
+            elif node.module:
+                module = node.module.split(".")[0]
+                if module:
+                    yield ImportedModule(module=module, line=node.lineno - 1)
 
 
 def _git_ls_files(repo: Path) -> list[str]:
@@ -363,6 +363,15 @@ def _iter_in_scope_markdown_documents(repo: Path) -> Iterator[tuple[Path, Path, 
             cell.source for cell in doc.cells if cell.cell_type == "markdown"
         )
         yield nb_path, nb_path.parent, text
+
+
+def _shellcheck_targets(repo: Path) -> tuple[Path, ...]:
+    local_scripts = tuple(sorted((repo / "scripts").glob("*.sh")))
+    vendor_entrypoints = (
+        repo / "vendor" / "genai-vanilla" / "start.sh",
+        repo / "vendor" / "genai-vanilla" / "stop.sh",
+    )
+    return tuple(path for path in (*local_scripts, *vendor_entrypoints) if path.exists())
 
 
 def check_structure(repo: Path) -> CheckResult:
@@ -1548,7 +1557,7 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
             message="shellcheck not on PATH; install with `brew install shellcheck`",
         ))
     else:
-        for sh in (repo / "scripts").glob("*.sh"):
+        for sh in _shellcheck_targets(repo):
             rc, out, err = _run(["shellcheck", str(sh)], repo)
             if rc != 0:
                 result.findings.append(Finding(

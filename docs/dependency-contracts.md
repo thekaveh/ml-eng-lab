@@ -180,7 +180,7 @@ that the run intentionally used a local NNx development checkout.
 
 `.gitmodules` consumes `https://github.com/thekaveh/genai-vanilla.git` as the
 `vendor/genai-vanilla` submodule. The repository currently pins tree entry
-`d8ddd8e527c21ccbe78b34d72e2bb59409e52c6b`; a read-only check on 2026-07-04
+`2bee05134d721a152a6ea579d9a65efd7e080701`; a read-only check on 2026-07-04
 found upstream `main` at the same SHA, so the submodule is current as of this
 ledger entry.
 
@@ -212,8 +212,9 @@ Upgrade criteria:
 1. Update the submodule to the intended upstream SHA.
 2. Confirm `start.sh`, `docker-compose.yml`, and the `jupyterhub` service still
    exist at that SHA.
-3. Run `bash -n scripts/start-jupyterhub.sh` and parse
-   `deploy/genai-vanilla-jupyterhub.override.yml`.
+3. Run `shellcheck scripts/start-jupyterhub.sh vendor/genai-vanilla/start.sh
+   vendor/genai-vanilla/stop.sh`, run `bash -n scripts/start-jupyterhub.sh`,
+   and parse `deploy/genai-vanilla-jupyterhub.override.yml`.
 4. In a Docker-capable environment, run `git submodule update --init --recursive`
    followed by `docker compose config` with the wrapper-provided environment.
 5. Update this section, README runtime caveats, and `docs/jupyterhub-integration.md`
