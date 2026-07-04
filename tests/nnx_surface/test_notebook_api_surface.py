@@ -292,6 +292,15 @@ def test_archive_roberta_notebooks_require_explicit_rerun_opt_in():
         source = "\n".join("".join(_source_lines(cell)) for cell in _code_cells(nb))
         missing = [fragment for fragment in required_fragments if fragment not in source]
         assert not missing, f"{path.relative_to(REPO_ROOT)} missing archive rerun guards: {missing}"
+        assert source.index("ARCHIVE_RERUN_ENABLED = False") < source.index("shutil.copy("), (
+            f"{path.relative_to(REPO_ROOT)} copies archive helpers before rerun opt-in is defined"
+        )
+        assert "os.chdir(dataset_path)" not in source, (
+            f"{path.relative_to(REPO_ROOT)} mutates notebook cwd during archive preprocessing"
+        )
+        assert "cwd=dataset_path" in source, (
+            f"{path.relative_to(REPO_ROOT)} should run preprocessing with subprocess cwd"
+        )
 
 
 @pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)

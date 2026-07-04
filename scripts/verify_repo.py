@@ -150,6 +150,32 @@ _RUNTIME_ONLY_MODULES = frozenset({
 })
 
 
+def _imported_modules_from_source(source: str) -> Iterator[tuple[str, int]]:
+    """Yield top-level imported module names and zero-based line numbers."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        for li, line in enumerate(source.splitlines()):
+            m = _IMPORT_RE.match(line)
+            if not m:
+                continue
+            module = (m.group(1) or m.group(2) or "").split(".")[0]
+            if module:
+                yield module, li
+        return
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                module = alias.name.split(".")[0]
+                if module:
+                    yield module, node.lineno - 1
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            module = node.module.split(".")[0]
+            if module:
+                yield module, node.lineno - 1
+
+
 def _git_ls_files(repo: Path) -> list[str]:
     out = subprocess.run(
         ["git", "ls-files"], cwd=repo, capture_output=True, text=True, check=True,
@@ -313,11 +339,7 @@ def check_structure(repo: Path) -> CheckResult:
         for ci, cell in enumerate(doc.cells):
             if cell.cell_type != "code":
                 continue
-            for li, line in enumerate(cell.source.splitlines()):
-                m = _IMPORT_RE.match(line)
-                if not m:
-                    continue
-                module = (m.group(1) or m.group(2) or "").split(".")[0]
+            for module, li in _imported_modules_from_source(cell.source):
                 if not module or module in seen_in_notebook:
                     continue
                 seen_in_notebook.add(module)

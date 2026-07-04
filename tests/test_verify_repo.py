@@ -135,6 +135,30 @@ def test_structure_s5_no_common_imports():
     assert s5 == [], f"S5 found stray common.* imports: {s5}"
 
 
+def test_structure_s2_checks_every_module_in_multi_import(tmp_path):
+    """A valid first import must not hide a missing second import on the same line."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "multi-import-missing.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell("import json, definitely_missing_module_for_s2\n")
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_module_for_s2" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for second import; got {data.get('findings')}"
+
+
 def test_structure_s7_no_pycache_tracked():
     """No __pycache__, .ipynb_checkpoints, .DS_Store should be tracked."""
     r = run_verify("--check", "structure", "--fast")
