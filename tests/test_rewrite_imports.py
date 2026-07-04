@@ -219,6 +219,22 @@ def test_same_line_closing_parenthesized_nnparams_import_prevents_duplicate_inje
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_parenthesized_opener_line_members_are_rewritten(tmp_path):
+    p = _make_notebook(tmp_path, "gat_parenthesized_opener_members.ipynb", [
+        _code_cell(
+            "from nnx.nn.net.graph_att_nn import (GraphAttNNParams,\n"
+            "    GraphAttNN,\n"
+            ")\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "GraphAttNNParams" not in src
+    assert "from nnx.nn.net.graph_att_nn import (\n    GraphAttNN,\n)" in src
+    assert "from nnx.nn.params.nn_params import NNParams" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_single_line_parenthesized_params_import_is_preserved_and_rewritten(tmp_path):
     p = _make_notebook(tmp_path, "gat_parenthesized_single_line.ipynb", [
         _code_cell("from nnx.nn.net.graph_att_nn import (GraphAttNN, GraphAttNNParams)\n"),

@@ -240,6 +240,15 @@ def _is_nnparams_parenthesized_import(line: str) -> bool:
     return bool(re.match(r"^\s*from\s+nnx\.nn\.params\.nn_params\s+import\s+\(", line))
 
 
+def _parenthesized_import_opener(line: str) -> tuple[str, str] | None:
+    m = re.match(r"^(\s*from\s+[\w.]+\s+import\s+\()(.*?)(\n?)$", line)
+    if not m:
+        return None
+    opener = f"{m.group(1)}{m.group(3)}"
+    member_text = m.group(2)
+    return opener, member_text
+
+
 def rewrite_lines(source_lines: list[str]) -> list[str]:
     """Apply all rewrites to a list of source lines (each preserving its trailing \\n if present)."""
     out: list[str] = []
@@ -292,8 +301,27 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         new_line = _single_line_parenthesized_import(new_line)
         if new_line.lstrip().startswith("from ") and " import (" in new_line:
             in_parenthesized_import = True
-            parenthesized_import_open = new_line
+            opener_parts = _parenthesized_import_opener(new_line)
+            parenthesized_import_open = opener_parts[0] if opener_parts else new_line
             parenthesized_import_kept = []
+            if opener_parts and opener_parts[1].strip():
+                opener_indent = re.match(r"^(\s*)", new_line).group(1)
+                member_line = f"{opener_indent}    {opener_parts[1]}"
+                kept_lines, nnparams_imports, closes_import = _rewrite_parenthesized_import_member_line(member_line)
+                needed_nnparams_imports.update(nnparams_imports)
+                parenthesized_import_kept.extend(kept_lines)
+                if _is_nnparams_parenthesized_import(parenthesized_import_open):
+                    for kept_line in kept_lines:
+                        if "NNParams" in kept_line:
+                            existing_nnparams_imports.update(_imported_symbol_bindings(kept_line.strip().rstrip(",")))
+                if closes_import:
+                    if parenthesized_import_kept:
+                        out.append(parenthesized_import_open)
+                        out.extend(parenthesized_import_kept)
+                        out.append(_closing_paren_line(new_line))
+                    in_parenthesized_import = False
+                    parenthesized_import_open = ""
+                    parenthesized_import_kept = []
             continue
         # 2026-05-27: drop deprecated per-net Params from import lines
         if new_line.lstrip().startswith("from "):
