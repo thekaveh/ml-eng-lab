@@ -99,6 +99,13 @@ def _closing_paren_line(line: str) -> str:
     return f"{indent}){suffix}"
 
 
+def _single_line_parenthesized_import(line: str) -> str:
+    m = re.match(r"^(\s*from\s+[\w.]+\s+import\s+)\((.+)\)(\s*(?:#.*)?)(\n?)$", line)
+    if not m:
+        return line
+    return f"{m.group(1)}{m.group(2).strip()}{m.group(3)}{m.group(4)}"
+
+
 def _imported_symbol_bindings(symbols: str) -> set[str]:
     bindings = set()
     for part in (p.strip() for p in symbols.split(",") if p.strip()):
@@ -231,6 +238,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
             for old, new in SIMPLE_MAPPINGS:
                 if old in new_line:
                     new_line = new_line.replace(old, new)
+        new_line = _single_line_parenthesized_import(new_line)
         if new_line.lstrip().startswith("from ") and " import (" in new_line:
             in_parenthesized_import = True
             parenthesized_import_open = new_line

@@ -191,14 +191,20 @@ def _cell_magic_name(line: str) -> str:
     return stripped[2:].split(None, 1)[0].strip().lower()
 
 
-def _literal_dynamic_import(node: ast.AST) -> str:
+def _literal_dynamic_import(
+    node: ast.AST,
+    importlib_aliases: set[str] | None = None,
+    import_module_aliases: set[str] | None = None,
+) -> str:
     if not isinstance(node, ast.Call) or not node.args:
         return ""
+    importlib_aliases = importlib_aliases or {"importlib"}
+    import_module_aliases = import_module_aliases or set()
     func = node.func
     if isinstance(func, ast.Name):
-        is_import = func.id == "__import__"
+        is_import = func.id == "__import__" or func.id in import_module_aliases
     elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
-        is_import = func.value.id == "importlib" and func.attr == "import_module"
+        is_import = func.value.id in importlib_aliases and func.attr == "import_module"
     else:
         is_import = False
     if not is_import:
@@ -242,6 +248,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                 if module:
                     yield ImportedModule(module=module, line=li)
                 continue
+            importlib_aliases, import_module_aliases = _importlib_aliases(line_tree)
             for node in ast.walk(line_tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
@@ -256,10 +263,11 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                         module = node.module.split(".")[0]
                         if module:
                             yield ImportedModule(module=module, line=li)
-                elif module := _literal_dynamic_import(node):
+                elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
                     yield ImportedModule(module=module, line=li)
         return
 
+    importlib_aliases, import_module_aliases = _importlib_aliases(tree)
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
@@ -278,8 +286,23 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                 module = node.module.split(".")[0]
                 if module:
                     yield ImportedModule(module=module, line=node.lineno)
-        elif module := _literal_dynamic_import(node):
+        elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
             yield ImportedModule(module=module, line=node.lineno)
+
+
+def _importlib_aliases(tree: ast.AST) -> tuple[set[str], set[str]]:
+    importlib_aliases = {"importlib"}
+    import_module_aliases: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "importlib":
+                    importlib_aliases.add(alias.asname or alias.name)
+        elif isinstance(node, ast.ImportFrom) and node.module == "importlib":
+            for alias in node.names:
+                if alias.name == "import_module":
+                    import_module_aliases.add(alias.asname or alias.name)
+    return importlib_aliases, import_module_aliases
 
 
 def _blank_multiline_string_lines(source: str) -> list[str]:

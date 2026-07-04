@@ -173,6 +173,30 @@ def test_parenthesized_graph_att_params_import_with_closing_paren_same_line(tmp_
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_single_line_parenthesized_params_import_is_preserved_and_rewritten(tmp_path):
+    p = _make_notebook(tmp_path, "gat_parenthesized_single_line.ipynb", [
+        _code_cell("from nnx.nn.net.graph_att_nn import (GraphAttNN, GraphAttNNParams)\n"),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "GraphAttNNParams" not in src
+    assert "from nnx.nn.net.graph_att_nn import GraphAttNN" in src
+    assert "from nnx.nn.params.nn_params import NNParams" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
+def test_single_line_parenthesized_params_only_import_drops_empty_import(tmp_path):
+    p = _make_notebook(tmp_path, "gat_parenthesized_single_line_only_params.ipynb", [
+        _code_cell("from nnx.nn.net.graph_att_nn import (GraphAttNNParams)\n"),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "from nnx.nn.net.graph_att_nn" not in src
+    assert "GraphAttNNParams" not in src
+    assert "from nnx.nn.params.nn_params import NNParams" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_parenthesized_params_only_import_drops_empty_block(tmp_path):
     p = _make_notebook(tmp_path, "gat_parenthesized_only_params.ipynb", [
         _code_cell(
