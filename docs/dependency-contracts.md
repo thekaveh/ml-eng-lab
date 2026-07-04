@@ -213,8 +213,9 @@ Upgrade criteria:
 2. Confirm `start.sh`, `docker-compose.yml`, and the `jupyterhub` service still
    exist at that SHA.
 3. Run `shellcheck scripts/start-jupyterhub.sh vendor/genai-vanilla/start.sh
-   vendor/genai-vanilla/stop.sh`, run `bash -n scripts/start-jupyterhub.sh`,
-   and parse `deploy/genai-vanilla-jupyterhub.override.yml`.
+   vendor/genai-vanilla/stop.sh vendor/genai-vanilla/bootstrapper/_run.sh`,
+   run `bash -n scripts/start-jupyterhub.sh`, and parse
+   `deploy/genai-vanilla-jupyterhub.override.yml`.
 4. In a Docker-capable environment, run `git submodule update --init --recursive`
    followed by `docker compose config` with the wrapper-provided environment.
 5. Update this section, README runtime caveats, and `docs/jupyterhub-integration.md`

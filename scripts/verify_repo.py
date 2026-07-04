@@ -12,10 +12,12 @@ import argparse
 import ast
 import hashlib
 import importlib.util
+import io
 import json
 import re
 import subprocess
 import sys
+import tokenize
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -178,7 +180,7 @@ def _cell_magic_name(line: str) -> str:
 
 
 def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
-    """Yield top-level imported module names and zero-based line numbers."""
+    """Yield top-level imported module names and one-based line numbers."""
     for line in source.splitlines():
         if not line.strip():
             continue
@@ -198,7 +200,8 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
     try:
         tree = ast.parse(cleaned_source)
     except SyntaxError:
-        for li, line in enumerate(cleaned_lines):
+        fallback_lines = _blank_multiline_string_lines(cleaned_source)
+        for li, line in enumerate(fallback_lines, 1):
             m = _IMPORT_RE.match(line)
             if not m:
                 continue
@@ -230,19 +233,37 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
             for alias in node.names:
                 module = alias.name.split(".")[0]
                 if module:
-                    yield ImportedModule(module=module, line=node.lineno - 1)
+                    yield ImportedModule(module=module, line=node.lineno)
         elif isinstance(node, ast.ImportFrom):
             if node.level:
                 module = node.module or ", ".join(alias.name for alias in node.names)
                 yield ImportedModule(
                     module=module or ".",
-                    line=node.lineno - 1,
+                    line=node.lineno,
                     relative=True,
                 )
             elif node.module:
                 module = node.module.split(".")[0]
                 if module:
-                    yield ImportedModule(module=module, line=node.lineno - 1)
+                    yield ImportedModule(module=module, line=node.lineno)
+
+
+def _blank_multiline_string_lines(source: str) -> list[str]:
+    lines = source.splitlines()
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+        for tok in tokens:
+            if tok.type != tokenize.STRING:
+                continue
+            start_line, _ = tok.start
+            end_line, _ = tok.end
+            if end_line <= start_line:
+                continue
+            for idx in range(start_line - 1, min(end_line, len(lines))):
+                lines[idx] = ""
+    except tokenize.TokenError:
+        pass
+    return lines
 
 
 def _git_ls_files(repo: Path) -> list[str]:
@@ -370,6 +391,7 @@ def _shellcheck_targets(repo: Path) -> tuple[Path, ...]:
     vendor_entrypoints = (
         repo / "vendor" / "genai-vanilla" / "start.sh",
         repo / "vendor" / "genai-vanilla" / "stop.sh",
+        repo / "vendor" / "genai-vanilla" / "bootstrapper" / "_run.sh",
     )
     return tuple(path for path in (*local_scripts, *vendor_entrypoints) if path.exists())
 
@@ -420,9 +442,6 @@ def check_structure(repo: Path) -> CheckResult:
             for imported in _imported_modules_from_source(cell.source):
                 module = imported.module
                 li = imported.line
-                if not module or module in seen_in_notebook:
-                    continue
-                seen_in_notebook.add(module)
                 location = f"{nb.relative_to(repo)}:cell[{ci}]:line[{li}]"
                 if imported.relative:
                     result.findings.append(Finding(
@@ -436,6 +455,9 @@ def check_structure(repo: Path) -> CheckResult:
                         ),
                     ))
                     continue
+                if not module or module in seen_in_notebook:
+                    continue
+                seen_in_notebook.add(module)
                 if module in sibling_modules:
                     continue
                 try:

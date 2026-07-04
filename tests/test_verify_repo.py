@@ -159,6 +159,33 @@ def test_structure_s2_checks_every_module_in_multi_import(tmp_path):
     assert hits, f"expected S2.unresolved_import for second import; got {data.get('findings')}"
 
 
+def test_structure_s2_reports_one_based_line_numbers(tmp_path):
+    """S2 locations should use the same one-based line convention as other findings."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "one-based-import-line.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "x = 1\nimport definitely_missing_module_for_line_number\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_module_for_line_number" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import; got {data.get('findings')}"
+    assert hits[0]["location"].endswith(":cell[0]:line[2]")
+
+
 def test_structure_s2_checks_multi_import_after_notebook_magic(tmp_path):
     """Notebook magics must not push S2 back to a first-module-only regex fallback."""
     import nbformat
@@ -260,6 +287,62 @@ def test_structure_s2_flags_dotted_notebook_relative_imports(tmp_path):
         and "helpers" in f["message"]
     ]
     assert hits, f"expected S2.relative_import for dotted relative import; got {data.get('findings')}"
+
+
+def test_structure_s2_dedupe_does_not_hide_relative_imports(tmp_path):
+    """A normal sibling import must not suppress a later relative-import finding."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "deduped-relative-import.ipynb"
+    task_dir = repo / ACTIVE_FIXTURE_DIR
+    (task_dir / "helpers.py").write_text("VALUE = 1\n", encoding="utf-8")
+    fake = task_dir / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import helpers\nfrom .helpers import VALUE\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.relative_import"
+        and name in f["location"]
+        and "helpers" in f["message"]
+    ]
+    assert hits, f"expected relative import despite earlier normal import; got {data.get('findings')}"
+
+
+def test_structure_s2_fallback_ignores_multiline_string_import_text(tmp_path):
+    """Syntax fallback must not scan import-looking text inside multiline strings."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "fallback-string-import-text.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "note = '''\n"
+            "import definitely_missing_inside_multiline_string\n"
+            "'''\n"
+            "if True print('force fallback')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if name in f["location"]
+        and "definitely_missing_inside_multiline_string" in f["message"]
+    ]
+    assert hits == [], f"fallback should ignore multiline string import text; got {hits}"
 
 
 def test_structure_s7_no_pycache_tracked():
@@ -866,6 +949,7 @@ def test_e6_shellcheck_targets_include_consumed_vendor_entrypoints():
     assert "scripts/start-jupyterhub.sh" in targets
     assert "vendor/genai-vanilla/start.sh" in targets
     assert "vendor/genai-vanilla/stop.sh" in targets
+    assert "vendor/genai-vanilla/bootstrapper/_run.sh" in targets
 
 
 def _load_verify_module():
