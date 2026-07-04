@@ -103,6 +103,8 @@ def _single_line_parenthesized_import(line: str) -> str:
     m = re.match(r"^(\s*from\s+[\w.]+\s+import\s+)\((.+)\)(\s*(?:#.*)?)(\n?)$", line)
     if not m:
         return line
+    if not any(_nnparams_replacement_for_symbol(part) for part in m.group(2).split(",")):
+        return line
     return f"{m.group(1)}{m.group(2).strip()}{m.group(3)}{m.group(4)}"
 
 
@@ -121,11 +123,29 @@ def _rewrite_parenthesized_import_member_line(line: str) -> tuple[list[str], lis
     closes_import = ")" in stripped_nl
     symbol_text = stripped_nl.split(")", 1)[0] if closes_import else stripped_nl
     indent = re.match(r"^(\s*)", line).group(1)
+    content = symbol_text[len(indent) :]
     kept_lines: list[str] = []
     nnparams_imports: list[str] = []
-    for part in (p.strip() for p in symbol_text.split(",") if p.strip()):
-        if part.startswith("#"):
-            continue
+    if not content.strip():
+        return kept_lines, nnparams_imports, closes_import
+    if content.lstrip().startswith("#"):
+        suffix = "\n" if line.endswith("\n") else ""
+        kept_lines.append(line if not closes_import else f"{indent}{content}{suffix}")
+        return kept_lines, nnparams_imports, closes_import
+
+    code_text = content.split("#", 1)[0]
+    parts = [p.strip() for p in code_text.split(",") if p.strip()]
+    has_deprecated = any(_nnparams_replacement_for_symbol(part) for part in parts)
+    if not has_deprecated:
+        if closes_import:
+            kept = code_text.rstrip().rstrip(",").strip()
+            if kept:
+                kept_lines.append(f"{indent}{kept},\n")
+        else:
+            kept_lines.append(line)
+        return kept_lines, nnparams_imports, closes_import
+
+    for part in parts:
         if replacement := _nnparams_replacement_for_symbol(part):
             nnparams_imports.append(replacement)
         else:

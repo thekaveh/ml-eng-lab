@@ -469,6 +469,36 @@ def test_parenthesized_non_deprecated_import_preserves_comments(tmp_path):
     assert _cell_source(p, 0) == src
 
 
+def test_single_line_parenthesized_non_deprecated_import_is_preserved(tmp_path):
+    src = "from some.module import (UsefulSymbol)\n"
+    p = _make_notebook(tmp_path, "single_line_non_deprecated_parenthesized_import.ipynb", [_code_cell(src)])
+    _run(p)
+    assert _cell_source(p, 0) == src
+
+
+def test_parenthesized_rewrite_preserves_kept_member_comments(tmp_path):
+    src = (
+        "from nnx.nn.net.graph_att_nn import (\n"
+        "    # concrete network class\n"
+        "    GraphAttNN,  # keep this inline note\n"
+        "    GraphAttNNParams,  # old params alias\n"
+        ")\n"
+    )
+    p = _make_notebook(tmp_path, "parenthesized_rewrite_preserves_comments.ipynb", [_code_cell(src)])
+    _run(p)
+    rewritten = _cell_source(p, 0)
+    assert "GraphAttNNParams" not in rewritten
+    assert "old params alias" not in rewritten
+    assert (
+        "from nnx.nn.net.graph_att_nn import (\n"
+        "    # concrete network class\n"
+        "    GraphAttNN,  # keep this inline note\n"
+        ")\n"
+    ) in rewritten
+    assert "from nnx.nn.params.nn_params import NNParams" in rewritten
+    compile(rewritten, "<rewritten-cell>", "exec")
+
+
 def test_common_nn_model_split_import_with_inline_comment(tmp_path):
     p = _make_notebook(tmp_path, "common_nn_model_comment.ipynb", [
         _code_cell("from common.nn_model import NNModel, NNTrainParams  # training params\n"),
