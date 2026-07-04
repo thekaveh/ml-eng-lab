@@ -50,7 +50,7 @@ Found an issue in the `thekaveh-nnx` library? Append to [docs/FINDINGS-NNX.md](d
 
 ## 5. Running notebooks
 
-Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the image natively ships the ml-eng-lab dep set + the 2 NLP model assets. The image currently bakes the now-defunct `nnx-pytorch[lm]` PyPI name; a coordinated upstream bump to `thekaveh-nnx[lm]==0.2.0` is needed before the standalone path covers the tier-covered notebooks on a fresh build (tracked as a follow-up to the 2026-06-14 PyPI migration). The wrapper-and-bind-mount is required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook and for host-side data/runs persistence; the quantization notebook remains manual-only under `torch>=2.5` + `torchao>=0.17`.
+Primary runtime: the `genai-vanilla` stack. As of genai-vanilla `675f1fff`, the image natively ships the ml-eng-lab dependency set, `thekaveh-nnx[lm]==0.2.0`, and the two NLP model assets. Pull and rebuild older genai-vanilla images if they still reference the defunct `nnx-pytorch[lm]` distribution name. The wrapper-and-bind-mount is required for the from-scratch `image_classification-mnist-ffnn-numpy` notebook and for host-side data/runs persistence; the quantization notebook remains manual-only under `torch>=2.5` + `torchao>=0.17`.
 
 - **Default (standalone genai-vanilla)** — `cd ~/repos/genai-vanilla && ./start.sh`, then point VS Code Mode 2 at the token URL.
 - **Persistence variant (wrapper + bind-mount)** — `scripts/start-jupyterhub.sh` from the ml-eng-lab repo root (NOT `cd vendor/genai-vanilla && ./start.sh` directly — the wrapper sets `ML_REPO_PATH` and `COMPOSE_FILE` to layer the override).

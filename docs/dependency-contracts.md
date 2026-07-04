@@ -180,7 +180,7 @@ that the run intentionally used a local NNx development checkout.
 
 `.gitmodules` consumes `https://github.com/thekaveh/genai-vanilla.git` as the
 `vendor/genai-vanilla` submodule. The repository currently pins tree entry
-`0e4e9643ac273c6f36f815a5f4b3b187876bac74`; a read-only check on 2026-07-04
+`675f1fffaf467a1f17ddd346e8b16fc6cbc365e0`; a read-only check on 2026-07-04
 found upstream `main` at the same SHA, so the submodule is current as of this
 ledger entry.
 

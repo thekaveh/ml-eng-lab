@@ -81,6 +81,11 @@ def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
     )
 
 
+def _archive_cross_language_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
+    archive_root = repo_root / "notebooks" / "archive" / "codexglue_summarization"
+    return sorted(archive_root.glob("codexglue-summarization-cross-*/notebook.ipynb"))
+
+
 def _code_cells(nb: dict) -> list[dict]:
     return [c for c in nb.get("cells", []) if c.get("cell_type") == "code"]
 
@@ -201,6 +206,25 @@ def test_active_notebooks_uses_git_tracked_files(tmp_path: Path, monkeypatch: py
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     assert _active_notebooks(tmp_path) == [tracked_nb]
+
+
+def test_archive_cross_language_notebooks_guard_missing_model_artifacts():
+    """Archived CodeXGLUE transfer notebooks should rerun as references even
+    when historical model outputs are absent from the archive snapshot."""
+    notebooks = _archive_cross_language_notebooks()
+    assert len(notebooks) == 10
+    required_fragments = (
+        "if not os.path.exists(run_py_path):",
+        "elif not os.path.exists(checkpoint_path):",
+        "if not os.path.exists(bleu_score_path):",
+        "if not os.path.exists(_gold_path):",
+        "if not os.path.exists(_output_path):",
+    )
+    for path in notebooks:
+        nb = json.loads(path.read_text(encoding="utf-8"))
+        source = "\n".join("".join(_source_lines(cell)) for cell in _code_cells(nb))
+        missing = [fragment for fragment in required_fragments if fragment not in source]
+        assert not missing, f"{path.relative_to(REPO_ROOT)} missing archive guards: {missing}"
 
 
 @pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)

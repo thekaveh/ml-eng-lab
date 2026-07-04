@@ -4,6 +4,11 @@ This directory holds ML experiments preserved as historical artifacts. **Not mai
 
 If you want to revive any of these, treat it as starting from scratch with the original notebook as a reference.
 
+The CodeXGLUE cross-language notebooks now resolve paths relative to their archived folders
+and skip their evaluation/preview cells when the historical `repos/CodeXGLUE` checkout,
+checkpoint, or `model/test_0.*` files are absent. Restore those artifacts or rerun the old
+training cells to reproduce the original comparisons.
+
 ---
 
 ## 1. codexglue_summarization/
