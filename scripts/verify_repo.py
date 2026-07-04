@@ -976,7 +976,9 @@ def _workflow_action_pin_findings(repo: Path) -> list[Finding]:
         return []
     ledger = _workflow_action_pin_ledger(_read_text(ledger_path))
     findings: list[Finding] = []
-    for workflow in sorted((repo / ".github" / "workflows").glob("*.yml")):
+    workflow_dir = repo / ".github" / "workflows"
+    workflows = sorted((*workflow_dir.glob("*.yml"), *workflow_dir.glob("*.yaml")))
+    for workflow in workflows:
         for line_no, line in enumerate(_read_text(workflow).splitlines(), start=1):
             m = re.search(r"\buses:\s*([^\s#]+)(?:\s*#\s*(\S+))?", line)
             if not m:

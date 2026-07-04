@@ -1024,6 +1024,34 @@ def test_docs_d10_flags_workflow_action_refs_that_are_not_sha_pinned(tmp_path):
     assert "actions/checkout@v7" in hits[0]["message"]
 
 
+def test_docs_d10_flags_yaml_workflow_action_refs_that_are_not_sha_pinned(tmp_path):
+    repo = _temp_repo(tmp_path)
+    workflow = repo / ".github" / "workflows" / "ci.yaml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text(
+        "jobs:\n"
+        "  test:\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v7\n",
+        encoding="utf-8",
+    )
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 8. GitHub Actions Pins\n\n"
+        "| Action | Reviewed Tag | Pinned SHA |\n"
+        "| --- | --- | --- |\n"
+        "| `actions/checkout` | `v7` | `9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0` |\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.workflow_action_pin"]
+    assert hits, f"expected D10.workflow_action_pin for .yaml workflow; got {data.get('findings')}"
+    assert hits[0]["location"] == ".github/workflows/ci.yaml:4"
+
+
 def test_docs_d10_flags_workflow_action_refs_missing_from_ledger(tmp_path):
     repo = _temp_repo(tmp_path)
     workflow = repo / ".github" / "workflows" / "ci.yml"

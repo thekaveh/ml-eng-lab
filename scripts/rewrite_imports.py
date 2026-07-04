@@ -159,11 +159,12 @@ def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
     return rebuilt + ("\n" if had_nl else ""), nnparams_imports, True
 
 
-def _rewrite_call_sites(line: str) -> tuple[str, bool]:
-    """Rewrite `OldNameParams(` → `NNParams(` on this line.
+def _rewrite_param_name_references(line: str) -> tuple[str, bool]:
+    """Rewrite executable unqualified deprecated Params references to `NNParams`.
 
     Tokenization keeps comments and string literals untouched, so prose-only
-    cells do not gain executable imports.
+    cells do not gain executable imports. Qualified attributes and declaration
+    names are left alone.
     """
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(line).readline))
@@ -198,16 +199,7 @@ def _rewrite_call_sites(line: str) -> tuple[str, bool]:
         )
         if prev_token is not None and prev_token.string in {".", "class", "def"}:
             continue
-        next_token = next(
-            (
-                candidate
-                for candidate in tokens[idx + 1:]
-                if candidate.type not in {tokenize.NL, tokenize.NEWLINE, tokenize.ENDMARKER}
-            ),
-            None,
-        )
-        if next_token is not None and next_token.string == "(":
-            replacements.append((absolute_offset(token.start), absolute_offset(token.end)))
+        replacements.append((absolute_offset(token.start), absolute_offset(token.end)))
 
     if not replacements:
         return line, False
@@ -228,7 +220,7 @@ def _rewrite_call_sites_across_continuations(lines: list[str]) -> tuple[list[str
             idx += 1
             chunk.append(lines[idx])
         if len(chunk) > 1:
-            new_chunk, chunk_changed = _rewrite_call_sites("".join(chunk))
+            new_chunk, chunk_changed = _rewrite_param_name_references("".join(chunk))
             if chunk_changed:
                 changed = True
                 rewritten.extend(new_chunk.splitlines(keepends=True))
@@ -370,9 +362,9 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                 if rewritten == "":
                     continue
                 new_line = rewritten
-        # 2026-05-27: rewrite call sites OldNameParams( → NNParams(
-        new_line, call_site_changed = _rewrite_call_sites(new_line)
-        if call_site_changed:
+        # 2026-05-27: rewrite executable uses of deprecated per-net Params.
+        new_line, param_reference_changed = _rewrite_param_name_references(new_line)
+        if param_reference_changed:
             needed_nnparams_imports.add("NNParams")
         # Track whether NNParams is being imported in this cell already.
         # Match only real `from ... import NNParams[,...]` lines, not
