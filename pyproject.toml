@@ -1,7 +1,11 @@
-# Root pyproject.toml — for ruff configuration only.
+# Root pyproject.toml — for repo-local tooling configuration.
 # The ml-eng-lab repo is NOT pip-installable as a package itself. Each task folder
 # is a self-contained set of notebooks; library code lives in `thekaveh-nnx`,
 # installed from PyPI via requirements.txt (as of 2026-06-14 PyPI migration).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["vendor", "notebooks/archive", ".venv"]
 
 [tool.ruff]
 line-length = 120

@@ -1,6 +1,6 @@
 # VS Code remote access to the jupyterhub container
 
-Three modes, pick by use case. Mode 2 is the default for most ml-eng-lab work as of genai-vanilla `2bee051` — the image ships ml-eng-lab's external dependencies, `thekaveh-nnx[lm]==0.2.0`, and NLP assets.
+Three modes, pick by use case. Mode 2 is the default for most ml-eng-lab work as of genai-vanilla `448333d` — the image ships ml-eng-lab's external dependencies, `thekaveh-nnx[lm]==0.2.0`, and NLP assets.
 
 ## 1. Mode 1 — Attach to Running Container
 

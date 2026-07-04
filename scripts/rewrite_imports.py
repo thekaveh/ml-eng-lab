@@ -69,7 +69,7 @@ SPLIT_PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], list[str]]
 #     reshape so the deprecated symbol is dropped (and NNParams is imported
 #     if not already imported in the cell).
 #   * CALL-SITE substitution: rename `OldNameParams(` → `NNParams(` in any
-#     code line (including commented-out lines, for consistency).
+#     executable code line; comments and string literals are preserved.
 #
 DEPRECATED_PARAM_NAMES: list[str] = [
     "FeedFwdNNParams",

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
@@ -13,11 +14,21 @@ NOTEBOOK_DIR = (
     / "notebooks"
     / "image_classification-mnist-ffnn-numpy"
 )
-sys.path.insert(0, str(NOTEBOOK_DIR))
+@contextmanager
+def _notebook_import_path():
+    path = str(NOTEBOOK_DIR)
+    sys.path.insert(0, path)
+    try:
+        yield
+    finally:
+        if path in sys.path:
+            sys.path.remove(path)
 
-from linear_layer import LinearLayer  # noqa: E402
-from relu_layer import ReluLayer  # noqa: E402
-from softmax_cross_entropy_layer import SoftmaxCrossEntropyLayer  # noqa: E402
+
+with _notebook_import_path():
+    from linear_layer import LinearLayer
+    from relu_layer import ReluLayer
+    from softmax_cross_entropy_layer import SoftmaxCrossEntropyLayer
 
 
 def test_linear_layer_rejects_supplied_weight_shape():
