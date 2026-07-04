@@ -55,7 +55,7 @@ All installed by the genai-vanilla jupyterhub image or via the root `requirement
 ## 6. Known issues
 
 - `./data/` and `./runs/` are gitignored; first run downloads MNIST and creates a fresh runs directory.
-- If you see `ModuleNotFoundError: No module named 'nnx'`, your jupyterhub image is older than the genai-vanilla `ba21661` runtime pin or was built against the defunct `nnx-pytorch[lm]` distribution name. Pull current genai-vanilla `main`, rebuild the `jupyterhub` image, and confirm `services/jupyterhub/build/requirements.txt` contains `thekaveh-nnx[lm]==0.2.0`. See [`../../docs/jupyterhub-integration.md`](../../docs/jupyterhub-integration.md) §6.
+- If you see `ModuleNotFoundError: No module named 'nnx'`, your jupyterhub image is older than the genai-vanilla `329f883` runtime pin or was built against the defunct `nnx-pytorch[lm]` distribution name. Pull current genai-vanilla `main`, rebuild the `jupyterhub` image, and confirm `services/jupyterhub/build/requirements.txt` contains `thekaveh-nnx[lm]==0.2.0`. See [`../../docs/jupyterhub-integration.md`](../../docs/jupyterhub-integration.md) §6.
 
 ## 7. Future work
 

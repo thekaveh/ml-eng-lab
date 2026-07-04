@@ -303,6 +303,21 @@ def test_graph_att_params_call_site_renamed_to_nnparams(tmp_path):
     assert "n_heads=4" in src  # call-site args preserved verbatim
 
 
+def test_params_call_site_with_backslash_continuation_renamed_to_nnparams(tmp_path):
+    p = _make_notebook(tmp_path, "gat_call_backslash.ipynb", [
+        _code_cell(
+            "from nnx.nn.net.graph_att_nn import GraphAttNNParams\n"
+            "params = GraphAttNNParams \\\n"
+            "    (n_heads=4, input_dim=10, output_dim=2)\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "GraphAttNNParams" not in src
+    assert "params = NNParams \\\n    (n_heads=4, input_dim=10, output_dim=2)" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_other_per_net_params_renamed_defensively(tmp_path):
     """Defensive rules: even if no notebook currently uses these, the rewriter
     handles them so future audits don't repeat the miss."""

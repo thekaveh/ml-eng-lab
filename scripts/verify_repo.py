@@ -934,20 +934,29 @@ def _dependency_ledger_findings(repo: Path) -> list[Finding]:
         ledger_sha = ledger_sha_match.group(1)
         rc, out, _err = _run(["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"], repo)
         gitlink_match = re.search(r"160000 ([0-9a-f]{40}) \d+\s+vendor/genai-vanilla", out)
-        if rc == 0 and gitlink_match:
-            gitlink_sha = gitlink_match.group(1)
-            if ledger_sha != gitlink_sha:
-                findings.append(Finding(
-                    id="D10.dependency_ledger_submodule_sha",
-                    check="docs",
-                    severity="error",
-                    location="docs/dependency-contracts.md",
-                    message=(
-                        "genai-vanilla ledger SHA does not match the superproject "
-                        "gitlink"
-                    ),
-                    detail={"ledger_sha": ledger_sha, "gitlink_sha": gitlink_sha},
-                ))
+        if rc != 0 or not gitlink_match:
+            findings.append(Finding(
+                id="D10.dependency_ledger_submodule_sha",
+                check="docs",
+                severity="error",
+                location="docs/dependency-contracts.md",
+                message="genai-vanilla ledger SHA cannot be compared to a parseable superproject gitlink",
+                detail={"ledger_sha": ledger_sha, "gitlink_sha": None},
+            ))
+            return findings
+        gitlink_sha = gitlink_match.group(1)
+        if ledger_sha != gitlink_sha:
+            findings.append(Finding(
+                id="D10.dependency_ledger_submodule_sha",
+                check="docs",
+                severity="error",
+                location="docs/dependency-contracts.md",
+                message=(
+                    "genai-vanilla ledger SHA does not match the superproject "
+                    "gitlink"
+                ),
+                detail={"ledger_sha": ledger_sha, "gitlink_sha": gitlink_sha},
+            ))
     return findings
 
 

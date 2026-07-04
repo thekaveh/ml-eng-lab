@@ -938,6 +938,36 @@ def test_docs_d10_flags_missing_dependency_ledger_submodule_sha(tmp_path, monkey
     assert "parseable" in hits[0].message
 
 
+def test_docs_d10_flags_missing_dependency_ledger_gitlink(tmp_path, monkeypatch):
+    """The genai-vanilla ledger SHA must be checked against a parseable gitlink."""
+    repo = _temp_repo(tmp_path)
+    docs = repo / "docs"
+    docs.mkdir()
+    ledger_sha = "ba21661e8a63b3727b9c4a14eaf5e61262d4b48e"
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 7. genai-vanilla Submodule Contract\n\n"
+        "`vendor/genai-vanilla` submodule. The repository currently pins tree entry\n"
+        f"`{ledger_sha}`; a read-only check found upstream `main` at the same SHA.\n",
+        encoding="utf-8",
+    )
+    verify_repo = _load_verify_module()
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"]:
+            return 0, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    findings = verify_repo._dependency_ledger_findings(repo)
+
+    hits = [f for f in findings if f.id == "D10.dependency_ledger_submodule_sha"]
+    assert hits
+    assert "gitlink" in hits[0].message
+    assert hits[0].detail == {"ledger_sha": ledger_sha, "gitlink_sha": None}
+
+
 def test_docs_d11_current_layout_guidance_is_not_stale():
     """Contributor-facing docs should point new tasks at notebooks/<task>/."""
     r = run_verify("--check", "docs", "--fast")

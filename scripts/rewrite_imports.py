@@ -157,6 +157,16 @@ def _rewrite_call_sites(line: str) -> tuple[str, bool]:
         except tokenize.TokenError:
             return line, False
 
+    line_offsets = [0]
+    for physical_line in line.splitlines(keepends=True):
+        line_offsets.append(line_offsets[-1] + len(physical_line))
+
+    def absolute_offset(position: tuple[int, int]) -> int:
+        line_no, column = position
+        if 1 <= line_no <= len(line_offsets):
+            return line_offsets[line_no - 1] + column
+        return column
+
     replacements: list[tuple[int, int]] = []
     for idx, token in enumerate(tokens):
         if token.type != tokenize.NAME or token.string not in DEPRECATED_PARAM_NAMES:
@@ -170,7 +180,7 @@ def _rewrite_call_sites(line: str) -> tuple[str, bool]:
             None,
         )
         if next_token is not None and next_token.string == "(":
-            replacements.append((token.start[1], token.end[1]))
+            replacements.append((absolute_offset(token.start), absolute_offset(token.end)))
 
     if not replacements:
         return line, False
@@ -179,6 +189,28 @@ def _rewrite_call_sites(line: str) -> tuple[str, bool]:
     for start, end in reversed(replacements):
         new_line = f"{new_line[:start]}NNParams{new_line[end:]}"
     return new_line, True
+
+
+def _rewrite_call_sites_across_continuations(lines: list[str]) -> tuple[list[str], bool]:
+    rewritten: list[str] = []
+    changed = False
+    idx = 0
+    while idx < len(lines):
+        chunk = [lines[idx]]
+        while chunk[-1].rstrip("\n").rstrip().endswith("\\") and idx + 1 < len(lines):
+            idx += 1
+            chunk.append(lines[idx])
+        if len(chunk) > 1:
+            new_chunk, chunk_changed = _rewrite_call_sites("".join(chunk))
+            if chunk_changed:
+                changed = True
+                rewritten.extend(new_chunk.splitlines(keepends=True))
+            else:
+                rewritten.extend(chunk)
+        else:
+            rewritten.extend(chunk)
+        idx += 1
+    return rewritten, changed
 
 
 def rewrite_lines(source_lines: list[str]) -> list[str]:
@@ -265,6 +297,9 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         if nnparams_import:
             existing_nnparams_imports.update(_imported_symbol_bindings(nnparams_import.group(1)))
         out.append(new_line)
+    out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(out)
+    if continuation_call_site_changed:
+        needed_nnparams_imports.add("NNParams")
     # If any call site or rewrite needs NNParams but the cell never imports it,
     # inject one.
     missing_nnparams_imports = sorted(needed_nnparams_imports - existing_nnparams_imports)
