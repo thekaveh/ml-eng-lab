@@ -225,6 +225,36 @@ def test_multiline_source_chunk_is_split_before_rewriting(tmp_path):
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_source_chunks_are_joined_before_rewriting_logical_lines(tmp_path):
+    nb = {
+        "cells": [{
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "from common.",
+                "nn_model import NNModel, NNTrainParams\n",
+                "print(NNModel, NNTrainParams)\n",
+            ],
+        }],
+        "metadata": {"kernelspec": {"name": "python3", "display_name": "Python 3"}},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+    p = tmp_path / "split_logical_line_chunk.ipynb"
+    p.write_text(json.dumps(nb, indent=1) + "\n")
+
+    _run(p)
+
+    src = _cell_source(p, 0)
+    assert "from common.nn_model" not in src
+    assert "from nnx.nn.nn_model import NNModel" in src
+    assert "from nnx.nn.params.nn_train_params import NNTrainParams" in src
+    assert "print(NNModel, NNTrainParams)" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_parenthesized_params_only_import_drops_empty_block(tmp_path):
     p = _make_notebook(tmp_path, "gat_parenthesized_only_params.ipynb", [
         _code_cell(

@@ -284,11 +284,7 @@ def process_notebook(path: Path) -> bool:
         if isinstance(source, str):
             original_list = source.splitlines(keepends=True)
         else:
-            original_list = [
-                line
-                for chunk in source
-                for line in str(chunk).splitlines(keepends=True)
-            ]
+            original_list = "".join(str(chunk) for chunk in source).splitlines(keepends=True)
         new_list = rewrite_lines(original_list)
         if new_list != original_list:
             cell["source"] = new_list

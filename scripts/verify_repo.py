@@ -239,16 +239,60 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
         fallback_lines = _blank_multiline_string_lines(cleaned_source)
         importlib_aliases = {"importlib"}
         import_module_aliases: set[str] = set()
-        for li, line in enumerate(fallback_lines, 1):
+        idx = 0
+        while idx < len(fallback_lines):
+            li = idx + 1
+            line = fallback_lines[idx]
             try:
                 line_tree = ast.parse(line)
             except SyntaxError:
+                statement_lines = [line]
+                balance = line.count("(") - line.count(")")
+                while (
+                    balance > 0
+                    and line.lstrip().startswith("from importlib import")
+                    and idx + 1 < len(fallback_lines)
+                ):
+                    idx += 1
+                    next_line = fallback_lines[idx]
+                    statement_lines.append(next_line)
+                    balance += next_line.count("(") - next_line.count(")")
+                if len(statement_lines) > 1:
+                    try:
+                        line_tree = ast.parse("\n".join(statement_lines))
+                    except SyntaxError:
+                        line_tree = None
+                    if line_tree is not None:
+                        line_importlib_aliases, line_import_module_aliases = _importlib_aliases(line_tree)
+                        importlib_aliases.update(line_importlib_aliases)
+                        import_module_aliases.update(line_import_module_aliases)
+                        for node in ast.walk(line_tree):
+                            location = li + getattr(node, "lineno", 1) - 1
+                            if isinstance(node, ast.Import):
+                                for alias in node.names:
+                                    module = alias.name.split(".")[0]
+                                    if module:
+                                        yield ImportedModule(module=module, line=location)
+                            elif isinstance(node, ast.ImportFrom):
+                                if node.level:
+                                    module = node.module or ", ".join(alias.name for alias in node.names)
+                                    yield ImportedModule(module=module or ".", line=location, relative=True)
+                                elif node.module:
+                                    module = node.module.split(".")[0]
+                                    if module:
+                                        yield ImportedModule(module=module, line=location)
+                            elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
+                                yield ImportedModule(module=module, line=location)
+                        idx += 1
+                        continue
                 m = _IMPORT_RE.match(line)
                 if not m:
+                    idx += 1
                     continue
                 module = (m.group(1) or m.group(2) or "").split(".")[0]
                 if module:
                     yield ImportedModule(module=module, line=li)
+                idx += 1
                 continue
             line_importlib_aliases, line_import_module_aliases = _importlib_aliases(line_tree)
             importlib_aliases.update(line_importlib_aliases)
@@ -269,6 +313,7 @@ def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
                             yield ImportedModule(module=module, line=li)
                 elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
                     yield ImportedModule(module=module, line=li)
+            idx += 1
         return
 
     importlib_aliases, import_module_aliases = _importlib_aliases(tree)
@@ -1675,6 +1720,31 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                     "gitlink; stage the intended gitlink or run git submodule update"
                 ),
                 detail={"status": status},
+            ))
+            continue
+        submodule_repo = repo / submodule
+        rc, out, err = _run(["git", "status", "--porcelain", "--", "."], submodule_repo)
+        if rc != 0:
+            result.findings.append(Finding(
+                id="E6.submodule_status",
+                check="execution",
+                severity="warning",
+                location=submodule,
+                message=f"could not inspect required submodule worktree: {(out + err).strip()[-300:]}",
+            ))
+            continue
+        worktree_status = out.strip()
+        if worktree_status:
+            result.findings.append(Finding(
+                id="E6.submodule_dirty",
+                check="execution",
+                severity="error",
+                location=submodule,
+                message=(
+                    "required submodule checkout has local modifications; commit, "
+                    "stash, or discard them before recording consumed-contract parity"
+                ),
+                detail={"status": worktree_status},
             ))
 
     for sh in _required_shellcheck_targets(repo):
