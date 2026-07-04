@@ -56,7 +56,7 @@ In the recommended runtime ([../docs/jupyterhub-integration.md](../../docs/jupyt
 
 | Tier | Notebooks | Command |
 |---|---|---|
-| **A** | phase1 | `make run-tier-a` (re-runs in place, refreshes outputs) |
+| **B** | phase1 | `make smoke-tier-b` (smoke-runs to `/tmp`; full run still available from the notebook directory) |
 | **B** | phase2 × 4 | `make smoke-tier-b` (writes to `/tmp/`, preserves outputs) |
 | **C** | phase3 × 4 | `make smoke-tier-c` (writes to `/tmp/`, preserves outputs) |
 

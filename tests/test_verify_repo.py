@@ -1834,6 +1834,14 @@ def test_e11_tier_a_config_matches_makefile():
     assert hits == []
 
 
+def test_tier_a_excludes_external_reddit2_download_notebook():
+    verify_repo = _load_verify_module()
+    reddit_phase1 = "notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb"
+
+    assert reddit_phase1 not in verify_repo.TIER_A_NOTEBOOKS
+    assert reddit_phase1 not in verify_repo._makefile_variable_items(REPO, "TIER_A")
+
+
 def test_e11_flags_missing_makefile_tier_a(tmp_path, monkeypatch):
     verify_repo = _load_verify_module()
     monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ("task/notebook.ipynb",))

@@ -95,7 +95,6 @@ The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` varia
 
 - **Tier-A** (`make run-tier-a`, runs in CI on every PR):
   - `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb`
-  - `notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb`
   - `notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb`
   - `notebooks/model_surgery-mnist-ffnn-pytorch/notebook.ipynb`
   - `notebooks/pruning-mnist-ffnn-pytorch/notebook.ipynb`
@@ -113,8 +112,9 @@ The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` varia
   - `notebooks/sentiment_classification-vader-mlp-pytorch/notebook.ipynb`
   - `notebooks/preference_alignment-toy-dpo-pytorch/notebook.ipynb`
   - `notebooks/self_supervised-fmnist-jepa-pytorch/notebook.ipynb`
-- **Tier-B** (`make smoke-tier-b`; CI runs on weekly cron, `workflow_dispatch`, or PRs labeled `tier-b-smoke`; passes `-p SMOKE_TEST 1` and writes to /tmp; the parameterized mnist-pytorch notebook shrinks its sweep, and the 4 phase2 reddit notebooks run smoke-truncated epochs/subsets, with notebook4 also reducing fanout):
+- **Tier-B** (`make smoke-tier-b`; CI runs on weekly cron, `workflow_dispatch`, or PRs labeled `tier-b-smoke`; passes `-p SMOKE_TEST 1` and writes to /tmp; the parameterized mnist-pytorch notebook shrinks its sweep, the Reddit phase1 EDA notebook avoids every-PR fresh dataset downloads, and the 4 phase2 reddit notebooks run smoke-truncated epochs/subsets, with notebook4 also reducing fanout):
   - `notebooks/image_classification-mnist-ffnn-pytorch/notebook.ipynb` (full `[9 hidden_dims × 2 dropouts × 500 epochs]` sweep — `~17 min macOS / >90 min Linux`; moved out of Tier-A per [issue #7](https://github.com/thekaveh/ml-eng-lab/issues/7))
+  - `notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb` (Reddit2 EDA; moved out of Tier-A on 2026-07-04 because fresh Google Drive dataset downloads are too fragile for every-PR gating)
   - `notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook{1,2,3,4}.ipynb`
 - **Manual-only** (excluded from Tier-A/B/C; cannot run in ml-eng-lab's pinned environment):
   - `notebooks/quantization-mnist-ffnn-pytorch/notebook.ipynb` (torchao ≥ 0.9.0 — the earliest version with `Int8WeightOnlyConfig` — references `torch.int1` at import time, which requires `torch ≥ 2.5`; ml-eng-lab pins `torch==2.4.1` for genai-vanilla image-parity. Was Tier-A until 2026-06-02 (#10), Tier-B until 2026-06-16 (`Makefile` TIER_B header comment explains the cron-failure-driven removal). Run locally under `torch>=2.5` + `torchao>=0.17`.)
