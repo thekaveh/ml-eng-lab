@@ -361,6 +361,12 @@ def _deprecated_binding_reference_positions(source: str) -> set[tuple[int, int]]
                     if pos is not None:
                         bindings[arg.arg] = earliest(bindings.get(arg.arg), pos)
 
+        for child in ast.iter_child_nodes(scope):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and child.name in DEPRECATED_PARAM_NAMES:
+                pos = position(child)
+                if pos is not None:
+                    bindings[child.name] = earliest(bindings.get(child.name), pos)
+
         for node in same_scope_nodes(scope):
             if isinstance(node, ast.Assign):
                 for target in node.targets:

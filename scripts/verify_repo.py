@@ -843,6 +843,7 @@ def _iter_numbered_doc_files(repo: Path) -> Iterator[Path]:
     for rel in (
         "index.md",
         "architecture.md",
+        "diagrams/README.md",
         "FINDINGS-NNX.md",
         "FINDINGS-VENDOR.md",
         "dependency-contracts.md",

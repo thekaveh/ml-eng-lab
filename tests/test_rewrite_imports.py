@@ -479,6 +479,30 @@ def test_continued_local_binding_stays_protected_after_import_drop(tmp_path):
     compile(rewritten, "<rewritten-cell>", "exec")
 
 
+def test_local_class_and_function_bindings_stay_protected_after_import_drop(tmp_path):
+    src = (
+        "from nnx.nn.net.graph_att_nn import GraphAttNNParams, GraphConvNNParams\n"
+        "class GraphAttNNParams:\n"
+        "    pass\n"
+        "def GraphConvNNParams():\n"
+        "    return object()\n"
+        "x = GraphAttNNParams()\n"
+        "y = GraphConvNNParams()\n"
+    )
+    p = _make_notebook(tmp_path, "local_class_function_bindings.ipynb", [_code_cell(src)])
+    _run(p)
+    rewritten = _cell_source(p, 0)
+    assert "from nnx.nn.net.graph_att_nn import GraphAttNNParams" not in rewritten
+    assert "from nnx.nn.net.graph_att_nn import GraphConvNNParams" not in rewritten
+    assert "class GraphAttNNParams:" in rewritten
+    assert "def GraphConvNNParams():" in rewritten
+    assert "x = GraphAttNNParams()" in rewritten
+    assert "y = GraphConvNNParams()" in rewritten
+    assert "x = NNParams()" not in rewritten
+    assert "y = NNParams()" not in rewritten
+    compile(rewritten, "<rewritten-cell>", "exec")
+
+
 def test_params_call_site_with_backslash_continuation_renamed_to_nnparams(tmp_path):
     p = _make_notebook(tmp_path, "gat_call_backslash.ipynb", [
         _code_cell(

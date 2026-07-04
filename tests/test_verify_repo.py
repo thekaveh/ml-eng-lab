@@ -1034,6 +1034,25 @@ def test_docs_d9_flags_malformed_published_docs_page_heading(tmp_path):
     assert hits, f"expected D9.numbered_heading for docs/index.md; got {data.get('findings')}"
 
 
+def test_docs_d9_flags_malformed_published_diagram_provenance_heading(tmp_path):
+    """Published diagram provenance docs should be included in numbered-heading checks."""
+    repo = _temp_repo(tmp_path)
+    page = repo / "docs" / "diagrams" / "README.md"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        "# Diagram Provenance\n\n"
+        "## 1.1. Nested heading depth on an H2\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "D9.numbered_heading" and f["location"] == "docs/diagrams/README.md:3"
+    ]
+    assert hits, f"expected D9.numbered_heading for docs/diagrams/README.md; got {data.get('findings')}"
+
+
 def test_docs_d10_dependency_ledger_counts_match_current_doc():
     """Package counts and advisory feed-record counts should reconcile."""
     r = run_verify("--check", "docs", "--fast")
