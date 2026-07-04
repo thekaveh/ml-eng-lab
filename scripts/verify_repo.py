@@ -56,9 +56,7 @@ if not _active_task_dirs_raw:
         )
 ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
 NOTEBOOK_ROOT = Path("notebooks")
-ARCHIVE_NOTEBOOK_ROOT = NOTEBOOK_ROOT / "archive"
 
-VERIFY_ONLY_DIRS = ("notebooks/archive", "vendor")
 DEFAULT_SUBPROCESS_TIMEOUT = 120
 
 

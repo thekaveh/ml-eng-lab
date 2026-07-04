@@ -18,6 +18,9 @@
 
 PYTHON ?= python
 PAPERMILL ?= $(PYTHON) -m papermill
+PAPERMILL_START_TIMEOUT ?= 300
+PAPERMILL_EXECUTION_TIMEOUT ?= 3600
+PAPERMILL_TIMEOUT_FLAGS = --start-timeout $(PAPERMILL_START_TIMEOUT) --execution-timeout $(PAPERMILL_EXECUTION_TIMEOUT)
 
 TIER_A := \
     notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb \
@@ -90,7 +93,7 @@ run-tier-a:
 	@for nb in $(TIER_A); do \
 		echo "==> $$nb"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && $(PAPERMILL) --kernel python3 "$$base" "$$base") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) $(PAPERMILL_TIMEOUT_FLAGS) --kernel python3 "$$base" "$$base") || exit 1; \
 	done
 
 check-tier-a-clean:
@@ -102,7 +105,7 @@ smoke-tier-b:
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && $(PAPERMILL) --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) $(PAPERMILL_TIMEOUT_FLAGS) --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
 
 smoke-tier-c:
@@ -111,7 +114,7 @@ smoke-tier-c:
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && $(PAPERMILL) --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) $(PAPERMILL_TIMEOUT_FLAGS) --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
 
 test:

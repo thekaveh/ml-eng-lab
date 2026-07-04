@@ -18,6 +18,11 @@ class LinearLayer:
         self.feature_size_out = feature_size_out
 
         if W is not None:
+            if W.shape != (feature_size_out, feature_size_in):
+                raise ValueError(
+                    "W.shape must be "
+                    f"{(feature_size_out, feature_size_in)}, got {W.shape}"
+                )
             self.W = W.copy()
         else:
             self.W = np.random.standard_normal(size=(feature_size_out, feature_size_in))
@@ -30,6 +35,10 @@ class LinearLayer:
             np.testing.assert_almost_equal(np.linalg.norm(self.W), 1)
 
         if b is not None:
+            if b.shape != (feature_size_out,):
+                raise ValueError(
+                    f"b.shape must be {(feature_size_out,)}, got {b.shape}"
+                )
             self.b = b.copy()
         else:
             self.b = np.random.standard_normal(size=feature_size_out)

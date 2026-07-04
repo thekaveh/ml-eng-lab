@@ -24,7 +24,8 @@ Then use this site for focused maintenance references:
 - [Environment Setup](env-setup.md) for local, Docker, JupyterHub, and Codespaces runtime paths.
 - [Dependency Contracts](dependency-contracts.md) for pinned versions, known vulnerabilities,
   and manual-only notebook constraints.
-- [Maintenance Log](maintenance/overnight-2026-07-02.md) for the prior overnight pass record.
+- [Current Maintenance Log](maintenance/overnight-2026-07-04.md) for the active overnight pass record.
+- [July 2 Maintenance Log](maintenance/overnight-2026-07-02.md) for the prior hard-cap run.
 
 ## 1.3. Published Site Contract
 

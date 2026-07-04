@@ -115,10 +115,14 @@ so stale console-script shebangs cannot break notebook targets.
 Verified contract for `papermill==2.7.0`:
 
 - `python -m papermill --version` resolves the installed module.
-- `python -m papermill --help` exposes `--kernel` / `-k` and `--parameters` /
-  `-p`, which the Tier-A/B/C Makefile targets use.
+- `python -m papermill --help` exposes `--kernel` / `-k`, `--parameters` /
+  `-p`, `--start-timeout`, and `--execution-timeout`, which the Tier-A/B/C
+  Makefile targets use.
 - The injected `SMOKE_TEST` parameters cell remains parser-friendly for
   papermill 2.7; `tests/test_inject_smoke_test_cell.py` guards this shape.
+- The Makefile centralizes notebook launch limits through
+  `PAPERMILL_START_TIMEOUT` and `PAPERMILL_EXECUTION_TIMEOUT`; override those
+  variables locally rather than deleting timeout flags from the targets.
 
 Upgrade criteria:
 
@@ -203,7 +207,41 @@ Upgrade criteria:
 5. Update this section, README runtime caveats, and `docs/jupyterhub-integration.md`
    if the service names, mount paths, or NNx package layer change.
 
-## 8. Deferred Reproducibility Hardening
+## 8. GitHub Actions Pins
+
+Workflow actions are pinned to exact commit SHAs, with an inline version comment
+showing the reviewed upstream major tag. On 2026-07-04, the reviewed tag refs
+were:
+
+| Action | Reviewed Tag | Pinned SHA |
+| --- | --- | --- |
+| `actions/checkout` | `v7` | `9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0` |
+| `actions/setup-python` | `v6` | `ece7cb06caefa5fff74198d8649806c4678c61a1` |
+| `actions/upload-artifact` | `v7` | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` |
+| `actions/configure-pages` | `v6` | `45bfe0192ca1faeb007ade9deae92b16b8254a0d` |
+| `actions/upload-pages-artifact` | `v5` | `fc324d3547104276b827a68afc52ff2a11cc49c9` |
+| `actions/deploy-pages` | `v5` | `cd2ce8fcbc39b97be8ca5fce6e763baed58fa128` |
+
+Upgrade criteria:
+
+1. Resolve the intended tag with `git ls-remote --tags`.
+2. Update the workflow SHA and inline tag comment together.
+3. Parse workflow YAML and run the relevant local contract checks.
+
+## 9. Bootstrap Tooling Gap
+
+The bootstrap paths still upgrade or install the Python packaging toolchain
+without exact pip/setuptools pins:
+
+- `Makefile` target `install-torch-stack` runs `pip install --upgrade pip`.
+- `Dockerfile` installs `pip setuptools wheel` before project requirements.
+
+This is accepted temporarily because pinning bootstrap tools changes every
+environment creation path and belongs with the coordinated dependency-lock
+work. Until then, maintenance passes should treat unexpected resolver behavior,
+build-isolation changes, or wheel-build drift as dependency-contract findings.
+
+## 10. Deferred Reproducibility Hardening
 
 The current manifests still include floating and ranged Python dependencies, and
 the Docker/devcontainer bases are tag-pinned rather than digest-pinned. A full

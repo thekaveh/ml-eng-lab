@@ -10,7 +10,7 @@ PR follow-up to [thekaveh/NNx](https://github.com/thekaveh/NNx).
 
 ### 1.1. `NNDataset` default `batch_size` packs the whole train set into one batch
 
-Surfaced by: `diffusion-mnist-ddpm-pytorch`, `text_generation-tinyshakespeare-transformer-pytorch`, `moe-fmnist-mixture-of-experts-pytorch`, `self_supervised-fmnist-jepa-pytorch`.
+Surfaced by: `diffusion-mnist-ddpm-pytorch`, `moe-fmnist-mixture-of-experts-pytorch`, `self_supervised-fmnist-jepa-pytorch`. `text_generation-tinyshakespeare-transformer-pytorch` has the same small-batch training need, but it uses an intentional custom sequence-window dataset rather than bypassing `NNDataset`.
 
 `NNDataset(ds_class=thv.datasets.MNIST, ...)`'s `train_loader` defaults to `batch_size=54000` (the whole 60k train set minus the val carve-off). For full-batch SGD on classifiers this is fine; for **diffusion / MoE / transformer / JEPA / any task that needs many noise- or routing-level samples per epoch**, one batch per epoch is far too few — the train step runs ~1 time per epoch and the loss barely budges.
 
@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 train_loader = DataLoader(ds.train_loader.dataset, batch_size=128, shuffle=True)
 ```
 
-**Upstream fix landed (partial)**: `nnx.NNDataset` now accepts a `batch_sizes: tuple[Optional[int], Optional[int], Optional[int]] = (None, None, None)` constructor arg (`nnx/src/nnx/nn/dataset/nn_dataset.py:24`), so the cleaner form is `NNDataset(..., batch_sizes=(128, None, None))`. The four affected notebooks still use the older `DataLoader(...dataset, batch_size=128)` bypass; they can be migrated to the `batch_sizes=` form at any time without changing recorded outputs (the resolved batch_size is identical). The default — `None` per slot → whole-split batch — is unchanged upstream, so the underlying "surprising default" critique still stands for new tasks; the workaround just has a less invasive form now.
+**Upstream fix landed (partial)**: `nnx.NNDataset` now accepts a `batch_sizes: tuple[Optional[int], Optional[int], Optional[int]] = (None, None, None)` constructor arg (`nnx/src/nnx/nn/dataset/nn_dataset.py:24`), so the cleaner form is `NNDataset(..., batch_sizes=(128, None, None))`. The three affected `NNDataset` notebooks still use the older `DataLoader(...dataset, batch_size=128)` bypass; they can be migrated to the `batch_sizes=` form at any time without changing recorded outputs (the resolved batch_size is identical). The TinyShakespeare notebook should stay on its custom language-modeling dataset unless NNx grows a sequence-window dataset helper. The default — `None` per slot → whole-split batch — is unchanged upstream, so the underlying "surprising default" critique still stands for new tasks; the workaround just has a less invasive form now.
 
 ### 1.2. `nnx.deepen` is function-preserving only for `Activations.RELU`
 

@@ -223,6 +223,7 @@ The README is the entry point; the items below are the hub's index of secondary 
 - [docs/vscode-remote-access.md](docs/vscode-remote-access.md) — VS Code remote-attach modes.
 - [docs/dependency-contracts.md](docs/dependency-contracts.md) — dependency audit ledger, Torch-stack pin rationale, NNx/genai-vanilla consumed contracts, manual-only quantization contract, and external asset notes.
 - [docs/architecture.md](docs/architecture.md) — system/context view for the notebook lab, verifier, CI, runtime environments, and documentation site.
+- [docs/diagrams/README.md](docs/diagrams/README.md) — provenance and regeneration contract for embedded architecture diagrams.
 - [docs/maintenance/overnight-2026-07-04.md](docs/maintenance/overnight-2026-07-04.md) — current overnight maintenance pass log and issue tracker.
 - [docs/maintenance/overnight-2026-07-02.md](docs/maintenance/overnight-2026-07-02.md) — historical overnight maintenance run that reached its hard cap.
 - [docs/maintenance/notebooks-reorganization-design.md](docs/maintenance/notebooks-reorganization-design.md) — completed design record for the `notebooks/<task>/` layout and archive move.

@@ -33,7 +33,9 @@ extra_css:
 
 nav:
   - 1. Overview: index.md
-  - 2. Architecture: architecture.md
+  - 2. Architecture:
+      - 2.1. Architecture Overview: architecture.md
+      - 2.2. Diagram Provenance: diagrams/README.md
   - 3. Environment Setup: env-setup.md
   - 4. JupyterHub Integration: jupyterhub-integration.md
   - 5. VS Code Remote Access: vscode-remote-access.md

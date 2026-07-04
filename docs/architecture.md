@@ -4,6 +4,9 @@ This page describes the repository as a notebook-driven ML lab rather than as a 
 service. The primary runtime objects are experiment directories, notebook execution tiers,
 validation scripts, and documentation surfaces.
 
+Diagram provenance and regeneration rules are tracked in
+[Diagram Provenance](diagrams/README.md).
+
 ## 1.1. System Context
 
 The diagram below is generated as a standalone HTML architecture artifact and embedded into
