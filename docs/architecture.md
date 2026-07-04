@@ -1,4 +1,4 @@
-# 1. Architecture
+# 2. Architecture
 
 This page describes the repository as a notebook-driven ML lab rather than as a deployable
 service. The primary runtime objects are experiment directories, notebook execution tiers,
@@ -7,7 +7,7 @@ validation scripts, and documentation surfaces.
 Diagram provenance and regeneration rules are tracked in
 [Diagram Provenance](diagrams/README.md).
 
-## 1.1. System Context
+## 1. System Context
 
 The diagram below is generated as a standalone HTML architecture artifact and embedded into
 the documentation site.
@@ -16,7 +16,7 @@ the documentation site.
 
 [Open the diagram in a full page](diagrams/ml-eng-lab-system.html).
 
-## 1.2. Runtime Flow
+## 2. Runtime Flow
 
 The runtime flow diagram shows the supported entry paths and the invariant that notebook code
 resolves `./data` and `./runs` from the task directory.
@@ -36,7 +36,7 @@ resolves `./data` and `./runs` from the task directory.
 6. MkDocs builds this documentation site from checked-in Markdown and publishes it through
    GitHub Pages.
 
-## 1.3. Notebook Execution Sequence
+## 3. Notebook Execution Sequence
 
 The execution sequence diagram traces a task notebook from papermill parameters through
 training, ranking, visualization, run persistence, and output-path verification.
@@ -45,7 +45,7 @@ training, ranking, visualization, run persistence, and output-path verification.
 
 [Open the notebook execution sequence diagram in a full page](diagrams/ml-eng-lab-notebook-sequence.html).
 
-## 1.4. Documentation Publishing
+## 4. Documentation Publishing
 
 The publishing diagram describes the canonical documentation sources, generated site, wiki
 signpost, and repository metadata surfaces.
@@ -54,7 +54,7 @@ signpost, and repository metadata surfaces.
 
 [Open the documentation publishing diagram in a full page](diagrams/ml-eng-lab-docs-publishing.html).
 
-## 1.5. Boundary Decisions
+## 5. Boundary Decisions
 
 - `notebooks/archive/` is preserved as read-only historical material and excluded from active
   notebook validation.

@@ -641,7 +641,11 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         if nnparams_import:
             existing_nnparams_imports.update(_nnparams_import_requirements(nnparams_import.group(1)))
         out.append(new_line)
-    out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(out, protected_positions)
+    continuation_protected_positions = _deprecated_binding_reference_positions("".join(out))
+    out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(
+        out,
+        continuation_protected_positions,
+    )
     if continuation_call_site_changed:
         needed_nnparams_imports.add("NNParams")
     # If any call site or rewrite needs NNParams but the cell never imports it,

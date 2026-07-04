@@ -841,6 +841,8 @@ def _iter_numbered_doc_files(repo: Path) -> Iterator[Path]:
         if path.exists():
             yield path
     for rel in (
+        "index.md",
+        "architecture.md",
         "FINDINGS-NNX.md",
         "FINDINGS-VENDOR.md",
         "dependency-contracts.md",
