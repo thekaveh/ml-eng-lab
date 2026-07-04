@@ -461,6 +461,25 @@ def test_imported_param_name_reads_rewrite_even_with_later_local_binding(tmp_pat
     compile(src, "<rewritten-cell>", "exec")
 
 
+def test_function_local_read_before_assignment_stays_protected_after_import_drop(tmp_path):
+    src = (
+        "from nnx.nn.net.graph_att_nn import GraphAttNNParams\n"
+        "def train():\n"
+        "    before = GraphAttNNParams\n"
+        "    GraphAttNNParams = local_factory()\n"
+        "    return before, GraphAttNNParams\n"
+    )
+    p = _make_notebook(tmp_path, "function_local_read_before_assignment.ipynb", [_code_cell(src)])
+    _run(p)
+    rewritten = _cell_source(p, 0)
+    assert "from nnx.nn.net.graph_att_nn import GraphAttNNParams" not in rewritten
+    assert "    before = GraphAttNNParams" in rewritten
+    assert "    GraphAttNNParams = local_factory()" in rewritten
+    assert "    return before, GraphAttNNParams" in rewritten
+    assert "before = NNParams" not in rewritten
+    compile(rewritten, "<rewritten-cell>", "exec")
+
+
 def test_continued_local_binding_stays_protected_after_import_drop(tmp_path):
     src = (
         "from nnx.nn.net.graph_att_nn import GraphAttNNParams\n"

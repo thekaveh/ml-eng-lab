@@ -387,14 +387,26 @@ def _deprecated_binding_reference_positions(source: str) -> set[tuple[int, int]]
                     bindings[node.name] = earliest(bindings.get(node.name), pos)
 
         if bindings:
+            protect_entire_scope = isinstance(
+                scope,
+                (
+                    ast.FunctionDef,
+                    ast.AsyncFunctionDef,
+                    ast.Lambda,
+                    ast.ListComp,
+                    ast.SetComp,
+                    ast.DictComp,
+                    ast.GeneratorExp,
+                ),
+            )
             for node in same_scope_nodes(scope):
                 if isinstance(node, ast.Name) and node.id in bindings:
                     pos = position(node)
-                    if pos is not None and pos >= bindings[node.id]:
+                    if pos is not None and (protect_entire_scope or pos >= bindings[node.id]):
                         positions.add(pos)
                 elif isinstance(node, ast.arg) and node.arg in bindings:
                     pos = position(node)
-                    if pos is not None and pos >= bindings[node.arg]:
+                    if pos is not None and (protect_entire_scope or pos >= bindings[node.arg]):
                         positions.add(pos)
 
         for child_scope in nested_scopes(scope):

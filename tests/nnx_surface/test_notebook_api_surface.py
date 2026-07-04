@@ -270,6 +270,58 @@ def test_archive_cross_language_notebooks_guard_missing_model_artifacts():
         assert not missing, f"{path.relative_to(REPO_ROOT)} missing archive guards: {missing}"
 
 
+def test_archive_cross_language_missing_model_outputs_match_tracked_artifacts():
+    """Missing tracked model artifacts should not retain stale historical result outputs."""
+    notebooks = _archive_cross_language_notebooks()
+    assert len(notebooks) == 10
+    required_artifacts = (
+        "model/bleu_score.test",
+        "model/test_0.gold",
+        "model/test_0.output",
+    )
+    expected_guards = {
+        "model/bleu_score.test": "Archived BLEU score file not found",
+        "model/test_0.gold": "Archived ground-truth summary file not found",
+        "model/test_0.output": "Archived prediction file not found",
+    }
+    stale_result_markers = ("Test Bleu score:", "bleu-4 =")
+    stale = []
+    for path in notebooks:
+        missing_artifacts = [
+            rel
+            for rel in required_artifacts
+            if subprocess.run(
+                ["git", "ls-files", "--error-unmatch", str(path.parent / rel)],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=TEST_SUBPROCESS_TIMEOUT,
+            ).returncode
+        ]
+        if not missing_artifacts:
+            continue
+        nb = json.loads(path.read_text(encoding="utf-8"))
+        output_text = "\n".join(
+            str(output.get("text", ""))
+            for cell in nb.get("cells", [])
+            for output in cell.get("outputs", [])
+            if isinstance(output, dict)
+        )
+        missing_guards = [expected_guards[rel] for rel in missing_artifacts if expected_guards[rel] not in output_text]
+        stale_markers = [marker for marker in stale_result_markers if marker in output_text]
+        leaked_repo_root = str(REPO_ROOT) in output_text
+        if missing_guards or stale_markers or leaked_repo_root:
+            stale.append((
+                path.relative_to(REPO_ROOT),
+                missing_artifacts,
+                missing_guards,
+                stale_markers,
+                leaked_repo_root,
+            ))
+    assert not stale
+
+
 def test_archive_cross_language_notebooks_require_explicit_rerun_opt_in():
     """Cross-language CodeXGLUE notebooks should not write model outputs by default."""
     notebooks = _archive_cross_language_notebooks()

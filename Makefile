@@ -17,6 +17,7 @@
 # notebooks ImportError at the first tokenizer call.
 
 PYTHON ?= python
+PIP ?= $(PYTHON) -m pip
 PAPERMILL ?= $(PYTHON) -m papermill
 PAPERMILL_START_TIMEOUT ?= 300
 PAPERMILL_EXECUTION_TIMEOUT ?= 3600
@@ -130,16 +131,16 @@ docs-build:
 	mkdocs build --strict
 
 nlp-assets:
-	python -m spacy download en_core_web_sm
-	python -c "import nltk; nltk.download('vader_lexicon', quiet=True)"
+	$(PYTHON) -m spacy download en_core_web_sm
+	$(PYTHON) -c "import nltk; nltk.download('vader_lexicon', quiet=True)"
 
 verify:
-	python scripts/verify_repo.py --check all --fast
+	$(PYTHON) scripts/verify_repo.py --check all --fast
 
 install-torch-stack:
-	pip install --upgrade pip
-	pip install -r torch-core-requirements.txt
-	pip install --no-build-isolation -r torch-requirements.txt
+	$(PIP) install --upgrade pip
+	$(PIP) install -r torch-core-requirements.txt
+	$(PIP) install --no-build-isolation -r torch-requirements.txt
 
 # Full one-shot dep install for the GitHub Codespaces / "Reopen in Container"
 # path (README §3.4). Reuses the same Torch-first install order as CI and
@@ -147,5 +148,5 @@ install-torch-stack:
 # Recursively invokes nlp-assets so the spaCy + NLTK download steps stay in
 # one place across the §3.2 (Docker), §3.3 (venv), and §3.4 (Codespaces) paths.
 codespace-setup: install-torch-stack
-	pip install -r requirements.txt
+	$(PIP) install -r requirements.txt
 	$(MAKE) nlp-assets
