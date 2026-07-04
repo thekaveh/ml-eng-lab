@@ -127,6 +127,55 @@ def test_structure_s1_flags_missing_notebook_cell_id(tmp_path):
     assert hits, f"expected S1.cell_id for {name}; got {data.get('findings')}"
 
 
+def test_repo_root_uses_target_repo_config_for_active_dirs(tmp_path):
+    """`--repo-root` should verify notebooks listed by that repo's own config."""
+    repo = tmp_path
+    task_dir = repo / "notebooks" / "custom-task"
+    task_dir.mkdir(parents=True)
+    (repo / "scripts").mkdir()
+    (repo / "scripts" / "verify_repo_config.yaml").write_text(
+        "\n".join([
+            "active_task_dirs:",
+            "  - custom-task",
+            "tier_a_notebooks:",
+            "  - notebooks/custom-task/notebook.ipynb",
+            "",
+        ]),
+        encoding="utf-8",
+    )
+    nb_path = task_dir / "notebook.ipynb"
+    nb_path.write_text(json.dumps({
+        "cells": [{
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": "x = 1\n",
+        }],
+        "metadata": {},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }))
+    subprocess.run(
+        ["git", "init"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S1.cell_id"
+        and f["location"] == "notebooks/custom-task/notebook.ipynb:cell[0]"
+    ]
+    assert hits, f"expected target repo config to include custom notebook; got {data.get('findings')}"
+
+
 def test_structure_s5_no_common_imports():
     """No `from common.` import anywhere in active task notebooks or scripts."""
     r = run_verify("--check", "structure", "--fast")

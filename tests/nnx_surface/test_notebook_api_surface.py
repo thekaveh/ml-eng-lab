@@ -270,6 +270,42 @@ def test_archive_cross_language_notebooks_guard_missing_model_artifacts():
         assert not missing, f"{path.relative_to(REPO_ROOT)} missing archive guards: {missing}"
 
 
+def test_archive_cross_language_notebooks_require_explicit_rerun_opt_in():
+    """Cross-language CodeXGLUE notebooks should not write model outputs by default."""
+    notebooks = _archive_cross_language_notebooks()
+    assert len(notebooks) == 10
+    required_fragments = (
+        "ARCHIVE_RERUN_ENABLED = False",
+        "if not ARCHIVE_RERUN_ENABLED:",
+        "elif not os.path.exists(run_py_path):",
+        "timeout=ARCHIVE_SUBPROCESS_TIMEOUT_SECONDS",
+    )
+    for path in notebooks:
+        nb = json.loads(path.read_text(encoding="utf-8"))
+        source = "\n".join("".join(_source_lines(cell)) for cell in _code_cells(nb))
+        missing = [fragment for fragment in required_fragments if fragment not in source]
+        assert not missing, f"{path.relative_to(REPO_ROOT)} missing archive rerun guards: {missing}"
+        assert "subprocess.check_call(" in source
+        assert source.index("ARCHIVE_RERUN_ENABLED = False") < source.index("subprocess.check_call("), (
+            f"{path.relative_to(REPO_ROOT)} defines rerun opt-in after write-capable subprocess calls"
+        )
+
+
+def test_archive_notebooks_do_not_depend_on_kernel_cwd():
+    """Archive notebooks should resolve their own folder rather than trusting cwd."""
+    notebooks = _archive_cross_language_notebooks() + _archive_roberta_notebooks()
+    assert len(notebooks) == 22
+    for path in notebooks:
+        nb = json.loads(path.read_text(encoding="utf-8"))
+        source = "\n".join("".join(_source_lines(cell)) for cell in _code_cells(nb))
+        assert "os.path.abspath(os.curdir)" not in source, (
+            f"{path.relative_to(REPO_ROOT)} derives archive paths from kernel cwd"
+        )
+        assert path.parent.name in source, (
+            f"{path.relative_to(REPO_ROOT)} should anchor paths to its archive folder name"
+        )
+
+
 def test_archive_roberta_notebooks_require_explicit_rerun_opt_in():
     """Archived RoBERTa CodeXGLUE notebooks should preserve historical model
     artifacts by default and only clone/download/train/test when explicitly enabled."""

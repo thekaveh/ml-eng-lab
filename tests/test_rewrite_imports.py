@@ -139,6 +139,24 @@ def test_parenthesized_graph_att_params_import_consolidates_to_nnparams(tmp_path
     assert "from nnx.nn.params.nn_params import NNParams" in src
 
 
+def test_parenthesized_graph_att_params_import_with_inline_comment(tmp_path):
+    p = _make_notebook(tmp_path, "gat_parenthesized_comment.ipynb", [
+        _code_cell(
+            "from nnx.nn.net.graph_att_nn import (\n"
+            "    GraphAttNN,\n"
+            "    GraphAttNNParams,  # old params alias\n"
+            ")\n"
+        ),
+    ])
+    _run(p)
+    src = _cell_source(p, 0)
+    assert "GraphAttNNParams" not in src
+    assert "old params alias" not in src
+    assert "from nnx.nn.net.graph_att_nn import (\n    GraphAttNN,\n)" in src
+    assert "from nnx.nn.params.nn_params import NNParams" in src
+    compile(src, "<rewritten-cell>", "exec")
+
+
 def test_parenthesized_params_only_import_drops_empty_block(tmp_path):
     p = _make_notebook(tmp_path, "gat_parenthesized_only_params.ipynb", [
         _code_cell(

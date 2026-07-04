@@ -79,7 +79,12 @@ DEPRECATED_PARAM_NAMES: list[str] = [
 ]
 
 
+def _symbol_without_inline_comment(symbol: str) -> str:
+    return symbol.split("#", 1)[0].strip()
+
+
 def _nnparams_replacement_for_symbol(symbol: str) -> str | None:
+    symbol = _symbol_without_inline_comment(symbol)
     m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?,?$", symbol)
     if not m or m.group(1) not in DEPRECATED_PARAM_NAMES:
         return None
@@ -90,6 +95,7 @@ def _nnparams_replacement_for_symbol(symbol: str) -> str | None:
 def _imported_symbol_bindings(symbols: str) -> set[str]:
     bindings = set()
     for part in (p.strip() for p in symbols.split(",") if p.strip()):
+        part = _symbol_without_inline_comment(part)
         m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?$", part)
         if m:
             bindings.add(m.group(2) or m.group(1))

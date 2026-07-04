@@ -35,51 +35,63 @@ CONFIG_PATH = Path(__file__).resolve().parent / "verify_repo_config.yaml"
 _HELP_REQUESTED = any(arg in ("-h", "--help") for arg in sys.argv[1:])
 
 
-def _load_config() -> dict:
-    if _yaml is None or not CONFIG_PATH.exists():
+def _load_config(config_path: Path = CONFIG_PATH) -> dict:
+    if _yaml is None or not config_path.exists():
         if _HELP_REQUESTED:
             return {}
         raise RuntimeError(
             "verify_repo_config.yaml is required; install PyYAML and ensure "
             "the file exists."
         )
-    return _yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    return _yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
 
 
-_CONFIG = _load_config()
-
-_active_task_dirs_raw = _CONFIG.get("active_task_dirs")
-if not _active_task_dirs_raw:
-    if _HELP_REQUESTED:
-        _active_task_dirs_raw = ()
-    else:
-        raise RuntimeError(
-            "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
-        )
-ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
-NOTEBOOK_ROOT = Path("notebooks")
-
-DEFAULT_SUBPROCESS_TIMEOUT = 120
+def _active_task_dirs_from_config(config: dict) -> tuple[str, ...]:
+    raw = config.get("active_task_dirs")
+    if not raw:
+        if _HELP_REQUESTED:
+            raw = ()
+        else:
+            raise RuntimeError(
+                "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
+            )
+    return tuple(raw)
 
 
-def _required_sections_from_config() -> dict[str, tuple[str, ...]]:
-    raw = _CONFIG.get("required_sections")
+def _required_sections_from_config(config: dict) -> dict[str, tuple[str, ...]]:
+    raw = config.get("required_sections")
     if not raw:
         return {}
     return {k: tuple(v) for k, v in raw.items()}
 
 
-REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = _required_sections_from_config()
+def _tier_a_notebooks_from_config(config: dict) -> tuple[str, ...]:
+    raw = config.get("tier_a_notebooks")
+    if not raw:
+        if _HELP_REQUESTED:
+            raw = ()
+        else:
+            raise RuntimeError(
+                "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
+            )
+    return tuple(raw)
 
-_tier_a_raw = _CONFIG.get("tier_a_notebooks")
-if not _tier_a_raw:
-    if _HELP_REQUESTED:
-        _tier_a_raw = ()
-    else:
-        raise RuntimeError(
-            "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
-        )
-TIER_A_NOTEBOOKS = tuple(_tier_a_raw)
+
+def _apply_config(config: dict) -> None:
+    global _CONFIG, ACTIVE_TASK_DIRS, REQUIRED_SECTIONS, TIER_A_NOTEBOOKS
+    _CONFIG = config
+    ACTIVE_TASK_DIRS = _active_task_dirs_from_config(config)
+    REQUIRED_SECTIONS = _required_sections_from_config(config)
+    TIER_A_NOTEBOOKS = _tier_a_notebooks_from_config(config)
+
+
+_CONFIG: dict = {}
+NOTEBOOK_ROOT = Path("notebooks")
+DEFAULT_SUBPROCESS_TIMEOUT = 120
+ACTIVE_TASK_DIRS: tuple[str, ...] = ()
+REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {}
+TIER_A_NOTEBOOKS: tuple[str, ...] = ()
+_apply_config(_load_config())
 
 README_REQUIRED_H2 = (
     "1. Task summary", "2. Why this exists", "3. What's in the notebook",
@@ -1667,6 +1679,9 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--check is required unless --phase-b-out is used")
 
     repo_root = args.repo_root.resolve()
+    repo_config_path = repo_root / "scripts" / "verify_repo_config.yaml"
+    if repo_config_path.exists() and repo_config_path.resolve() != CONFIG_PATH.resolve():
+        _apply_config(_load_config(repo_config_path))
 
     if args.phase_b_out is not None:
         count = export_phase_b_candidates(repo_root, args.phase_b_out)
