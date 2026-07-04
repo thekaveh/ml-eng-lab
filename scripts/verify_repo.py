@@ -386,15 +386,18 @@ def _iter_in_scope_markdown_documents(repo: Path) -> Iterator[tuple[Path, Path, 
         yield nb_path, nb_path.parent, text
 
 
-def _shellcheck_targets(repo: Path) -> tuple[Path, ...]:
-    local_scripts = tuple(sorted((repo / "scripts").glob("*.sh")))
-    vendor_entrypoints = (
+def _required_shellcheck_targets(repo: Path) -> tuple[Path, ...]:
+    return (
         repo / "vendor" / "genai-vanilla" / "start.sh",
         repo / "vendor" / "genai-vanilla" / "stop.sh",
         repo / "vendor" / "genai-vanilla" / "bootstrapper" / "_run.sh",
         repo / "vendor" / "genai-vanilla" / "services" / "jupyterhub" / "build" / "scripts" / "startup.sh",
     )
-    return tuple(path for path in (*local_scripts, *vendor_entrypoints) if path.exists())
+
+
+def _shellcheck_targets(repo: Path) -> tuple[Path, ...]:
+    local_scripts = tuple(sorted((repo / "scripts").glob("*.sh")))
+    return tuple(path for path in (*local_scripts, *_required_shellcheck_targets(repo)) if path.exists())
 
 
 def check_structure(repo: Path) -> CheckResult:
@@ -461,6 +464,8 @@ def check_structure(repo: Path) -> CheckResult:
                 seen_in_notebook.add(module)
                 if module in sibling_modules:
                     continue
+                if module in _RUNTIME_ONLY_MODULES:
+                    continue
                 try:
                     spec = importlib.util.find_spec(module)
                 except (ImportError, ValueError) as e:
@@ -492,6 +497,16 @@ def check_structure(repo: Path) -> CheckResult:
             if not target and not fragment:
                 continue
             target_path = (base_dir / target).resolve() if target else doc_path.resolve()
+            try:
+                target_path.relative_to(repo.resolve())
+            except ValueError:
+                result.findings.append(Finding(
+                    id="S3.repo_escape_link", check="structure", severity="error",
+                    location=f"{doc_path.relative_to(repo)}",
+                    message=f"internal link escapes repository root: {target}",
+                    detail={"link": m.group(0)},
+                ))
+                continue
             if not target_path.exists():
                 result.findings.append(Finding(
                     id="S3.broken_link", check="structure", severity="error",
@@ -1580,6 +1595,18 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
             message="shellcheck not on PATH; install with `brew install shellcheck`",
         ))
     else:
+        for sh in _required_shellcheck_targets(repo):
+            if not sh.exists():
+                result.findings.append(Finding(
+                    id="E6.shellcheck_target_missing",
+                    check="execution",
+                    severity="error",
+                    location=str(sh.relative_to(repo)),
+                    message=(
+                        "required consumed shellcheck target is missing; "
+                        "initialize submodules or update the consumed contract"
+                    ),
+                ))
         for sh in _shellcheck_targets(repo):
             rc, out, err = _run(["shellcheck", str(sh)], repo)
             if rc != 0:

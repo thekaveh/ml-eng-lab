@@ -212,6 +212,28 @@ def test_structure_s2_checks_multi_import_after_notebook_magic(tmp_path):
     assert hits, f"expected S2.unresolved_import after notebook magic; got {data.get('findings')}"
 
 
+def test_structure_s2_ignores_acknowledged_runtime_only_imports(tmp_path):
+    """Tier-C runtime-container modules should not create recurring local warnings."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "runtime-only-import.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [nbformat.v4.new_code_cell("import torch_sparse\n")]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "torch_sparse" in f["message"]
+    ]
+    assert not hits, f"runtime-only import should be acknowledged, got {hits}"
+
+
 def test_structure_s2_ignores_non_python_cell_magic_body(tmp_path):
     """Shell cell magics must not make S2 scan shell text as Python imports."""
     import nbformat
@@ -496,6 +518,23 @@ def test_structure_s3_checks_nested_docs_markdown_links(tmp_path):
         if f["id"] == "S3.broken_link" and "docs/maintenance/history.md" in f["location"]
     ]
     assert hits, f"expected S3.broken_link for nested docs markdown; got {data.get('findings')}"
+
+
+def test_structure_s3_flags_relative_links_that_escape_repo(tmp_path):
+    """Repo docs should not silently validate sibling-directory links."""
+    repo = _temp_repo(tmp_path / "repo")
+    sibling = tmp_path / "nnx"
+    sibling.mkdir()
+    changelog = repo / "CHANGELOG.md"
+    changelog.write_text("Historical example: (via [`nnx`](../nnx))\n", encoding="utf-8")
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S3.repo_escape_link" and f["location"] == "CHANGELOG.md"
+    ]
+    assert hits, f"expected repo-escaping link to be flagged; got {data.get('findings')}"
 
 
 def test_structure_s3_ignores_notebook_markdown_code_span_links(tmp_path):
@@ -951,6 +990,38 @@ def test_e6_shellcheck_targets_include_consumed_vendor_entrypoints():
     assert "vendor/genai-vanilla/stop.sh" in targets
     assert "vendor/genai-vanilla/bootstrapper/_run.sh" in targets
     assert "vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh" in targets
+
+
+def test_e6_flags_missing_required_vendor_shellcheck_targets(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    repo = _temp_repo(tmp_path)
+    scripts = repo / "scripts"
+    scripts.mkdir()
+    (scripts / "start-jupyterhub.sh").write_text("#!/bin/sh\ntrue\n", encoding="utf-8")
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ())
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+    monkeypatch.setattr(verify_repo, "_phase3_code_cells_unchanged", lambda _repo: [])
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["which", "shellcheck"]:
+            return 0, "/usr/bin/shellcheck\n", ""
+        if cmd and cmd[0] == "shellcheck":
+            return 0, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E6.shellcheck_target_missing"]
+    assert hits
+    assert {
+        "vendor/genai-vanilla/start.sh",
+        "vendor/genai-vanilla/stop.sh",
+        "vendor/genai-vanilla/bootstrapper/_run.sh",
+        "vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh",
+    } == {f.location for f in hits}
 
 
 def _load_verify_module():
