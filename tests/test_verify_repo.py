@@ -426,6 +426,34 @@ def test_structure_s2_fallback_checks_multiline_literal_dynamic_import_calls(tmp
     assert hits, f"expected S2.unresolved_import for multiline fallback call; got {data.get('findings')}"
 
 
+def test_structure_s2_fallback_checks_backslash_continued_multi_imports(tmp_path):
+    """Syntax-error fallback should still check every backslash-continued import."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "backslash-continued-multi-import-fallback.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import json, \\\n"
+            "    definitely_missing_backslash_import\n"
+            "if True print('force fallback')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_backslash_import" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for backslash import; got {data.get('findings')}"
+
+
 def test_structure_s2_ignores_non_python_cell_magic_body(tmp_path):
     """Shell cell magics must not make S2 scan shell text as Python imports."""
     import nbformat
@@ -880,6 +908,34 @@ def test_docs_d10_flags_dependency_ledger_submodule_sha_drift(tmp_path, monkeypa
     hits = [f for f in findings if f.id == "D10.dependency_ledger_submodule_sha"]
     assert hits
     assert hits[0].detail == {"ledger_sha": ledger_sha, "gitlink_sha": gitlink_sha}
+
+
+def test_docs_d10_flags_missing_dependency_ledger_submodule_sha(tmp_path, monkeypatch):
+    """The genai-vanilla ledger must keep a parseable pinned tree-entry SHA."""
+    repo = _temp_repo(tmp_path)
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 7. genai-vanilla Submodule Contract\n\n"
+        "`vendor/genai-vanilla` submodule. The repository currently pins tree entry\n"
+        "`not-a-sha`; a read-only check found upstream `main` at the same SHA.\n",
+        encoding="utf-8",
+    )
+    verify_repo = _load_verify_module()
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"]:
+            return 0, "160000 ba21661e8a63b3727b9c4a14eaf5e61262d4b48e 0\tvendor/genai-vanilla\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    findings = verify_repo._dependency_ledger_findings(repo)
+
+    hits = [f for f in findings if f.id == "D10.dependency_ledger_submodule_sha"]
+    assert hits
+    assert "parseable" in hits[0].message
 
 
 def test_docs_d11_current_layout_guidance_is_not_stale():

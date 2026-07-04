@@ -219,7 +219,7 @@ def _fallback_statement(lines: list[str], start: int) -> tuple[str, int]:
     statement_lines = [lines[start]]
     balance = lines[start].count("(") - lines[start].count(")")
     end = start
-    while balance > 0 and end + 1 < len(lines):
+    while (balance > 0 or statement_lines[-1].rstrip().endswith("\\")) and end + 1 < len(lines):
         end += 1
         next_line = lines[end]
         statement_lines.append(next_line)
@@ -917,8 +917,20 @@ def _dependency_ledger_findings(repo: Path) -> list[Finding]:
                 ),
                 detail={"expected": expected_total, "actual": actual_total},
             ))
-    ledger_sha_match = re.search(r"currently pins tree entry\s+`([0-9a-f]{40})`", text)
-    if ledger_sha_match:
+    if "vendor/genai-vanilla" in text:
+        ledger_sha_match = re.search(r"currently pins tree entry\s+`([0-9a-f]{40})`", text)
+        if not ledger_sha_match:
+            findings.append(Finding(
+                id="D10.dependency_ledger_submodule_sha",
+                check="docs",
+                severity="error",
+                location="docs/dependency-contracts.md",
+                message=(
+                    "genai-vanilla ledger must include a parseable 40-character "
+                    "pinned tree-entry SHA"
+                ),
+            ))
+            return findings
         ledger_sha = ledger_sha_match.group(1)
         rc, out, _err = _run(["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"], repo)
         gitlink_match = re.search(r"160000 ([0-9a-f]{40}) \d+\s+vendor/genai-vanilla", out)
