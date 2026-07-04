@@ -8,7 +8,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "verify_repo.py"
-ACTIVE_FIXTURE_DIR = "image_classification-mnist-ffnn-numpy"
+ACTIVE_FIXTURE_DIR = "notebooks/image_classification-mnist-ffnn-numpy"
+TEST_SUBPROCESS_TIMEOUT = 30
 
 
 def run_verify(*args: str) -> subprocess.CompletedProcess:
@@ -17,12 +18,20 @@ def run_verify(*args: str) -> subprocess.CompletedProcess:
         capture_output=True,
         text=True,
         cwd=REPO,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
     )
 
 
 def _temp_repo(tmp_path: Path) -> Path:
     (tmp_path / ACTIVE_FIXTURE_DIR).mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True, text=True, check=True)
+    subprocess.run(
+        ["git", "init"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
     return tmp_path
 
 
@@ -42,6 +51,7 @@ def test_help_does_not_require_adjacent_config(tmp_path):
         capture_output=True,
         text=True,
         cwd=tmp_path,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
     )
     assert r.returncode == 0, r.stderr
     assert "--check" in r.stdout
@@ -82,7 +92,7 @@ def test_finding_shape():
         assert f["severity"] in ("error", "warning")
 
 
-def test_structure_s1_notebooks_parse(tmp_path):
+def test_structure_s1_notebooks_parse():
     r = run_verify("--check", "structure", "--fast")
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
     s1 = [f for f in data["findings"] if f["id"].startswith("S1")]
@@ -117,6 +127,108 @@ def test_structure_s1_flags_missing_notebook_cell_id(tmp_path):
     assert hits, f"expected S1.cell_id for {name}; got {data.get('findings')}"
 
 
+def test_structure_s1_flags_missing_archive_notebook_cell_id(tmp_path):
+    """Archive notebooks must satisfy the same raw nbformat cell-id policy."""
+    repo = _temp_repo(tmp_path)
+    name = "archive-missing-cell-id.ipynb"
+    archive = repo / "notebooks" / "archive" / "old-task" / name
+    archive.parent.mkdir(parents=True)
+    archive.write_text(json.dumps({
+        "cells": [{
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": "# Archived\n",
+        }],
+        "metadata": {},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }))
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S1.cell_id" and name in f["location"]
+    ]
+    assert hits, f"expected S1.cell_id for archive {name}; got {data.get('findings')}"
+
+
+def test_structure_s1_flags_invalid_notebook_schema(tmp_path):
+    """Raw notebook schema validation should catch id/minor-version mismatches."""
+    repo = _temp_repo(tmp_path)
+    name = "invalid-schema.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    fake.write_text(json.dumps({
+        "cells": [{
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "abc123",
+            "metadata": {},
+            "outputs": [],
+            "source": "x = 1\n",
+        }],
+        "metadata": {},
+        "nbformat": 4,
+        "nbformat_minor": 2,
+    }))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S1.schema" and name in f["location"]
+    ]
+    assert hits, f"expected S1.schema for invalid notebook schema; got {data.get('findings')}"
+
+
+def test_repo_root_uses_target_repo_config_for_active_dirs(tmp_path):
+    """`--repo-root` should verify notebooks listed by that repo's own config."""
+    repo = tmp_path
+    task_dir = repo / "notebooks" / "custom-task"
+    task_dir.mkdir(parents=True)
+    (repo / "scripts").mkdir()
+    (repo / "scripts" / "verify_repo_config.yaml").write_text(
+        "\n".join([
+            "active_task_dirs:",
+            "  - custom-task",
+            "tier_a_notebooks:",
+            "  - notebooks/custom-task/notebook.ipynb",
+            "",
+        ]),
+        encoding="utf-8",
+    )
+    nb_path = task_dir / "notebook.ipynb"
+    nb_path.write_text(json.dumps({
+        "cells": [{
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": "x = 1\n",
+        }],
+        "metadata": {},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }))
+    subprocess.run(
+        ["git", "init"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S1.cell_id"
+        and f["location"] == "notebooks/custom-task/notebook.ipynb:cell[0]"
+    ]
+    assert hits, f"expected target repo config to include custom notebook; got {data.get('findings')}"
+
+
 def test_structure_s5_no_common_imports():
     """No `from common.` import anywhere in active task notebooks or scripts."""
     r = run_verify("--check", "structure", "--fast")
@@ -125,12 +237,580 @@ def test_structure_s5_no_common_imports():
     assert s5 == [], f"S5 found stray common.* imports: {s5}"
 
 
+def test_structure_s5_flags_common_alias_inside_python_multi_import(tmp_path):
+    """A valid first import must not hide a forbidden common import alias."""
+    repo = _temp_repo(tmp_path)
+    module = repo / "stray_common_multi_import.py"
+    module.write_text("import os, common.utils\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "-f", str(module)],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S5.common_import"
+        and f["location"] == "stray_common_multi_import.py:1"
+    ]
+    assert hits, f"expected S5.common_import for multi-import alias; got {data.get('findings')}"
+
+
+def test_structure_s5_flags_common_alias_inside_notebook_multi_import(tmp_path):
+    """Notebook cells should get the same multi-import common scan as scripts."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "multi-import-common.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell("import os, common.utils\n")
+    ]
+    nbformat.write(nb, str(fake))
+    subprocess.run(
+        ["git", "add", "-f", str(fake)],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S5.common_import"
+        and f["location"] == f"{ACTIVE_FIXTURE_DIR}/{name}:cell[0]:line[1]"
+    ]
+    assert hits, f"expected S5.common_import for notebook multi-import alias; got {data.get('findings')}"
+
+
+def test_structure_s2_checks_every_module_in_multi_import(tmp_path):
+    """A valid first import must not hide a missing second import on the same line."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "multi-import-missing.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell("import json, definitely_missing_module_for_s2\n")
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_module_for_s2" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for second import; got {data.get('findings')}"
+
+
+def test_structure_s2_reports_one_based_line_numbers(tmp_path):
+    """S2 locations should use the same one-based line convention as other findings."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "one-based-import-line.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "x = 1\nimport definitely_missing_module_for_line_number\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_module_for_line_number" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import; got {data.get('findings')}"
+    assert hits[0]["location"].endswith(":cell[0]:line[2]")
+
+
+def test_structure_s2_checks_multi_import_after_notebook_magic(tmp_path):
+    """Notebook magics must not push S2 back to a first-module-only regex fallback."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "magic-multi-import-missing.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "%matplotlib inline\nimport json, definitely_missing_module_after_magic\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_module_after_magic" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import after notebook magic; got {data.get('findings')}"
+
+
+def test_structure_s2_ignores_acknowledged_runtime_only_imports(tmp_path):
+    """Tier-C runtime-container modules should not create recurring local warnings."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "runtime-only-import.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [nbformat.v4.new_code_cell("import torch_sparse\n")]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "torch_sparse" in f["message"]
+    ]
+    assert not hits, f"runtime-only import should be acknowledged, got {hits}"
+
+
+def test_structure_s2_checks_literal_dynamic_imports(tmp_path):
+    """Literal importlib/__import__ calls should not bypass unresolved-import checks."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "literal-dynamic-imports.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import importlib\n"
+            "importlib.import_module('definitely_missing_dynamic_import')\n"
+            "__import__('also_missing_dynamic_import')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    messages = [
+        f["message"] for f in data["findings"]
+        if f["id"] == "S2.unresolved_import" and name in f["location"]
+    ]
+    assert any("definitely_missing_dynamic_import" in m for m in messages), data.get("findings")
+    assert any("also_missing_dynamic_import" in m for m in messages), data.get("findings")
+
+
+def test_structure_s2_checks_literal_dynamic_import_aliases(tmp_path):
+    """Literal dynamic imports should be checked through common importlib aliases."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "literal-dynamic-import-aliases.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "from importlib import import_module\n"
+            "import importlib as il\n"
+            "import_module('definitely_missing_from_import_alias')\n"
+            "il.import_module('definitely_missing_module_alias')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    messages = [
+        f["message"] for f in data["findings"]
+        if f["id"] == "S2.unresolved_import" and name in f["location"]
+    ]
+    assert any("definitely_missing_from_import_alias" in m for m in messages), data.get("findings")
+    assert any("definitely_missing_module_alias" in m for m in messages), data.get("findings")
+
+
+def test_structure_s2_checks_missing_dotted_submodules(tmp_path):
+    """An importable top-level package must not hide a missing dotted submodule."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "missing-dotted-submodules.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import json.definitely_missing_submodule_for_s2\n"
+            "from json.definitely_missing_from_submodule import VALUE\n"
+            "importlib.import_module('json.definitely_missing_dynamic_submodule')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    messages = [
+        f["message"] for f in data["findings"]
+        if f["id"] == "S2.unresolved_import" and name in f["location"]
+    ]
+    assert any("json.definitely_missing_submodule_for_s2" in m for m in messages), data.get("findings")
+    assert any("json.definitely_missing_from_submodule" in m for m in messages), data.get("findings")
+    assert any("json.definitely_missing_dynamic_submodule" in m for m in messages), data.get("findings")
+
+
+def test_structure_s2_fallback_checks_literal_dynamic_import_aliases(tmp_path):
+    """Syntax-error fallback should still check importlib alias calls."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "literal-dynamic-import-alias-fallback.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import importlib as il\n"
+            "il.import_module('definitely_missing_alias_fallback')\n"
+            "x = [\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_alias_fallback" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for fallback dynamic alias; got {data.get('findings')}"
+
+
+def test_structure_s2_fallback_checks_multiline_literal_dynamic_import_aliases(tmp_path):
+    """Syntax-error fallback should still track parenthesized importlib aliases."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "literal-dynamic-import-multiline-alias-fallback.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "from importlib import (\n"
+            "    import_module as im,\n"
+            ")\n"
+            "im('definitely_missing_multiline_alias_fallback')\n"
+            "if True print('force fallback')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_multiline_alias_fallback" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for multiline fallback alias; got {data.get('findings')}"
+
+
+def test_structure_s2_fallback_ignores_parentheses_in_import_comments(tmp_path):
+    """Comment text must not break fallback reconstruction of multiline imports."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "fallback-comment-parentheses.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "from importlib import (  # keep ) in comment\n"
+            "    import_module,\n"
+            ")\n"
+            "not valid python ???\n"
+            "import_module('definitely_missing_comment_paren_dynamic')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_comment_paren_dynamic" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import with comment paren import alias; got {data.get('findings')}"
+
+
+def test_structure_s2_fallback_checks_multiline_literal_dynamic_import_calls(tmp_path):
+    """Syntax-error fallback should still check multiline import_module calls."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "literal-dynamic-import-multiline-call-fallback.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import importlib\n"
+            "importlib.import_module(\n"
+            "    'definitely_missing_multiline_call_fallback'\n"
+            ")\n"
+            "if True print('force fallback')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_multiline_call_fallback" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for multiline fallback call; got {data.get('findings')}"
+
+
+def test_structure_s2_fallback_checks_backslash_continued_multi_imports(tmp_path):
+    """Syntax-error fallback should still check every backslash-continued import."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "backslash-continued-multi-import-fallback.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import json, \\\n"
+            "    definitely_missing_backslash_import\n"
+            "if True print('force fallback')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_backslash_import" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import for backslash import; got {data.get('findings')}"
+
+
+def test_structure_s2_ignores_non_python_cell_magic_body(tmp_path):
+    """Shell cell magics must not make S2 scan shell text as Python imports."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "bash-cell-magic-import-text.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "%%bash\n"
+            "echo import definitely_missing_module_inside_shell_magic\n"
+            "import definitely_missing_module_inside_shell_magic\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if name in f["location"]
+        and "definitely_missing_module_inside_shell_magic" in f["message"]
+    ]
+    assert hits == [], f"shell cell magic body should not be scanned as Python; got {hits}"
+
+
+def test_structure_s2_flags_notebook_relative_imports(tmp_path):
+    """Relative imports in notebooks are runtime-broken and should be explicit findings."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "relative-import.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell("from . import definitely_missing_relative_helper\n")
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.relative_import"
+        and name in f["location"]
+        and "definitely_missing_relative_helper" in f["message"]
+    ]
+    assert hits, f"expected S2.relative_import for notebook relative import; got {data.get('findings')}"
+
+
+def test_structure_s2_flags_dotted_notebook_relative_imports(tmp_path):
+    """Sibling helper files must not hide dotted relative imports in notebooks."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "dotted-relative-import.ipynb"
+    task_dir = repo / ACTIVE_FIXTURE_DIR
+    (task_dir / "helpers.py").write_text("VALUE = 1\n", encoding="utf-8")
+    fake = task_dir / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell("from .helpers import VALUE\n")
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.relative_import"
+        and name in f["location"]
+        and "helpers" in f["message"]
+    ]
+    assert hits, f"expected S2.relative_import for dotted relative import; got {data.get('findings')}"
+
+
+def test_structure_s2_dedupe_does_not_hide_relative_imports(tmp_path):
+    """A normal sibling import must not suppress a later relative-import finding."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "deduped-relative-import.ipynb"
+    task_dir = repo / ACTIVE_FIXTURE_DIR
+    (task_dir / "helpers.py").write_text("VALUE = 1\n", encoding="utf-8")
+    fake = task_dir / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "import helpers\nfrom .helpers import VALUE\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.relative_import"
+        and name in f["location"]
+        and "helpers" in f["message"]
+    ]
+    assert hits, f"expected relative import despite earlier normal import; got {data.get('findings')}"
+
+
+def test_structure_s2_fallback_ignores_multiline_string_import_text(tmp_path):
+    """Syntax fallback must not scan import-looking text inside multiline strings."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "fallback-string-import-text.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "note = '''\n"
+            "import definitely_missing_inside_multiline_string\n"
+            "'''\n"
+            "if True print('force fallback')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if name in f["location"]
+        and "definitely_missing_inside_multiline_string" in f["message"]
+    ]
+    assert hits == [], f"fallback should ignore multiline string import text; got {hits}"
+
+
 def test_structure_s7_no_pycache_tracked():
     """No __pycache__, .ipynb_checkpoints, .DS_Store should be tracked."""
     r = run_verify("--check", "structure", "--fast")
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
     s7 = [f for f in data["findings"] if f["id"].startswith("S7")]
     assert s7 == [], f"S7 found tracked bloat: {s7}"
+
+
+def test_structure_s6_allows_committed_superpowers_specs_and_plans(tmp_path):
+    """Committed Superpowers spec/plan docs are intentional planning records."""
+    repo = _temp_repo(tmp_path)
+    (repo / ".gitignore").write_text("docs/superpowers/\n", encoding="utf-8")
+    spec = repo / "docs" / "superpowers" / "specs" / "design.md"
+    plan = repo / "docs" / "superpowers" / "plans" / "plan.md"
+    spec.parent.mkdir(parents=True, exist_ok=True)
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    spec.write_text("# Design\n", encoding="utf-8")
+    plan.write_text("# Plan\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "-f", str(spec), str(plan)],
+        cwd=repo,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+
+    forbidden = {str(spec.relative_to(repo)), str(plan.relative_to(repo))}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S6.tracked_bloat" and f["location"] in forbidden
+    ]
+    assert not hits, f"intentional planning docs were flagged as bloat: {hits}"
+
+
+def test_structure_s6_flags_other_tracked_superpowers_files(tmp_path):
+    """Only committed spec/plan records are exempt from docs/superpowers bloat."""
+    repo = _temp_repo(tmp_path)
+    (repo / ".gitignore").write_text("docs/superpowers/\n", encoding="utf-8")
+    scratch = repo / "docs" / "superpowers" / "scratch.md"
+    scratch.parent.mkdir(parents=True, exist_ok=True)
+    scratch.write_text("# Scratch\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "-f", str(scratch)],
+        cwd=repo,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S6.tracked_bloat" and f["location"] == str(scratch.relative_to(repo))
+    ]
+    assert hits, f"expected non-plan docs/superpowers file to be flagged; got {data.get('findings')}"
 
 
 def test_structure_s8_script_shebang_executable_parity():
@@ -208,6 +888,39 @@ def test_structure_s3_checks_notebook_markdown_links(tmp_path):
         if f["id"] == "S3.broken_link" and name in f["location"]
     ]
     assert hits, f"expected S3.broken_link for notebook markdown; got {data.get('findings')}"
+
+
+def test_structure_s3_checks_nested_docs_markdown_links(tmp_path):
+    """Nested docs should be covered by the same S3 link hygiene as shallow docs."""
+    repo = _temp_repo(tmp_path)
+    nested = repo / "docs" / "maintenance" / "history.md"
+    nested.parent.mkdir(parents=True, exist_ok=True)
+    nested.write_text("# History\n\n[missing](missing-local-doc.md)\n", encoding="utf-8")
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S3.broken_link" and "docs/maintenance/history.md" in f["location"]
+    ]
+    assert hits, f"expected S3.broken_link for nested docs markdown; got {data.get('findings')}"
+
+
+def test_structure_s3_flags_relative_links_that_escape_repo(tmp_path):
+    """Repo docs should not silently validate sibling-directory links."""
+    repo = _temp_repo(tmp_path / "repo")
+    sibling = tmp_path / "nnx"
+    sibling.mkdir()
+    changelog = repo / "CHANGELOG.md"
+    changelog.write_text("Historical example: (via [`nnx`](../nnx))\n", encoding="utf-8")
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S3.repo_escape_link" and f["location"] == "CHANGELOG.md"
+    ]
+    assert hits, f"expected repo-escaping link to be flagged; got {data.get('findings')}"
 
 
 def test_structure_s3_ignores_notebook_markdown_code_span_links(tmp_path):
@@ -302,6 +1015,44 @@ def test_docs_d9_flags_malformed_numbered_headings(tmp_path):
     assert hits, f"expected D9.numbered_heading for malformed H3; got {data.get('findings')}"
 
 
+def test_docs_d9_flags_malformed_published_docs_page_heading(tmp_path):
+    """Published MkDocs pages should be included in numbered-heading checks."""
+    repo = _temp_repo(tmp_path)
+    page = repo / "docs" / "index.md"
+    page.parent.mkdir()
+    page.write_text(
+        "# 1. Overview\n\n"
+        "## 1.1. Nested heading depth on an H2\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "D9.numbered_heading" and f["location"] == "docs/index.md:3"
+    ]
+    assert hits, f"expected D9.numbered_heading for docs/index.md; got {data.get('findings')}"
+
+
+def test_docs_d9_flags_malformed_published_diagram_provenance_heading(tmp_path):
+    """Published diagram provenance docs should be included in numbered-heading checks."""
+    repo = _temp_repo(tmp_path)
+    page = repo / "docs" / "diagrams" / "README.md"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        "# Diagram Provenance\n\n"
+        "## 1.1. Nested heading depth on an H2\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "D9.numbered_heading" and f["location"] == "docs/diagrams/README.md:3"
+    ]
+    assert hits, f"expected D9.numbered_heading for docs/diagrams/README.md; got {data.get('findings')}"
+
+
 def test_docs_d10_dependency_ledger_counts_match_current_doc():
     """Package counts and advisory feed-record counts should reconcile."""
     r = run_verify("--check", "docs", "--fast")
@@ -331,6 +1082,213 @@ def test_docs_d10_flags_dependency_ledger_count_drift(tmp_path):
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
     hits = [f for f in data["findings"] if f["id"] == "D10.dependency_ledger_count"]
     assert hits, f"expected D10.dependency_ledger_count; got {data.get('findings')}"
+
+
+def test_docs_d10_flags_dependency_ledger_submodule_sha_drift(tmp_path, monkeypatch):
+    """The genai-vanilla ledger SHA should match the superproject gitlink."""
+    repo = _temp_repo(tmp_path)
+    docs = repo / "docs"
+    docs.mkdir()
+    ledger_sha = "b96a2924b5d30aa30eddb2fa43f9b7a47fc81bcb"
+    gitlink_sha = "163134451a19d024e0e1c0df51139fd8c0a2ca52"
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 7. genai-vanilla Submodule Contract\n\n"
+        "`vendor/genai-vanilla` submodule. The repository currently pins tree entry\n"
+        f"`{ledger_sha}`; a read-only check found upstream `main` at the same SHA.\n",
+        encoding="utf-8",
+    )
+    verify_repo = _load_verify_module()
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"]:
+            return 0, f"160000 {gitlink_sha} 0\tvendor/genai-vanilla\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    findings = verify_repo._dependency_ledger_findings(repo)
+
+    hits = [f for f in findings if f.id == "D10.dependency_ledger_submodule_sha"]
+    assert hits
+    assert hits[0].detail == {"ledger_sha": ledger_sha, "gitlink_sha": gitlink_sha}
+
+
+def test_docs_d10_flags_missing_dependency_ledger_submodule_sha(tmp_path, monkeypatch):
+    """The genai-vanilla ledger must keep a parseable pinned tree-entry SHA."""
+    repo = _temp_repo(tmp_path)
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 7. genai-vanilla Submodule Contract\n\n"
+        "`vendor/genai-vanilla` submodule. The repository currently pins tree entry\n"
+        "`not-a-sha`; a read-only check found upstream `main` at the same SHA.\n",
+        encoding="utf-8",
+    )
+    verify_repo = _load_verify_module()
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"]:
+            return 0, "160000 ba21661e8a63b3727b9c4a14eaf5e61262d4b48e 0\tvendor/genai-vanilla\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    findings = verify_repo._dependency_ledger_findings(repo)
+
+    hits = [f for f in findings if f.id == "D10.dependency_ledger_submodule_sha"]
+    assert hits
+    assert "parseable" in hits[0].message
+
+
+def test_docs_d10_flags_missing_dependency_ledger_gitlink(tmp_path, monkeypatch):
+    """The genai-vanilla ledger SHA must be checked against a parseable gitlink."""
+    repo = _temp_repo(tmp_path)
+    docs = repo / "docs"
+    docs.mkdir()
+    ledger_sha = "ba21661e8a63b3727b9c4a14eaf5e61262d4b48e"
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 7. genai-vanilla Submodule Contract\n\n"
+        "`vendor/genai-vanilla` submodule. The repository currently pins tree entry\n"
+        f"`{ledger_sha}`; a read-only check found upstream `main` at the same SHA.\n",
+        encoding="utf-8",
+    )
+    verify_repo = _load_verify_module()
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"]:
+            return 0, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    findings = verify_repo._dependency_ledger_findings(repo)
+
+    hits = [f for f in findings if f.id == "D10.dependency_ledger_submodule_sha"]
+    assert hits
+    assert "gitlink" in hits[0].message
+    assert hits[0].detail == {"ledger_sha": ledger_sha, "gitlink_sha": None}
+
+
+def test_docs_d10_flags_workflow_action_refs_that_are_not_sha_pinned(tmp_path):
+    repo = _temp_repo(tmp_path)
+    workflow = repo / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text(
+        "jobs:\n"
+        "  test:\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v7\n",
+        encoding="utf-8",
+    )
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 8. GitHub Actions Pins\n\n"
+        "| Action | Reviewed Tag | Pinned SHA |\n"
+        "| --- | --- | --- |\n"
+        "| `actions/checkout` | `v7` | `9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0` |\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.workflow_action_pin"]
+    assert hits, f"expected D10.workflow_action_pin; got {data.get('findings')}"
+    assert "actions/checkout@v7" in hits[0]["message"]
+
+
+def test_docs_d10_flags_yaml_workflow_action_refs_that_are_not_sha_pinned(tmp_path):
+    repo = _temp_repo(tmp_path)
+    workflow = repo / ".github" / "workflows" / "ci.yaml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text(
+        "jobs:\n"
+        "  test:\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v7\n",
+        encoding="utf-8",
+    )
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 8. GitHub Actions Pins\n\n"
+        "| Action | Reviewed Tag | Pinned SHA |\n"
+        "| --- | --- | --- |\n"
+        "| `actions/checkout` | `v7` | `9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0` |\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.workflow_action_pin"]
+    assert hits, f"expected D10.workflow_action_pin for .yaml workflow; got {data.get('findings')}"
+    assert hits[0]["location"] == ".github/workflows/ci.yaml:4"
+
+
+def test_docs_d10_flags_workflow_action_refs_missing_from_ledger(tmp_path):
+    repo = _temp_repo(tmp_path)
+    workflow = repo / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text(
+        "jobs:\n"
+        "  test:\n"
+        "    steps:\n"
+        "      - uses: actions/cache@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # v5\n",
+        encoding="utf-8",
+    )
+    docs = repo / "docs"
+    docs.mkdir()
+    (docs / "dependency-contracts.md").write_text(
+        "# Dependency Contracts\n\n"
+        "## 8. GitHub Actions Pins\n\n"
+        "| Action | Reviewed Tag | Pinned SHA |\n"
+        "| --- | --- | --- |\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.workflow_action_pin"]
+    assert hits, f"expected D10.workflow_action_pin; got {data.get('findings')}"
+    assert "ledger" in hits[0]["message"]
+
+
+def test_docs_d10_current_workflow_action_pins_match_ledger():
+    r = run_verify("--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D10.workflow_action_pin"]
+    assert hits == []
+
+
+def test_docs_d11_current_layout_guidance_is_not_stale():
+    """Contributor-facing docs should point new tasks at notebooks/<task>/."""
+    r = run_verify("--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    d11 = [f for f in data["findings"] if f["id"] == "D11.stale_notebook_layout"]
+    assert d11 == [], f"D11 reported stale layout guidance: {d11}"
+
+
+def test_docs_d11_flags_old_flat_layout_guidance(tmp_path):
+    """The verifier should catch the pre-migration top-level task convention."""
+    repo = _temp_repo(tmp_path)
+    (repo / "README.md").write_text(
+        "# Fixture\n\n"
+        "## 1. Overview\n\n"
+        "Each top-level folder is a self-contained task.\n\n"
+        "See archive/README.md for preserved work.\n",
+        encoding="utf-8",
+    )
+    (repo / "CONTRIBUTING.md").write_text(
+        "# Contributing\n\n"
+        "Use https://nbviewer.org/github/thekaveh/ml-eng-lab/blob/main/<folder>/<notebook>.ipynb.\n",
+        encoding="utf-8",
+    )
+    r = run_verify("--repo-root", str(repo), "--check", "docs", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [f for f in data["findings"] if f["id"] == "D11.stale_notebook_layout"]
+    assert len(hits) >= 3, f"expected stale-layout findings; got {data.get('findings')}"
 
 
 def test_comments_phase_a_flags_obvious_state_the_what(tmp_path):
@@ -422,6 +1380,19 @@ def test_execution_e5_baseline_missing_warns_not_errors():
             assert f["severity"] == "warning", f"E5.no_baseline must be warning, got {f}"
 
 
+def test_runtime_available_requires_pyg_extension_stack(monkeypatch):
+    """Full notebook execution needs the PyG binary extension stack, not just torch_geometric."""
+    verify_repo = _load_verify_module()
+    present = {"torch", "torch_geometric"}
+
+    def fake_find_spec(name):
+        return object() if name in present else None
+
+    monkeypatch.setattr(verify_repo.importlib.util, "find_spec", fake_find_spec)
+
+    assert verify_repo._runtime_available() is False
+
+
 def test_required_sections_loaded_from_yaml_config():
     """The verify_repo_config.yaml should be the source of truth for the
     REQUIRED_SECTIONS table."""
@@ -436,11 +1407,11 @@ def test_required_sections_loaded_from_yaml_config():
         import verify_repo
         assert isinstance(verify_repo.REQUIRED_SECTIONS, dict)
         for d in verify_repo.ACTIVE_TASK_DIRS:
-            assert any(k.startswith(d) for k in verify_repo.REQUIRED_SECTIONS), (
+            assert any(k.startswith(f"notebooks/{d}/") for k in verify_repo.REQUIRED_SECTIONS), (
                 f"no entries for {d}"
             )
         phase1 = verify_repo.REQUIRED_SECTIONS.get(
-            "node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb"
+            "notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb"
         )
         assert phase1 is not None
         assert "4. Model" not in phase1
@@ -488,6 +1459,259 @@ def test_e7_papermill_params_tag_check():
         assert f["severity"] == "warning"
 
 
+def test_e13_current_active_notebooks_have_no_stale_repo_paths():
+    """Active notebook metadata and outputs should not retain pre-rename paths."""
+    r = run_verify("--check", "execution", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    e13 = [f for f in data["findings"] if f["id"] == "E13.stale_active_notebook_path"]
+    assert e13 == [], f"E13 reported stale active-notebook paths: {e13}"
+
+
+def test_e13_flags_stale_paths_in_active_notebooks(tmp_path, monkeypatch):
+    """The stale-path guard applies to active notebooks, not the archive."""
+    verify_repo = _load_verify_module()
+    repo = _temp_repo(tmp_path)
+    active_dir = repo / "notebooks" / "active-task"
+    archive_dir = repo / "notebooks" / "archive" / "old-task"
+    active_dir.mkdir(parents=True)
+    archive_dir.mkdir(parents=True)
+    (active_dir / "notebook.ipynb").write_text(
+        '{"outputs":[{"text":["/home/jovyan/work/ml/nnx/src/file.py"]}]}',
+        encoding="utf-8",
+    )
+    (archive_dir / "notebook.ipynb").write_text(
+        '{"outputs":[{"text":["/home/jovyan/work/ml/legacy.py"]}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ("active-task",))
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E13.stale_active_notebook_path"]
+    assert len(hits) == 1
+    assert hits[0].location.startswith("notebooks/active-task/notebook.ipynb")
+
+
+def test_e13_flags_removed_nnx_source_tree_and_host_python_paths(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    repo = _temp_repo(tmp_path)
+    active_dir = repo / "notebooks" / "active-task"
+    active_dir.mkdir(parents=True)
+    (active_dir / "notebook.ipynb").write_text(
+        "\n".join([
+            '{"outputs":[',
+            '  {"text":["/home/jovyan/work/ml-eng-lab/nnx/src/nnx/nn/params/file.py"]},',
+            '  {"text":["/Users/alice/.pyenv/versions/3.11/site-packages/pkg/file.py"]}',
+            ']}',
+        ]),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ("active-task",))
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E13.stale_active_notebook_path"]
+    assert [f.message for f in hits] == [
+        "stale active-notebook path artifact: removed in-repo nnx source tree",
+        "stale active-notebook path artifact: host-local Python environment path",
+    ]
+
+
+def test_e14_flags_tmp_papermill_output_path(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    task = "tmp-papermill-task"
+    active_dir = repo / "notebooks" / task
+    active_dir.mkdir(parents=True)
+    nb_path = active_dir / "notebook.ipynb"
+
+    nb = nbformat.v4.new_notebook()
+    nb.metadata["papermill"] = {
+        "input_path": "notebook.ipynb",
+        "output_path": "/tmp/smoke-output.ipynb",
+    }
+    cell = nbformat.v4.new_code_cell("# parser-friendly comment\nSMOKE_TEST = 0\n")
+    cell.metadata["tags"] = ["parameters"]
+    nb.cells = [cell]
+    nbformat.write(nb, str(nb_path))
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", (task,))
+    monkeypatch.setattr(verify_repo, "REQUIRED_SECTIONS", {str(nb_path.relative_to(repo)): ()})
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E14.tmp_papermill_output_path"]
+    assert hits
+    assert hits[0].location == str(nb_path.relative_to(repo))
+
+
+def test_e14_flags_source_notebook_papermill_metadata(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    task = "source-papermill-task"
+    active_dir = repo / "notebooks" / task
+    active_dir.mkdir(parents=True)
+    nb_path = active_dir / "notebook.ipynb"
+
+    nb = nbformat.v4.new_notebook()
+    nb.metadata["papermill"] = {
+        "input_path": "notebook.ipynb",
+        "output_path": str(nb_path.relative_to(repo)),
+    }
+    cell = nbformat.v4.new_code_cell("# parser-friendly comment\nSMOKE_TEST = 0\n")
+    cell.metadata["tags"] = ["parameters"]
+    nb.cells = [cell]
+    nbformat.write(nb, str(nb_path))
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", (task,))
+    monkeypatch.setattr(verify_repo, "REQUIRED_SECTIONS", {str(nb_path.relative_to(repo)): ()})
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E14.source_papermill_metadata"]
+    assert hits
+    assert hits[0].location == str(nb_path.relative_to(repo))
+
+
+def test_e6_shellcheck_targets_include_consumed_vendor_entrypoints():
+    verify_repo = _load_verify_module()
+
+    targets = {
+        str(path.relative_to(REPO))
+        for path in verify_repo._shellcheck_targets(REPO)
+    }
+
+    assert "scripts/start-jupyterhub.sh" in targets
+    assert "vendor/genai-vanilla/start.sh" in targets
+    assert "vendor/genai-vanilla/stop.sh" in targets
+    assert "vendor/genai-vanilla/bootstrapper/_run.sh" in targets
+    assert "vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh" in targets
+
+
+def test_e6_flags_missing_required_vendor_shellcheck_targets(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    repo = _temp_repo(tmp_path)
+    scripts = repo / "scripts"
+    scripts.mkdir()
+    (scripts / "start-jupyterhub.sh").write_text("#!/bin/sh\ntrue\n", encoding="utf-8")
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ())
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+    monkeypatch.setattr(verify_repo, "_phase3_code_cells_unchanged", lambda _repo: [])
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["which", "shellcheck"]:
+            return 0, "/usr/bin/shellcheck\n", ""
+        if cmd and cmd[0] == "shellcheck":
+            return 0, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E6.shellcheck_target_missing"]
+    assert hits
+    assert {
+        "vendor/genai-vanilla/start.sh",
+        "vendor/genai-vanilla/stop.sh",
+        "vendor/genai-vanilla/bootstrapper/_run.sh",
+        "vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh",
+    } == {f.location for f in hits}
+
+
+def test_e6_flags_missing_required_vendor_shellcheck_targets_without_shellcheck(
+    tmp_path, monkeypatch
+):
+    verify_repo = _load_verify_module()
+    repo = _temp_repo(tmp_path)
+    scripts = repo / "scripts"
+    scripts.mkdir()
+    (scripts / "start-jupyterhub.sh").write_text("#!/bin/sh\ntrue\n", encoding="utf-8")
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ())
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+    monkeypatch.setattr(verify_repo, "_phase3_code_cells_unchanged", lambda _repo: [])
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["which", "shellcheck"]:
+            return 1, "", ""
+        assert not (cmd and cmd[0] == "shellcheck")
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    missing_binary = [f for f in result.findings if f.id == "E6.shellcheck_missing"]
+    assert len(missing_binary) == 1
+
+    missing_targets = [
+        f for f in result.findings if f.id == "E6.shellcheck_target_missing"
+    ]
+    assert {
+        "vendor/genai-vanilla/start.sh",
+        "vendor/genai-vanilla/stop.sh",
+        "vendor/genai-vanilla/bootstrapper/_run.sh",
+        "vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh",
+    } == {f.location for f in missing_targets}
+
+
+def test_e6_flags_dirty_required_submodule(monkeypatch):
+    verify_repo = _load_verify_module()
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "submodule", "status", "--", "vendor/genai-vanilla"]:
+            return 0, "+163134451a19d024e0e1c0df51139fd8c0a2ca52 vendor/genai-vanilla\n", ""
+        if cmd == ["which", "shellcheck"]:
+            return 1, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ())
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+    monkeypatch.setattr(verify_repo, "_phase3_code_cells_unchanged", lambda _repo: [])
+
+    result = verify_repo.check_execution(REPO, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E6.submodule_dirty"]
+    assert hits
+    assert hits[0].location == "vendor/genai-vanilla"
+
+
+def test_e6_flags_required_submodule_with_modified_worktree(monkeypatch):
+    verify_repo = _load_verify_module()
+    submodule_cwd = REPO / "vendor/genai-vanilla"
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["git", "submodule", "status", "--", "vendor/genai-vanilla"]:
+            return 0, " 163134451a19d024e0e1c0df51139fd8c0a2ca52 vendor/genai-vanilla\n", ""
+        if cmd == ["git", "status", "--porcelain", "--", "."]:
+            assert cwd == submodule_cwd
+            return 0, " M services/jupyterhub/build/requirements.txt\n", ""
+        if cmd == ["which", "shellcheck"]:
+            return 1, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ())
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+    monkeypatch.setattr(verify_repo, "_phase3_code_cells_unchanged", lambda _repo: [])
+
+    result = verify_repo.check_execution(REPO, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E6.submodule_dirty"]
+    assert hits
+    assert hits[0].location == "vendor/genai-vanilla"
+    assert "local modifications" in hits[0].message
+
+
 def _load_verify_module():
     import importlib.util
     if "verify_repo" in sys.modules:
@@ -499,6 +1723,42 @@ def _load_verify_module():
     sys.modules["verify_repo"] = mod
     spec.loader.exec_module(mod)
     return mod
+
+
+def test_iter_notebooks_reads_active_tasks_under_notebooks(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    active = tmp_path / "notebooks" / "task-a"
+    archive = tmp_path / "notebooks" / "archive" / "old-task"
+    old_root = tmp_path / "task-a"
+    active.mkdir(parents=True)
+    archive.mkdir(parents=True)
+    old_root.mkdir()
+
+    (active / "notebook.ipynb").write_text("{}", encoding="utf-8")
+    (archive / "notebook.ipynb").write_text("{}", encoding="utf-8")
+    (old_root / "notebook.ipynb").write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ("task-a",))
+
+    found = [str(p.relative_to(tmp_path)) for p in verify_repo._iter_notebooks(tmp_path)]
+
+    assert found == ["notebooks/task-a/notebook.ipynb"]
+
+
+def test_baseline_notebook_rel_removes_notebooks_prefix():
+    verify_repo = _load_verify_module()
+    baseline_rel = "/".join([
+        "node_classification-reddit-gnn-pyg",
+        "phase3-main-model-training-and-eval-notebook.ipynb",
+    ])
+
+    assert (
+        verify_repo._baseline_notebook_rel(
+            "notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb"
+        )
+        == baseline_rel
+    )
+    assert verify_repo._baseline_notebook_rel("legacy/notebook.ipynb") == "legacy/notebook.ipynb"
 
 
 def test_assignment_names_ignore_comments_and_strings():
@@ -642,6 +1902,23 @@ def test_run_helper_timeout_normalizes_byte_streams(monkeypatch):
     assert stdout == "partial stdout"
     assert "partial stderr" in stderr
     assert "timed out after 1s" in stderr
+
+
+def test_run_helper_supplies_default_timeout(monkeypatch):
+    """Callers should not have to remember a timeout for short external commands."""
+    verify_repo = _load_verify_module()
+    seen: dict[str, int | None] = {}
+
+    def fake_run(cmd, cwd, capture_output, text, timeout):
+        del cwd, capture_output, text
+        seen["timeout"] = timeout
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(verify_repo.subprocess, "run", fake_run)
+    rc, _, _ = verify_repo._run(["fake"], REPO)
+
+    assert rc == 0
+    assert seen["timeout"] == verify_repo.DEFAULT_SUBPROCESS_TIMEOUT
 
 
 def test_tier_c_baseline_sources_ignore_parameter_cells():

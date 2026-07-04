@@ -8,47 +8,54 @@
 # workflow_dispatch; CI also runs both on the weekly schedule and Tier B on PRs
 # labeled `tier-b-smoke`.
 #
-# All targets assume papermill is on PATH and the notebooks' kernel can
-# import nnx. nnx is consumed from PyPI via the `thekaveh-nnx[lm]==0.2.0`
+# All targets assume the selected Python can run papermill and the notebooks'
+# kernel can import nnx. nnx is consumed from PyPI via the `thekaveh-nnx[lm]==0.2.0`
 # pin in requirements.txt (as of 2026-06-14). The `[lm]` extra pulls
 # tokenizers+datasets for the two notebooks that call train_bpe /
 # NNTokenizerParams (text_generation-tinyshakespeare-... and
 # preference_alignment-toy-dpo-...) — issue #12. Without it those
 # notebooks ImportError at the first tokenizer call.
 
+PYTHON ?= python
+PIP ?= $(PYTHON) -m pip
+PAPERMILL ?= $(PYTHON) -m papermill
+PAPERMILL_START_TIMEOUT ?= 300
+PAPERMILL_EXECUTION_TIMEOUT ?= 3600
+PAPERMILL_TIMEOUT_FLAGS = --start-timeout $(PAPERMILL_START_TIMEOUT) --execution-timeout $(PAPERMILL_EXECUTION_TIMEOUT)
+
 TIER_A := \
-    image_classification-mnist-ffnn-numpy/notebook.ipynb \
-    node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
-    tabular_classification-iris-mlp-pytorch/notebook.ipynb \
-    model_surgery-mnist-ffnn-pytorch/notebook.ipynb \
-    pruning-mnist-ffnn-pytorch/notebook.ipynb \
-    knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb \
-    text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb \
-    peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb \
-    dim_reduction-iris-autoencoder-pytorch/notebook.ipynb \
-    tabular_regression-diabetes-mlp-pytorch/notebook.ipynb \
-    diffusion-mnist-ddpm-pytorch/notebook.ipynb \
-    moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb \
-    clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb \
-    link_prediction-karate-graphsage-pyg/notebook.ipynb \
-    community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb \
-    text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb \
-    sentiment_classification-vader-mlp-pytorch/notebook.ipynb \
-    preference_alignment-toy-dpo-pytorch/notebook.ipynb \
-    self_supervised-fmnist-jepa-pytorch/notebook.ipynb
+    notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
+    notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb \
+    notebooks/model_surgery-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/pruning-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb \
+    notebooks/peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb \
+    notebooks/dim_reduction-iris-autoencoder-pytorch/notebook.ipynb \
+    notebooks/tabular_regression-diabetes-mlp-pytorch/notebook.ipynb \
+    notebooks/diffusion-mnist-ddpm-pytorch/notebook.ipynb \
+    notebooks/moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb \
+    notebooks/clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb \
+    notebooks/link_prediction-karate-graphsage-pyg/notebook.ipynb \
+    notebooks/community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb \
+    notebooks/text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb \
+    notebooks/sentiment_classification-vader-mlp-pytorch/notebook.ipynb \
+    notebooks/preference_alignment-toy-dpo-pytorch/notebook.ipynb \
+    notebooks/self_supervised-fmnist-jepa-pytorch/notebook.ipynb
 
 TIER_B := \
-    image_classification-mnist-ffnn-pytorch/notebook.ipynb \
-    node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
-    node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb \
-    node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb \
-    node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb
+    notebooks/image_classification-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb
 
-# quantization-mnist-ffnn-pytorch/notebook.ipynb was previously the 2nd entry
+# notebooks/quantization-mnist-ffnn-pytorch/notebook.ipynb was previously the 2nd entry
 # above. Removed 2026-06-16 after the weekly smoke-tier-b cron failed at the
 # quantization import: `torchao>=0.17` (requirements.txt pin, smallest version
 # exposing nnx.quantize_int8's `Int8WeightOnlyConfig` API) references
-# `torch.int1` at module load; `torch.int1` was added in torch 2.5; ml-lab
+# `torch.int1` at module load; `torch.int1` was added in torch 2.5; ml-eng-lab
 # pins `torch==2.4.1` for genai-vanilla image-parity (see torch-core-requirements.txt
 # + issue #10). No torchao version satisfies both nnx's API requirement AND
 # the torch 2.4.1 import surface, so the notebook cannot execute under
@@ -59,14 +66,14 @@ TIER_B := \
 # the cron was supposed to cover.
 
 TIER_C := \
-    node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb \
-    node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb \
-    node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb \
-    node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb
+    notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb
 
 SMOKE_OUT := /tmp/ml-smoke
 
-.PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint nlp-assets verify install-torch-stack codespace-setup
+.PHONY: help run-tier-a check-tier-a-clean smoke-tier-b smoke-tier-c test test-nnx-surface lint docs-build nlp-assets verify install-torch-stack codespace-setup
 
 help:
 	@echo "Targets:"
@@ -77,6 +84,7 @@ help:
 	@echo "  test              Run pytest on tests/ directory."
 	@echo "  test-nnx-surface  Run only tests/nnx_surface (matches the CI pytest-nnx-surface job)."
 	@echo "  lint              Run ruff check . using the [tool.ruff] config in pyproject.toml."
+	@echo "  docs-build        Build the MkDocs documentation site in strict mode."
 	@echo "  nlp-assets        Download spaCy en_core_web_sm + NLTK vader_lexicon (needed by the 2 NLP Tier-A notebooks)."
 	@echo "  verify            Run repo verifier (scripts/verify_repo.py --check all --fast)."
 	@echo "  install-torch-stack Install pinned Torch core first, then PyG/runtime deps."
@@ -86,7 +94,7 @@ run-tier-a:
 	@for nb in $(TIER_A); do \
 		echo "==> $$nb"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && papermill --kernel python3 "$$base" "$$base") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) $(PAPERMILL_TIMEOUT_FLAGS) --kernel python3 "$$base" "$$base") || exit 1; \
 	done
 
 check-tier-a-clean:
@@ -98,7 +106,7 @@ smoke-tier-b:
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) $(PAPERMILL_TIMEOUT_FLAGS) --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
 
 smoke-tier-c:
@@ -107,7 +115,7 @@ smoke-tier-c:
 		out=$(SMOKE_OUT)/$$(basename "$$nb"); \
 		echo "==> $$nb -> $$out"; \
 		dir=$$(dirname "$$nb"); base=$$(basename "$$nb"); \
-		(cd "$$dir" && papermill --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
+		(cd "$$dir" && $(PAPERMILL) $(PAPERMILL_TIMEOUT_FLAGS) --kernel python3 -p SMOKE_TEST 1 "$$base" "$$out") || exit 1; \
 	done
 
 test:
@@ -119,17 +127,20 @@ test-nnx-surface:
 lint:
 	ruff check .
 
+docs-build:
+	mkdocs build --strict
+
 nlp-assets:
-	python -m spacy download en_core_web_sm
-	python -c "import nltk; nltk.download('vader_lexicon', quiet=True)"
+	$(PYTHON) -m spacy download en_core_web_sm
+	$(PYTHON) -c "import nltk; nltk.download('vader_lexicon', quiet=True)"
 
 verify:
-	python scripts/verify_repo.py --check all --fast
+	$(PYTHON) scripts/verify_repo.py --check all --fast
 
 install-torch-stack:
-	pip install --upgrade pip
-	pip install -r torch-core-requirements.txt
-	pip install --no-build-isolation -r torch-requirements.txt
+	$(PIP) install --upgrade pip
+	$(PIP) install -r torch-core-requirements.txt
+	$(PIP) install --no-build-isolation -r torch-requirements.txt
 
 # Full one-shot dep install for the GitHub Codespaces / "Reopen in Container"
 # path (README §3.4). Reuses the same Torch-first install order as CI and
@@ -137,5 +148,5 @@ install-torch-stack:
 # Recursively invokes nlp-assets so the spaCy + NLTK download steps stay in
 # one place across the §3.2 (Docker), §3.3 (venv), and §3.4 (Codespaces) paths.
 codespace-setup: install-torch-stack
-	pip install -r requirements.txt
+	$(PIP) install -r requirements.txt
 	$(MAKE) nlp-assets

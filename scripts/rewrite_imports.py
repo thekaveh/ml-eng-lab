@@ -2,7 +2,7 @@
 """Rewrite `from common.X` → `from nnx.X` in Jupyter notebooks.
 
 Handles both modern (`from common.nn.X`) and old-style flat (`from common.X`)
-imports. Used once during the ml-lab revival to migrate notebooks to the new
+imports. Used once during the ml-eng-lab revival to migrate notebooks to the new
 NNx submodule package layout. Idempotent: re-running on already-rewritten
 notebooks is a no-op.
 
@@ -10,12 +10,13 @@ Usage:
     python scripts/rewrite_imports.py path/to/notebook.ipynb [more.ipynb ...]
 """
 from __future__ import annotations
+import ast
 import io
 import json
 import re
 import sys
 import tokenize
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 USAGE = "Usage: rewrite_imports.py NOTEBOOK [NOTEBOOK ...]"
@@ -31,6 +32,8 @@ SIMPLE_MAPPINGS: list[tuple[str, str]] = [
     ("from common.nn_model",      "from nnx.nn.nn_model"),
     ("from common.nn_params",     "from nnx.nn.params.nn_params"),
     # Modern nested imports → just rename root.
+    ("from common import vis_utils", "from nnx import vis_utils"),
+    ("from common import utils",     "from nnx import utils"),
     ("from common.nn.",           "from nnx.nn."),
     ("from common.utils",         "from nnx.utils"),
     ("from common.vis_utils",     "from nnx.vis_utils"),
@@ -42,14 +45,14 @@ SIMPLE_MAPPINGS: list[tuple[str, str]] = [
 SPLIT_PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], list[str]]]] = [
     # `from common.nn_model import NNModel, NNTrainParams` → two lines (modern paths)
     (
-        re.compile(r"^(\s*)from common\.nn_model import NNModel,\s*NNTrainParams(\s*)$"),
+        re.compile(r"^(\s*)from common\.nn_model import NNModel,\s*NNTrainParams(\s*(?:#.*)?)$"),
         lambda m: [
             f"{m.group(1)}from nnx.nn.nn_model import NNModel{m.group(2)}",
             f"{m.group(1)}from nnx.nn.params.nn_train_params import NNTrainParams{m.group(2)}",
         ],
     ),
     (
-        re.compile(r"^(\s*)from common\.nn_model import NNTrainParams,\s*NNModel(\s*)$"),
+        re.compile(r"^(\s*)from common\.nn_model import NNTrainParams,\s*NNModel(\s*(?:#.*)?)$"),
         lambda m: [
             f"{m.group(1)}from nnx.nn.params.nn_train_params import NNTrainParams{m.group(2)}",
             f"{m.group(1)}from nnx.nn.nn_model import NNModel{m.group(2)}",
@@ -69,7 +72,7 @@ SPLIT_PATTERNS: list[tuple[re.Pattern[str], Callable[[re.Match[str]], list[str]]
 #     reshape so the deprecated symbol is dropped (and NNParams is imported
 #     if not already imported in the cell).
 #   * CALL-SITE substitution: rename `OldNameParams(` → `NNParams(` in any
-#     code line (including commented-out lines, for consistency).
+#     executable code line; comments and string literals are preserved.
 #
 DEPRECATED_PARAM_NAMES: list[str] = [
     "FeedFwdNNParams",
@@ -78,8 +81,55 @@ DEPRECATED_PARAM_NAMES: list[str] = [
     "GraphSageNNParams",
 ]
 
+NON_PYTHON_CELL_MAGICS = frozenset({
+    "bash",
+    "html",
+    "javascript",
+    "js",
+    "latex",
+    "perl",
+    "ruby",
+    "script",
+    "sh",
+    "svg",
+    "writefile",
+})
+
+
+def _non_python_cell_magic(lines: list[str]) -> bool:
+    for line in lines:
+        stripped = line.lstrip()
+        if not stripped:
+            continue
+        if not stripped.startswith("%%"):
+            return False
+        return stripped[2:].split(None, 1)[0].strip().lower() in NON_PYTHON_CELL_MAGICS
+    return False
+
+
+def _multiline_string_line_numbers(lines: list[str]) -> set[int]:
+    protected: set[int] = set()
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO("".join(lines)).readline)
+        for token in tokens:
+            if token.type != tokenize.STRING:
+                continue
+            start_line, _ = token.start
+            end_line, _ = token.end
+            if end_line > start_line:
+                protected.update(range(start_line, end_line + 1))
+    except tokenize.TokenError:
+        return protected
+    return protected
+
+
+def _symbol_without_inline_comment(symbol: str) -> str:
+    return symbol.split("#", 1)[0].strip()
+
 
 def _nnparams_replacement_for_symbol(symbol: str) -> str | None:
+    symbol = _symbol_without_inline_comment(symbol)
+    symbol = symbol.rstrip(")").strip()
     m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?,?$", symbol)
     if not m or m.group(1) not in DEPRECATED_PARAM_NAMES:
         return None
@@ -87,13 +137,94 @@ def _nnparams_replacement_for_symbol(symbol: str) -> str | None:
     return f"NNParams as {alias}" if alias else "NNParams"
 
 
-def _imported_symbol_bindings(symbols: str) -> set[str]:
-    bindings = set()
+def _closing_paren_line(line: str) -> str:
+    indent = re.match(r"^(\s*)", line).group(1)
+    suffix = "\n" if line.endswith("\n") else ""
+    trailing = ""
+    m = re.match(r"^\s*\)([^\n]*?)(\n?)$", line)
+    if m and "#" in m.group(1):
+        trailing = m.group(1).rstrip()
+    return f"{indent}){trailing}{suffix}"
+
+
+def _single_line_parenthesized_import(line: str) -> str:
+    m = re.match(r"^(\s*from\s+[\w.]+\s+import\s+)\((.+)\)(\s*(?:#.*)?)(\n?)$", line)
+    if not m:
+        return line
+    if not any(_nnparams_replacement_for_symbol(part) for part in m.group(2).split(",")):
+        return line
+    return f"{m.group(1)}{m.group(2).strip()}{m.group(3)}{m.group(4)}"
+
+
+def _rewrite_common_import_aliases(line: str) -> str:
+    m = re.match(r"^(\s*)import\s+(.+?)(\n?)$", line)
+    if not m:
+        return line
+    indent, aliases_text, newline = m.group(1), m.group(2), m.group(3)
+    code_text, comment_marker, comment_text = aliases_text.partition("#")
+    aliases = [part.strip() for part in code_text.split(",")]
+    if not aliases or any(not alias for alias in aliases):
+        return line
+
+    changed = False
+    rewritten_aliases: list[str] = []
+    for alias in aliases:
+        rewritten = re.sub(r"^common(?=\.|\s+as\b|$)", "nnx", alias)
+        changed = changed or rewritten != alias
+        rewritten_aliases.append(rewritten)
+    if not changed:
+        return line
+
+    trailing = ""
+    if comment_marker:
+        before_comment = code_text[len(code_text.rstrip()) :]
+        trailing = f"{before_comment or ' '}#{comment_text}"
+    return f"{indent}import {', '.join(rewritten_aliases)}{trailing}{newline}"
+
+
+def _nnparams_import_requirements(symbols: str) -> set[str]:
+    requirements = set()
     for part in (p.strip() for p in symbols.split(",") if p.strip()):
-        m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?$", part)
+        part = _symbol_without_inline_comment(part)
+        m = re.match(r"^NNParams(?:\s+as\s+([A-Za-z_]\w*))?$", part)
         if m:
-            bindings.add(m.group(2) or m.group(1))
-    return bindings
+            requirements.add(f"NNParams as {m.group(1)}" if m.group(1) else "NNParams")
+    return requirements
+
+
+def _rewrite_parenthesized_import_member_line(line: str) -> tuple[list[str], list[str], bool]:
+    stripped_nl = line.rstrip("\n")
+    closes_import = ")" in stripped_nl
+    symbol_text = stripped_nl.split(")", 1)[0] if closes_import else stripped_nl
+    indent = re.match(r"^(\s*)", line).group(1)
+    content = symbol_text[len(indent) :]
+    kept_lines: list[str] = []
+    nnparams_imports: list[str] = []
+    if not content.strip():
+        return kept_lines, nnparams_imports, closes_import
+    if content.lstrip().startswith("#"):
+        suffix = "\n" if line.endswith("\n") else ""
+        kept_lines.append(line if not closes_import else f"{indent}{content}{suffix}")
+        return kept_lines, nnparams_imports, closes_import
+
+    code_text = content.split("#", 1)[0]
+    parts = [p.strip() for p in code_text.split(",") if p.strip()]
+    has_deprecated = any(_nnparams_replacement_for_symbol(part) for part in parts)
+    if not has_deprecated:
+        if closes_import:
+            kept = code_text.rstrip().rstrip(",").strip()
+            if kept:
+                kept_lines.append(f"{indent}{kept},\n")
+        else:
+            kept_lines.append(line)
+        return kept_lines, nnparams_imports, closes_import
+
+    for part in parts:
+        if replacement := _nnparams_replacement_for_symbol(part):
+            nnparams_imports.append(replacement)
+        else:
+            kept_lines.append(f"{indent}{part.rstrip(',')},\n")
+    return kept_lines, nnparams_imports, closes_import
 
 
 def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
@@ -122,12 +253,181 @@ def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
     return rebuilt + ("\n" if had_nl else ""), nnparams_imports, True
 
 
-def _rewrite_call_sites(line: str) -> tuple[str, bool]:
-    """Rewrite `OldNameParams(` → `NNParams(` on this line.
+def _deprecated_binding_names(source: str) -> set[str]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+
+    bindings: set[str] = set()
+
+    def collect(target: ast.expr) -> None:
+        if isinstance(target, ast.Name) and target.id in DEPRECATED_PARAM_NAMES:
+            bindings.add(target.id)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for element in target.elts:
+                collect(element)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.arg) and node.arg in DEPRECATED_PARAM_NAMES:
+            bindings.add(node.arg)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name in DEPRECATED_PARAM_NAMES:
+            bindings.add(node.name)
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                collect(target)
+        elif isinstance(node, ast.AnnAssign):
+            collect(node.target)
+        elif isinstance(node, ast.AugAssign):
+            collect(node.target)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            collect(node.target)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    collect(item.optional_vars)
+        elif isinstance(node, ast.ExceptHandler) and node.name in DEPRECATED_PARAM_NAMES:
+            bindings.add(node.name)
+    return bindings
+
+
+def _deprecated_binding_reference_positions(source: str) -> set[tuple[int, int]]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+
+    positions: set[tuple[int, int]] = set()
+    scope_types = (
+        ast.FunctionDef,
+        ast.AsyncFunctionDef,
+        ast.ClassDef,
+        ast.Lambda,
+        ast.ListComp,
+        ast.SetComp,
+        ast.DictComp,
+        ast.GeneratorExp,
+    )
+
+    def position(node: ast.AST) -> tuple[int, int] | None:
+        lineno = getattr(node, "lineno", None)
+        col_offset = getattr(node, "col_offset", None)
+        if lineno is None or col_offset is None:
+            return None
+        return lineno, col_offset
+
+    def earliest(left: tuple[int, int] | None, right: tuple[int, int]) -> tuple[int, int]:
+        return right if left is None or right < left else left
+
+    def collect_target_bindings(target: ast.AST, bindings: dict[str, tuple[int, int]]) -> None:
+        if isinstance(target, ast.Name) and target.id in DEPRECATED_PARAM_NAMES:
+            pos = position(target)
+            if pos is not None:
+                bindings[target.id] = earliest(bindings.get(target.id), pos)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for element in target.elts:
+                collect_target_bindings(element, bindings)
+
+    def same_scope_nodes(scope: ast.AST) -> Iterator[ast.AST]:
+        for child in ast.iter_child_nodes(scope):
+            if isinstance(child, scope_types):
+                continue
+            yield child
+            yield from same_scope_nodes(child)
+
+    def nested_scopes(scope: ast.AST) -> Iterator[ast.AST]:
+        for child in ast.iter_child_nodes(scope):
+            if isinstance(child, scope_types):
+                yield child
+                continue
+            yield from nested_scopes(child)
+
+    def visit_scope(scope: ast.AST) -> None:
+        bindings: dict[str, tuple[int, int]] = {}
+        if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            args = scope.args
+            all_args = [
+                *getattr(args, "posonlyargs", ()),
+                *args.args,
+                *args.kwonlyargs,
+            ]
+            if args.vararg is not None:
+                all_args.append(args.vararg)
+            if args.kwarg is not None:
+                all_args.append(args.kwarg)
+            for arg in all_args:
+                if arg.arg in DEPRECATED_PARAM_NAMES:
+                    pos = position(arg)
+                    if pos is not None:
+                        bindings[arg.arg] = earliest(bindings.get(arg.arg), pos)
+
+        for child in ast.iter_child_nodes(scope):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and child.name in DEPRECATED_PARAM_NAMES:
+                pos = position(child)
+                if pos is not None:
+                    bindings[child.name] = earliest(bindings.get(child.name), pos)
+
+        for node in same_scope_nodes(scope):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    collect_target_bindings(target, bindings)
+            elif isinstance(node, ast.AnnAssign):
+                collect_target_bindings(node.target, bindings)
+            elif isinstance(node, ast.AugAssign):
+                collect_target_bindings(node.target, bindings)
+            elif isinstance(node, (ast.For, ast.AsyncFor)):
+                collect_target_bindings(node.target, bindings)
+            elif isinstance(node, (ast.With, ast.AsyncWith)):
+                for item in node.items:
+                    if item.optional_vars is not None:
+                        collect_target_bindings(item.optional_vars, bindings)
+            elif isinstance(node, ast.ExceptHandler) and node.name in DEPRECATED_PARAM_NAMES:
+                pos = position(node)
+                if pos is not None:
+                    bindings[node.name] = earliest(bindings.get(node.name), pos)
+
+        if bindings:
+            protect_entire_scope = isinstance(
+                scope,
+                (
+                    ast.FunctionDef,
+                    ast.AsyncFunctionDef,
+                    ast.Lambda,
+                    ast.ListComp,
+                    ast.SetComp,
+                    ast.DictComp,
+                    ast.GeneratorExp,
+                ),
+            )
+            for node in same_scope_nodes(scope):
+                if isinstance(node, ast.Name) and node.id in bindings:
+                    pos = position(node)
+                    if pos is not None and (protect_entire_scope or pos >= bindings[node.id]):
+                        positions.add(pos)
+                elif isinstance(node, ast.arg) and node.arg in bindings:
+                    pos = position(node)
+                    if pos is not None and (protect_entire_scope or pos >= bindings[node.arg]):
+                        positions.add(pos)
+
+        for child_scope in nested_scopes(scope):
+            visit_scope(child_scope)
+
+    visit_scope(tree)
+    return positions
+
+
+def _rewrite_param_name_references(
+    line: str,
+    protected_positions: set[tuple[int, int]] | None = None,
+    line_offset: int = 0,
+) -> tuple[str, bool]:
+    """Rewrite executable unqualified deprecated Params references to `NNParams`.
 
     Tokenization keeps comments and string literals untouched, so prose-only
-    cells do not gain executable imports.
+    cells do not gain executable imports. Qualified attributes and declaration
+    names are left alone.
     """
+    protected_positions = protected_positions or set()
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(line).readline))
     except tokenize.TokenError:
@@ -137,20 +437,36 @@ def _rewrite_call_sites(line: str) -> tuple[str, bool]:
         except tokenize.TokenError:
             return line, False
 
+    line_offsets = [0]
+    for physical_line in line.splitlines(keepends=True):
+        line_offsets.append(line_offsets[-1] + len(physical_line))
+
+    def absolute_offset(position: tuple[int, int]) -> int:
+        line_no, column = position
+        if 1 <= line_no <= len(line_offsets):
+            return line_offsets[line_no - 1] + column
+        return column
+
     replacements: list[tuple[int, int]] = []
     for idx, token in enumerate(tokens):
-        if token.type != tokenize.NAME or token.string not in DEPRECATED_PARAM_NAMES:
+        token_position = (token.start[0] + line_offset, token.start[1])
+        if (
+            token.type != tokenize.NAME
+            or token.string not in DEPRECATED_PARAM_NAMES
+            or token_position in protected_positions
+        ):
             continue
-        next_token = next(
+        prev_token = next(
             (
                 candidate
-                for candidate in tokens[idx + 1:]
-                if candidate.type not in {tokenize.NL, tokenize.NEWLINE, tokenize.ENDMARKER}
+                for candidate in reversed(tokens[:idx])
+                if candidate.type not in {tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT}
             ),
             None,
         )
-        if next_token is not None and next_token.string == "(":
-            replacements.append((token.start[1], token.end[1]))
+        if prev_token is not None and prev_token.string in {".", "class", "def"}:
+            continue
+        replacements.append((absolute_offset(token.start), absolute_offset(token.end)))
 
     if not replacements:
         return line, False
@@ -161,25 +477,103 @@ def _rewrite_call_sites(line: str) -> tuple[str, bool]:
     return new_line, True
 
 
+def _rewrite_call_sites_across_continuations(
+    lines: list[str],
+    protected_positions: set[tuple[int, int]] | None = None,
+) -> tuple[list[str], bool]:
+    rewritten: list[str] = []
+    changed = False
+    idx = 0
+    while idx < len(lines):
+        chunk = [lines[idx]]
+        while chunk[-1].rstrip("\n").rstrip().endswith("\\") and idx + 1 < len(lines):
+            idx += 1
+            chunk.append(lines[idx])
+        if len(chunk) > 1:
+            new_chunk, chunk_changed = _rewrite_param_name_references(
+                "".join(chunk),
+                protected_positions,
+                line_offset=idx - len(chunk) + 1,
+            )
+            if chunk_changed:
+                changed = True
+                rewritten.extend(new_chunk.splitlines(keepends=True))
+            else:
+                rewritten.extend(chunk)
+        else:
+            rewritten.extend(chunk)
+        idx += 1
+    return rewritten, changed
+
+
+def _nnparams_import_insert_index(lines: list[str]) -> int:
+    if lines and lines[0].lstrip().startswith("%%"):
+        return 1
+    return 0
+
+
+def _is_nnparams_parenthesized_import(line: str) -> bool:
+    return bool(re.match(r"^\s*from\s+nnx\.nn\.params\.nn_params\s+import\s+\(", line))
+
+
+def _parenthesized_import_opener(line: str) -> tuple[str, str] | None:
+    m = re.match(r"^(\s*from\s+[\w.]+\s+import\s+\()(.*?)(\n?)$", line)
+    if not m:
+        return None
+    opener = f"{m.group(1)}{m.group(3)}"
+    member_text = m.group(2)
+    return opener, member_text
+
+
 def rewrite_lines(source_lines: list[str]) -> list[str]:
     """Apply all rewrites to a list of source lines (each preserving its trailing \\n if present)."""
+    if _non_python_cell_magic(source_lines):
+        return source_lines
     out: list[str] = []
     needed_nnparams_imports: set[str] = set()
     existing_nnparams_imports: set[str] = set()
+    protected_positions = _deprecated_binding_reference_positions("".join(source_lines))
+    protected_lines = _multiline_string_line_numbers(source_lines)
     in_parenthesized_import = False
-    for line in source_lines:
+    parenthesized_import_open = ""
+    parenthesized_import_kept: list[str] = []
+    parenthesized_import_raw: list[str] = []
+    parenthesized_import_changed = False
+    for line_no, line in enumerate(source_lines, 1):
         stripped_nl = line.rstrip("\n")
         had_nl = line.endswith("\n")
-        if in_parenthesized_import:
-            replacement = _nnparams_replacement_for_symbol(stripped_nl.strip())
-            if replacement:
-                needed_nnparams_imports.add(replacement)
-                if ")" in stripped_nl:
-                    in_parenthesized_import = False
-                continue
+        if line_no in protected_lines:
             out.append(line)
-            if ")" in stripped_nl:
+            continue
+        if in_parenthesized_import:
+            parenthesized_import_raw.append(line)
+            kept_lines, nnparams_imports, closes_import = _rewrite_parenthesized_import_member_line(line)
+            needed_nnparams_imports.update(nnparams_imports)
+            parenthesized_import_changed = parenthesized_import_changed or bool(nnparams_imports)
+            parenthesized_import_kept.extend(kept_lines)
+            if _is_nnparams_parenthesized_import(parenthesized_import_open):
+                for kept_line in kept_lines:
+                    if "NNParams" in kept_line:
+                        existing_nnparams_imports.update(_nnparams_import_requirements(kept_line.strip().rstrip(",")))
+            if closes_import:
+                if not parenthesized_import_changed:
+                    out.extend(parenthesized_import_raw)
+                    if _is_nnparams_parenthesized_import(parenthesized_import_open):
+                        for raw_line in parenthesized_import_raw:
+                            if "NNParams" in raw_line:
+                                existing_nnparams_imports.update(
+                                    _nnparams_import_requirements(raw_line.split(")", 1)[0].strip().rstrip(","))
+                                )
+                elif parenthesized_import_kept:
+                    out.append(parenthesized_import_open)
+                    out.extend(parenthesized_import_kept)
+                    out.append(_closing_paren_line(line))
                 in_parenthesized_import = False
+                parenthesized_import_open = ""
+                parenthesized_import_kept = []
+                parenthesized_import_raw = []
+                parenthesized_import_changed = False
+                continue
             continue
         # Try split patterns first
         split_applied = False
@@ -201,9 +595,44 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
             for old, new in SIMPLE_MAPPINGS:
                 if old in new_line:
                     new_line = new_line.replace(old, new)
+        new_line = _rewrite_common_import_aliases(new_line)
+        new_line = _single_line_parenthesized_import(new_line)
         if new_line.lstrip().startswith("from ") and " import (" in new_line:
             in_parenthesized_import = True
-            out.append(new_line)
+            parenthesized_import_raw = [new_line]
+            parenthesized_import_changed = False
+            opener_parts = _parenthesized_import_opener(new_line)
+            parenthesized_import_open = opener_parts[0] if opener_parts else new_line
+            parenthesized_import_kept = []
+            if opener_parts and opener_parts[1].strip():
+                opener_indent = re.match(r"^(\s*)", new_line).group(1)
+                member_line = f"{opener_indent}    {opener_parts[1]}"
+                kept_lines, nnparams_imports, closes_import = _rewrite_parenthesized_import_member_line(member_line)
+                needed_nnparams_imports.update(nnparams_imports)
+                parenthesized_import_changed = parenthesized_import_changed or bool(nnparams_imports)
+                parenthesized_import_kept.extend(kept_lines)
+                if _is_nnparams_parenthesized_import(parenthesized_import_open):
+                    for kept_line in kept_lines:
+                        if "NNParams" in kept_line:
+                            existing_nnparams_imports.update(_nnparams_import_requirements(kept_line.strip().rstrip(",")))
+                if closes_import:
+                    if not parenthesized_import_changed:
+                        out.extend(parenthesized_import_raw)
+                        if _is_nnparams_parenthesized_import(parenthesized_import_open):
+                            for raw_line in parenthesized_import_raw:
+                                if "NNParams" in raw_line:
+                                    existing_nnparams_imports.update(
+                                        _nnparams_import_requirements(raw_line.split(")", 1)[0].strip().rstrip(","))
+                                    )
+                    elif parenthesized_import_kept:
+                        out.append(parenthesized_import_open)
+                        out.extend(parenthesized_import_kept)
+                        out.append(_closing_paren_line(new_line))
+                    in_parenthesized_import = False
+                    parenthesized_import_open = ""
+                    parenthesized_import_kept = []
+                    parenthesized_import_raw = []
+                    parenthesized_import_changed = False
             continue
         # 2026-05-27: drop deprecated per-net Params from import lines
         if new_line.lstrip().startswith("from "):
@@ -215,22 +644,36 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                 if rewritten == "":
                     continue
                 new_line = rewritten
-        # 2026-05-27: rewrite call sites OldNameParams( → NNParams(
-        new_line, call_site_changed = _rewrite_call_sites(new_line)
-        if call_site_changed:
+        # 2026-05-27: rewrite executable uses of deprecated per-net Params.
+        new_line, param_reference_changed = _rewrite_param_name_references(
+            new_line,
+            protected_positions,
+            line_offset=line_no - 1,
+        )
+        if param_reference_changed:
             needed_nnparams_imports.add("NNParams")
         # Track whether NNParams is being imported in this cell already.
         # Match only real `from ... import NNParams[,...]` lines, not
         # comments / strings that happen to contain the substring.
         nnparams_import = re.match(r"^\s*from\s+nnx\.nn\.params\.nn_params\s+import\s+(.+?)(\s*)$", new_line.rstrip("\n"))
         if nnparams_import:
-            existing_nnparams_imports.update(_imported_symbol_bindings(nnparams_import.group(1)))
+            existing_nnparams_imports.update(_nnparams_import_requirements(nnparams_import.group(1)))
         out.append(new_line)
+    continuation_protected_positions = _deprecated_binding_reference_positions("".join(out))
+    out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(
+        out,
+        continuation_protected_positions,
+    )
+    if continuation_call_site_changed:
+        needed_nnparams_imports.add("NNParams")
     # If any call site or rewrite needs NNParams but the cell never imports it,
     # inject one.
     missing_nnparams_imports = sorted(needed_nnparams_imports - existing_nnparams_imports)
     if missing_nnparams_imports:
-        out.insert(0, f"from nnx.nn.params.nn_params import {', '.join(missing_nnparams_imports)}\n")
+        out.insert(
+            _nnparams_import_insert_index(out),
+            f"from nnx.nn.params.nn_params import {', '.join(missing_nnparams_imports)}\n",
+        )
     return out
 
 
@@ -245,7 +688,7 @@ def process_notebook(path: Path) -> bool:
         if isinstance(source, str):
             original_list = source.splitlines(keepends=True)
         else:
-            original_list = list(source)
+            original_list = "".join(str(chunk) for chunk in source).splitlines(keepends=True)
         new_list = rewrite_lines(original_list)
         if new_list != original_list:
             cell["source"] = new_list
@@ -266,10 +709,12 @@ def main(argv: list[str]) -> int:
         print(USAGE)
         return 0
     changed_count = 0
+    missing_count = 0
     for arg in argv:
         p = Path(arg)
         if not p.exists():
             print(f"SKIP (not found): {p}", file=sys.stderr)
+            missing_count += 1
             continue
         if process_notebook(p):
             print(f"REWRITTEN: {p}")
@@ -277,6 +722,9 @@ def main(argv: list[str]) -> int:
         else:
             print(f"unchanged: {p}")
     print(f"\n{changed_count} notebook(s) rewritten.")
+    if missing_count:
+        print(f"{missing_count} input path(s) were missing.", file=sys.stderr)
+        return 1
     return 0
 
 

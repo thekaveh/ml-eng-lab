@@ -9,6 +9,7 @@ import nbformat
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "inject_smoke_test_cell.py"
+TEST_SUBPROCESS_TIMEOUT = 30
 
 
 def _make_notebook(
@@ -31,6 +32,7 @@ def _run(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
         capture_output=True, text=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
     )
 
 

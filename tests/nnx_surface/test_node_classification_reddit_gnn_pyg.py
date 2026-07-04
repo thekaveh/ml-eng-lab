@@ -1,4 +1,4 @@
-"""NNx-surface contract test for node_classification-reddit-gnn-pyg/*.
+"""NNx-surface contract test for notebooks/node_classification-reddit-gnn-pyg/*.
 
 Asserts the canonical call shape used by phase2-notebook4 and (after the
 Phase C rewrites of this plan) by every other phase2/phase3 notebook.

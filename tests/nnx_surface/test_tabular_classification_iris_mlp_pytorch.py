@@ -1,4 +1,4 @@
-"""NNx-surface contract test for tabular_classification-iris-mlp-pytorch/notebook.ipynb.
+"""NNx-surface contract test for notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb.
 
 The iris notebook is the first in-repo use of `NNTabularDataset` (the
 pandas-DataFrame → DataLoader wrapper that landed in the 21-commit

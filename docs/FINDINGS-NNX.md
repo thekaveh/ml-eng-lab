@@ -1,6 +1,6 @@
 # NNx (`thekaveh-nnx`) findings
 
-> **Note (2026-06-14)**: ml-lab switched from a git submodule at `./nnx` to the `thekaveh-nnx` PyPI distribution. Source paths cited below (e.g. `nnx/src/nnx/nn/dataset/nn_dataset.py:24`) refer to the upstream [`thekaveh/NNx`](https://github.com/thekaveh/NNx) repo, not a local submodule.
+> **Note (2026-06-14)**: ml-eng-lab switched from a git submodule at `./nnx` to the `thekaveh-nnx` PyPI distribution. Source paths cited below (e.g. `nnx/src/nnx/nn/dataset/nn_dataset.py:24`) refer to the upstream [`thekaveh/NNx`](https://github.com/thekaveh/NNx) repo, not a local submodule.
 
 Issues found by the verify_repo.py loop in the `nnx` (PyPI: `thekaveh-nnx`) library. These are
 NOT fixed by this loop (per spec §1.3); they are surfaced here for an upstream
@@ -10,7 +10,7 @@ PR follow-up to [thekaveh/NNx](https://github.com/thekaveh/NNx).
 
 ### 1.1. `NNDataset` default `batch_size` packs the whole train set into one batch
 
-Surfaced by: `diffusion-mnist-ddpm-pytorch`, `text_generation-tinyshakespeare-transformer-pytorch`, `moe-fmnist-mixture-of-experts-pytorch`, `self_supervised-fmnist-jepa-pytorch`.
+Surfaced by: `diffusion-mnist-ddpm-pytorch`, `moe-fmnist-mixture-of-experts-pytorch`, `self_supervised-fmnist-jepa-pytorch`. `text_generation-tinyshakespeare-transformer-pytorch` has the same small-batch training need, but it uses an intentional custom sequence-window dataset rather than bypassing `NNDataset`.
 
 `NNDataset(ds_class=thv.datasets.MNIST, ...)`'s `train_loader` defaults to `batch_size=54000` (the whole 60k train set minus the val carve-off). For full-batch SGD on classifiers this is fine; for **diffusion / MoE / transformer / JEPA / any task that needs many noise- or routing-level samples per epoch**, one batch per epoch is far too few — the train step runs ~1 time per epoch and the loss barely budges.
 
@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 train_loader = DataLoader(ds.train_loader.dataset, batch_size=128, shuffle=True)
 ```
 
-**Upstream fix landed (partial)**: `nnx.NNDataset` now accepts a `batch_sizes: tuple[Optional[int], Optional[int], Optional[int]] = (None, None, None)` constructor arg (`nnx/src/nnx/nn/dataset/nn_dataset.py:24`), so the cleaner form is `NNDataset(..., batch_sizes=(128, None, None))`. The four affected notebooks still use the older `DataLoader(...dataset, batch_size=128)` bypass; they can be migrated to the `batch_sizes=` form at any time without changing recorded outputs (the resolved batch_size is identical). The default — `None` per slot → whole-split batch — is unchanged upstream, so the underlying "surprising default" critique still stands for new tasks; the workaround just has a less invasive form now.
+**Upstream fix landed (partial)**: `nnx.NNDataset` now accepts a `batch_sizes: tuple[Optional[int], Optional[int], Optional[int]] = (None, None, None)` constructor arg (`nnx/src/nnx/nn/dataset/nn_dataset.py:24`), so the cleaner form is `NNDataset(..., batch_sizes=(128, None, None))`. The three affected `NNDataset` notebooks still use the older `DataLoader(...dataset, batch_size=128)` bypass; they can be migrated to the `batch_sizes=` form at any time without changing recorded outputs (the resolved batch_size is identical). The TinyShakespeare notebook should stay on its custom language-modeling dataset unless NNx grows a sequence-window dataset helper. The default — `None` per slot → whole-split batch — is unchanged upstream, so the underlying "surprising default" critique still stands for new tasks; the workaround just has a less invasive form now.
 
 ### 1.2. `nnx.deepen` is function-preserving only for `Activations.RELU`
 
@@ -63,15 +63,25 @@ Surfaced by: `tabular_regression-diabetes-mlp-pytorch` (documented in §6, not a
 
 **Suggested upstream fix**: detect at construction whether the loss is regression-style (MSE, MAE) and default `monitor="val_edp.loss"` in that case.
 
-### 1.5. `NNRun.save()` prints an absolute path, leaking the maintainer's local layout
+### 1.5. `NNRun.save()` prints an absolute path, leaking the execution environment layout
 
-Surfaced by: 17 of the 21 active task folders carrying baked-in output text of the form `Run saved to /Users/kaveh/...`. Three historical worktree shapes show up in the leaks (verified 2026-06-04 via `grep -l '/Users/kaveh' **/notebook.ipynb`): (a) 15 notebooks pin the now-defunct `.claude/worktrees/overnight-cleanup/runs/<hash>` path from the megamerge PR #5 build; (b) `tabular_classification-iris-mlp-pytorch/notebook.ipynb` pins an even older `.claude/worktrees/updating-NNx-references-and-adding-notebook-testing/...` worktree path; (c) `image_classification-mnist-ffnn-numpy/notebook.ipynb` pins `/Users/kaveh/repos/ml/...` from before the repo was renamed `ml` → `ml-lab`. mnist-pytorch and quantization-mnist-pytorch have since been moved to Tier-B (issues #7 and #10) but the leaked-path observation is independent of tier classification. The post-merge `image_classification-mnist-ffnn-pytorch/notebook.ipynb` re-execution under the real repo root produced the simpler `/Users/kaveh/repos/ml-lab/<task>/runs/<hash>` form — still absolute, just less stale; it has since been re-cleaned and no longer appears in the leak list.
+Surfaced by: historical active notebook outputs carrying baked-in local paths
+such as maintainer worktrees, JupyterHub mounts, removed in-repo source trees,
+and host-local Python environments. The 2026-07-04 maintenance pass normalized
+the remaining active-notebook artifacts and added verifier rule
+`E13.stale_active_notebook_path`, so `python scripts/verify_repo.py --check
+execution --fast` now rejects stale path artifacts in active notebooks.
 
 `NNRun.save()` (in nnx's training infrastructure) emits a confirmation string with the absolute filesystem path of the saved run directory. Two related issues:
 
-1. **Maintainer-local path leak**: any committed notebook output carries the path from whatever machine + worktree last executed it. This is reproducibility noise (the path is meaningless to anyone else) and a minor privacy/security leak (it advertises the maintainer's `$HOME` layout).
-2. **No CI normalization on re-run**: next CI Tier-A re-execution will overwrite the leaked path with the GitHub-runner-local path (`/home/runner/work/ml-lab/ml-lab/...`), trading one absolute leak for another — not a fix.
+1. **Execution-environment path leak**: any committed notebook output can carry the path from whatever machine, container, or worktree last executed it. This is reproducibility noise because the path is meaningless to readers outside that runtime.
+2. **CI normalization is not sufficient**: a CI Tier-A re-execution can replace a local absolute path with a GitHub-runner path, trading one environment-specific artifact for another.
 
 **Suggested upstream fix**: print a path relative to `cwd` (or to the notebook's parent), or just `Run saved to ./runs/<hash>`. Absolute path is fine in the saved metadata JSON; the human-facing print should be relative.
 
-**Workaround for ml-lab**: leave the baked-in outputs as-is — sweeping them now is futile until nnx's print is changed, since the next CI re-run regenerates the cell with a different absolute path. Once nnx is fixed, the next Tier-A papermill batch (`make run-tier-a` — re-executes in place) will normalize the 16 stale outputs that are still in Tier-A; the one notebook with a leak that's not in any `make` target (`quantization-mnist-ffnn-pytorch` — manual-only since 2026-06-16 per the cron-failure fix in CHANGELOG; was previously Tier-B from 2026-06-02 to 2026-06-16) can only normalize on a manual in-place re-execute + commit in a side-env with `torch>=2.5`.
+**Workaround for ml-eng-lab**: keep active notebook outputs free of stale
+machine-local paths through `E13.stale_active_notebook_path`, and avoid
+claiming that a CI re-run alone makes these outputs portable. Once nnx prints a
+relative run path, the next Tier-A papermill batch (`make run-tier-a` —
+re-executes in place) can refresh outputs without reintroducing environment-
+specific paths.

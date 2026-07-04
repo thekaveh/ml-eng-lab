@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ml-eng-lab System Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background: #020617;
+      color: #e2e8f0;
+      font-family: "JetBrains Mono", monospace;
+    }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+    header {
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      color: #94a3b8;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .panel {
+      border: 1px solid rgba(34, 211, 238, 0.28);
+      border-radius: 8px;
+      background: #020617;
+      overflow: hidden;
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .card {
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 8px;
+      padding: 14px;
+      background: rgba(15, 23, 42, 0.75);
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: #67e8f9;
+    }
+    .card ul {
+      margin: 0;
+      padding-left: 18px;
+      color: #cbd5e1;
+      font-size: 10px;
+      line-height: 1.7;
+    }
+    footer {
+      color: #64748b;
+      font-size: 9px;
+      margin-top: 14px;
+    }
+    @media (max-width: 760px) {
+      .wrap { padding: 16px; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ml-eng-lab System Architecture</h1>
+      <div class="subtitle">Notebook experiments, local runtimes, verification, and published documentation surfaces.</div>
+    </header>
+    <div class="panel">
+      <svg viewBox="0 0 1100 760" role="img" aria-labelledby="title desc">
+        <title id="title">ml-eng-lab system architecture</title>
+        <desc id="desc">Architecture diagram showing contributors, runtime environments, notebook tasks, validation, CI, dependencies, and documentation publishing.</desc>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+        </defs>
+        <rect width="1100" height="760" fill="#020617"/>
+        <rect width="1100" height="760" fill="url(#grid)"/>
+
+        <path d="M 178 132 H 282" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 480 132 H 594" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 780 132 H 894" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 690 184 V 270" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 690 330 V 416" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 780 446 H 902" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 600 446 H 490" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 390 188 V 270" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 390 330 V 416" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 490 474 C 560 560, 760 560, 910 508" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+
+        <rect x="35" y="74" width="180" height="116" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="125" y="98" fill="#fbbf24" font-size="10" font-weight="600" text-anchor="middle">Contributor boundary</text>
+        <rect x="62" y="114" width="126" height="52" rx="6" fill="#0f172a"/>
+        <rect x="62" y="114" width="126" height="52" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="125" y="136" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Maintainer</text>
+        <text x="125" y="152" fill="#94a3b8" font-size="8" text-anchor="middle">edits + runs notebooks</text>
+
+        <rect x="280" y="56" width="210" height="152" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="385" y="80" fill="#fbbf24" font-size="10" font-weight="600" text-anchor="middle">Runtime environments</text>
+        <rect x="310" y="100" width="150" height="70" rx="6" fill="#0f172a"/>
+        <rect x="310" y="100" width="150" height="70" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="385" y="123" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Execution Shells</text>
+        <text x="385" y="140" fill="#94a3b8" font-size="8" text-anchor="middle">venv, Docker, Codespaces</text>
+        <text x="385" y="154" fill="#94a3b8" font-size="8" text-anchor="middle">genai-vanilla JupyterHub</text>
+
+        <rect x="592" y="56" width="204" height="152" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="694" y="80" fill="#fbbf24" font-size="10" font-weight="600" text-anchor="middle">Repository core</text>
+        <rect x="624" y="100" width="142" height="70" rx="6" fill="#0f172a"/>
+        <rect x="624" y="100" width="142" height="70" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="695" y="123" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">notebooks/</text>
+        <text x="695" y="140" fill="#94a3b8" font-size="8" text-anchor="middle">21 tasks, 29 active notebooks</text>
+        <text x="695" y="154" fill="#94a3b8" font-size="8" text-anchor="middle">local ./data + ./runs</text>
+
+        <rect x="892" y="74" width="172" height="116" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="978" y="98" fill="#fbbf24" font-size="10" font-weight="600" text-anchor="middle">Read-only archive</text>
+        <rect x="916" y="116" width="124" height="50" rx="6" fill="#0f172a"/>
+        <rect x="916" y="116" width="124" height="50" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="978" y="137" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">notebooks/archive</text>
+        <text x="978" y="153" fill="#94a3b8" font-size="8" text-anchor="middle">CodeXGLUE history</text>
+
+        <rect x="294" y="270" width="190" height="72" rx="6" fill="#0f172a"/>
+        <rect x="294" y="270" width="190" height="72" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="389" y="294" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Makefile</text>
+        <text x="389" y="312" fill="#94a3b8" font-size="8" text-anchor="middle">papermill tier targets</text>
+        <text x="389" y="326" fill="#94a3b8" font-size="8" text-anchor="middle">cd into notebook dirs</text>
+
+        <rect x="600" y="270" width="190" height="72" rx="6" fill="#0f172a"/>
+        <rect x="600" y="270" width="190" height="72" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="695" y="294" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Verifier + Tests</text>
+        <text x="695" y="312" fill="#94a3b8" font-size="8" text-anchor="middle">scripts/verify_repo.py</text>
+        <text x="695" y="326" fill="#94a3b8" font-size="8" text-anchor="middle">pytest + ruff</text>
+
+        <rect x="294" y="416" width="190" height="72" rx="6" fill="#0f172a"/>
+        <rect x="294" y="416" width="190" height="72" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="389" y="440" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">CI Workflows</text>
+        <text x="389" y="458" fill="#94a3b8" font-size="8" text-anchor="middle">Tier-A, smoke tiers</text>
+        <text x="389" y="472" fill="#94a3b8" font-size="8" text-anchor="middle">Docker + docs build</text>
+
+        <rect x="600" y="416" width="190" height="72" rx="6" fill="#0f172a"/>
+        <rect x="600" y="416" width="190" height="72" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="695" y="440" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Docs Source</text>
+        <text x="695" y="458" fill="#94a3b8" font-size="8" text-anchor="middle">README + docs/</text>
+        <text x="695" y="472" fill="#94a3b8" font-size="8" text-anchor="middle">MkDocs Material</text>
+
+        <rect x="900" y="416" width="154" height="72" rx="6" fill="#0f172a"/>
+        <rect x="900" y="416" width="154" height="72" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="977" y="440" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">GitHub Pages</text>
+        <text x="977" y="458" fill="#94a3b8" font-size="8" text-anchor="middle">published docs site</text>
+        <text x="977" y="472" fill="#94a3b8" font-size="8" text-anchor="middle">ml-eng-lab URL</text>
+
+        <rect x="86" y="580" width="188" height="68" rx="6" fill="#0f172a"/>
+        <rect x="86" y="580" width="188" height="68" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="180" y="603" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">External Dependencies</text>
+        <text x="180" y="621" fill="#94a3b8" font-size="8" text-anchor="middle">thekaveh-nnx, Torch, PyG</text>
+        <text x="180" y="635" fill="#94a3b8" font-size="8" text-anchor="middle">spaCy + NLTK assets</text>
+
+        <path d="M 274 614 H 385 V 488" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+        <path d="M 274 614 H 695 V 488" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+
+        <rect x="62" y="686" width="976" height="36" rx="6" fill="#0f172a"/>
+        <rect x="62" y="686" width="976" height="36" rx="6" fill="rgba(30, 41, 59, 0.35)" stroke="#334155" stroke-width="1"/>
+        <text x="90" y="708" fill="#22d3ee" font-size="9">Legend:</text>
+        <text x="150" y="708" fill="#34d399" font-size="9">runtime / validation</text>
+        <text x="312" y="708" fill="#a78bfa" font-size="9">repository data</text>
+        <text x="464" y="708" fill="#fbbf24" font-size="9">automation / CI</text>
+        <text x="612" y="708" fill="#22d3ee" font-size="9">published documentation</text>
+        <text x="826" y="708" fill="#94a3b8" font-size="9">external or historical</text>
+      </svg>
+    </div>
+    <section class="cards" aria-label="Architecture summary">
+      <div class="card">
+        <h2>Notebook Boundary</h2>
+        <ul>
+          <li>Active work runs from `notebooks/&lt;task&gt;/`.</li>
+          <li>`./data` and `./runs` stay notebook-local.</li>
+          <li>Archive content remains read-only.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Validation Boundary</h2>
+        <ul>
+          <li>Make targets preserve notebook CWD semantics.</li>
+          <li>Verifier, pytest, and ruff cover local gates.</li>
+          <li>CI replays the same command surfaces.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Documentation Boundary</h2>
+        <ul>
+          <li>README is the repository entry point.</li>
+          <li>MkDocs publishes focused docs pages.</li>
+          <li>Pages deploys from the checked-in docs tree.</li>
+        </ul>
+      </div>
+    </section>
+    <footer>Generated for ml-eng-lab maintenance, 2026-07-04.</footer>
+  </div>
+</body>
+</html>

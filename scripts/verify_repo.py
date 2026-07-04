@@ -12,10 +12,12 @@ import argparse
 import ast
 import hashlib
 import importlib.util
+import io
 import json
 import re
 import subprocess
 import sys
+import tokenize
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -33,50 +35,63 @@ CONFIG_PATH = Path(__file__).resolve().parent / "verify_repo_config.yaml"
 _HELP_REQUESTED = any(arg in ("-h", "--help") for arg in sys.argv[1:])
 
 
-def _load_config() -> dict:
-    if _yaml is None or not CONFIG_PATH.exists():
+def _load_config(config_path: Path = CONFIG_PATH) -> dict:
+    if _yaml is None or not config_path.exists():
         if _HELP_REQUESTED:
             return {}
         raise RuntimeError(
             "verify_repo_config.yaml is required; install PyYAML and ensure "
             "the file exists."
         )
-    return _yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    return _yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
 
 
-_CONFIG = _load_config()
-
-_active_task_dirs_raw = _CONFIG.get("active_task_dirs")
-if not _active_task_dirs_raw:
-    if _HELP_REQUESTED:
-        _active_task_dirs_raw = ()
-    else:
-        raise RuntimeError(
-            "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
-        )
-ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
-
-VERIFY_ONLY_DIRS = ("archive", "vendor")
+def _active_task_dirs_from_config(config: dict) -> tuple[str, ...]:
+    raw = config.get("active_task_dirs")
+    if not raw:
+        if _HELP_REQUESTED:
+            raw = ()
+        else:
+            raise RuntimeError(
+                "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
+            )
+    return tuple(raw)
 
 
-def _required_sections_from_config() -> dict[str, tuple[str, ...]]:
-    raw = _CONFIG.get("required_sections")
+def _required_sections_from_config(config: dict) -> dict[str, tuple[str, ...]]:
+    raw = config.get("required_sections")
     if not raw:
         return {}
     return {k: tuple(v) for k, v in raw.items()}
 
 
-REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = _required_sections_from_config()
+def _tier_a_notebooks_from_config(config: dict) -> tuple[str, ...]:
+    raw = config.get("tier_a_notebooks")
+    if not raw:
+        if _HELP_REQUESTED:
+            raw = ()
+        else:
+            raise RuntimeError(
+                "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
+            )
+    return tuple(raw)
 
-_tier_a_raw = _CONFIG.get("tier_a_notebooks")
-if not _tier_a_raw:
-    if _HELP_REQUESTED:
-        _tier_a_raw = ()
-    else:
-        raise RuntimeError(
-            "verify_repo_config.yaml is missing the required 'tier_a_notebooks' key."
-        )
-TIER_A_NOTEBOOKS = tuple(_tier_a_raw)
+
+def _apply_config(config: dict) -> None:
+    global _CONFIG, ACTIVE_TASK_DIRS, REQUIRED_SECTIONS, TIER_A_NOTEBOOKS
+    _CONFIG = config
+    ACTIVE_TASK_DIRS = _active_task_dirs_from_config(config)
+    REQUIRED_SECTIONS = _required_sections_from_config(config)
+    TIER_A_NOTEBOOKS = _tier_a_notebooks_from_config(config)
+
+
+_CONFIG: dict = {}
+NOTEBOOK_ROOT = Path("notebooks")
+DEFAULT_SUBPROCESS_TIMEOUT = 120
+ACTIVE_TASK_DIRS: tuple[str, ...] = ()
+REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {}
+TIER_A_NOTEBOOKS: tuple[str, ...] = ()
+_apply_config(_load_config())
 
 README_REQUIRED_H2 = (
     "1. Task summary", "2. Why this exists", "3. What's in the notebook",
@@ -116,13 +131,37 @@ class CheckResult:
     skip_reason: str = ""
 
 
+@dataclass(frozen=True)
+class ImportedModule:
+    module: str
+    line: int
+    relative: bool = False
+
+
 _MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 _INLINE_CODE_RE = re.compile(r"`+[^`]*`+")
 _IMPORT_RE = re.compile(r"^\s*(?:from\s+([\w\.]+)\s+import|import\s+([\w\.]+))")
+_NON_PYTHON_CELL_MAGICS = frozenset({
+    "bash",
+    "html",
+    "javascript",
+    "js",
+    "latex",
+    "perl",
+    "ruby",
+    "script",
+    "sh",
+    "svg",
+    "writefile",
+})
 _GITIGNORE_REQUIRED_PATTERNS = (
     "docs/superpowers/",
     "plan-*.md", "notes-*.md", "audit-*.md",
     ".mypy_cache/", ".trunk/", ".vscode/",
+)
+_TRACKED_SUPERPOWERS_DOC_PREFIXES = (
+    "docs/superpowers/specs/",
+    "docs/superpowers/plans/",
 )
 _BLOAT_PATTERNS = (
     "__pycache__", ".ipynb_checkpoints", ".DS_Store",
@@ -145,11 +184,224 @@ _RUNTIME_ONLY_MODULES = frozenset({
 })
 
 
+def _cell_magic_name(line: str) -> str:
+    stripped = line.lstrip()
+    if not stripped.startswith("%%"):
+        return ""
+    return stripped[2:].split(None, 1)[0].strip().lower()
+
+
+def _literal_dynamic_import(
+    node: ast.AST,
+    importlib_aliases: set[str] | None = None,
+    import_module_aliases: set[str] | None = None,
+) -> str:
+    if not isinstance(node, ast.Call) or not node.args:
+        return ""
+    importlib_aliases = importlib_aliases or {"importlib"}
+    import_module_aliases = import_module_aliases or set()
+    func = node.func
+    if isinstance(func, ast.Name):
+        is_import = func.id == "__import__" or func.id in import_module_aliases
+    elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+        is_import = func.value.id in importlib_aliases and func.attr == "import_module"
+    else:
+        is_import = False
+    if not is_import:
+        return ""
+    first_arg = node.args[0]
+    if not isinstance(first_arg, ast.Constant) or not isinstance(first_arg.value, str):
+        return ""
+    return first_arg.value
+
+
+def _paren_balance_delta(line: str) -> int:
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(line).readline)
+        return sum(
+            1 if token.string == "(" else -1 if token.string == ")" else 0
+            for token in tokens
+            if token.type == tokenize.OP
+        )
+    except tokenize.TokenError:
+        code_text = line.split("#", 1)[0]
+        return code_text.count("(") - code_text.count(")")
+
+
+def _fallback_statement(lines: list[str], start: int) -> tuple[str, int]:
+    statement_lines = [lines[start]]
+    balance = _paren_balance_delta(lines[start])
+    end = start
+    while (balance > 0 or statement_lines[-1].rstrip().endswith("\\")) and end + 1 < len(lines):
+        end += 1
+        next_line = lines[end]
+        statement_lines.append(next_line)
+        balance += _paren_balance_delta(next_line)
+    return "\n".join(statement_lines), end
+
+
+def _imported_modules_from_source(source: str) -> Iterator[ImportedModule]:
+    """Yield top-level imported module names and one-based line numbers."""
+    for line in source.splitlines():
+        if not line.strip():
+            continue
+        if _cell_magic_name(line) in _NON_PYTHON_CELL_MAGICS:
+            return
+        break
+
+    cleaned_lines: list[str] = []
+    for line in source.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith(("%", "!")):
+            cleaned_lines.append("")
+        else:
+            cleaned_lines.append(line)
+    cleaned_source = "\n".join(cleaned_lines)
+
+    try:
+        tree = ast.parse(cleaned_source)
+    except SyntaxError:
+        fallback_lines = _blank_multiline_string_lines(cleaned_source)
+        importlib_aliases = {"importlib"}
+        import_module_aliases: set[str] = set()
+        idx = 0
+        while idx < len(fallback_lines):
+            li = idx + 1
+            line = fallback_lines[idx]
+            try:
+                line_tree = ast.parse(line)
+            except SyntaxError:
+                statement, end_idx = _fallback_statement(fallback_lines, idx)
+                if end_idx > idx:
+                    try:
+                        line_tree = ast.parse(statement)
+                    except SyntaxError:
+                        line_tree = None
+                    if line_tree is not None:
+                        line_importlib_aliases, line_import_module_aliases = _importlib_aliases(line_tree)
+                        importlib_aliases.update(line_importlib_aliases)
+                        import_module_aliases.update(line_import_module_aliases)
+                        for node in ast.walk(line_tree):
+                            location = li + getattr(node, "lineno", 1) - 1
+                            if isinstance(node, ast.Import):
+                                for alias in node.names:
+                                    module = alias.name
+                                    if module:
+                                        yield ImportedModule(module=module, line=location)
+                            elif isinstance(node, ast.ImportFrom):
+                                if node.level:
+                                    module = node.module or ", ".join(alias.name for alias in node.names)
+                                    yield ImportedModule(module=module or ".", line=location, relative=True)
+                                elif node.module:
+                                    module = node.module
+                                    if module:
+                                        yield ImportedModule(module=module, line=location)
+                            elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
+                                yield ImportedModule(module=module, line=location)
+                        idx = end_idx + 1
+                        continue
+                m = _IMPORT_RE.match(line)
+                if not m:
+                    idx += 1
+                    continue
+                module = m.group(1) or m.group(2) or ""
+                if module:
+                    yield ImportedModule(module=module, line=li)
+                idx += 1
+                continue
+            line_importlib_aliases, line_import_module_aliases = _importlib_aliases(line_tree)
+            importlib_aliases.update(line_importlib_aliases)
+            import_module_aliases.update(line_import_module_aliases)
+            for node in ast.walk(line_tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        module = alias.name
+                        if module:
+                            yield ImportedModule(module=module, line=li)
+                elif isinstance(node, ast.ImportFrom):
+                    if node.level:
+                        module = node.module or ", ".join(alias.name for alias in node.names)
+                        yield ImportedModule(module=module or ".", line=li, relative=True)
+                    elif node.module:
+                        module = node.module
+                        if module:
+                            yield ImportedModule(module=module, line=li)
+                elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
+                    yield ImportedModule(module=module, line=li)
+            idx += 1
+        return
+
+    importlib_aliases, import_module_aliases = _importlib_aliases(tree)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                module = alias.name
+                if module:
+                    yield ImportedModule(module=module, line=node.lineno)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                module = node.module or ", ".join(alias.name for alias in node.names)
+                yield ImportedModule(
+                    module=module or ".",
+                    line=node.lineno,
+                    relative=True,
+                )
+            elif node.module:
+                module = node.module
+                if module:
+                    yield ImportedModule(module=module, line=node.lineno)
+        elif module := _literal_dynamic_import(node, importlib_aliases, import_module_aliases):
+            yield ImportedModule(module=module, line=node.lineno)
+
+
+def _importlib_aliases(tree: ast.AST) -> tuple[set[str], set[str]]:
+    importlib_aliases = {"importlib"}
+    import_module_aliases: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "importlib":
+                    importlib_aliases.add(alias.asname or alias.name)
+        elif isinstance(node, ast.ImportFrom) and node.module == "importlib":
+            for alias in node.names:
+                if alias.name == "import_module":
+                    import_module_aliases.add(alias.asname or alias.name)
+    return importlib_aliases, import_module_aliases
+
+
+def _blank_multiline_string_lines(source: str) -> list[str]:
+    lines = source.splitlines()
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+        for tok in tokens:
+            if tok.type != tokenize.STRING:
+                continue
+            start_line, _ = tok.start
+            end_line, _ = tok.end
+            if end_line <= start_line:
+                continue
+            for idx in range(start_line - 1, min(end_line, len(lines))):
+                lines[idx] = ""
+    except tokenize.TokenError:
+        pass
+    return lines
+
+
 def _git_ls_files(repo: Path) -> list[str]:
     out = subprocess.run(
-        ["git", "ls-files"], cwd=repo, capture_output=True, text=True, check=True
+        ["git", "ls-files"], cwd=repo, capture_output=True, text=True, check=True,
+        timeout=DEFAULT_SUBPROCESS_TIMEOUT,
     )
     return out.stdout.splitlines()
+
+
+def _is_allowed_tracked_superpowers_doc(path: str) -> bool:
+    if not path.endswith(".md"):
+        return False
+    for prefix in _TRACKED_SUPERPOWERS_DOC_PREFIXES:
+        if path.startswith(prefix) and "/" not in path.removeprefix(prefix):
+            return True
+    return False
 
 
 def _read_text(path: Path) -> str:
@@ -209,22 +461,45 @@ def _split_markdown_link_target(target: str) -> tuple[str, str]:
 
 def _iter_notebooks(repo: Path) -> Iterator[Path]:
     for d in ACTIVE_TASK_DIRS:
-        for nb_path in (repo / d).glob("*.ipynb"):
+        for nb_path in _active_task_path(repo, d).glob("*.ipynb"):
             yield nb_path
+
+
+def _iter_notebook_schema_files(repo: Path) -> Iterator[Path]:
+    notebook_root = repo / NOTEBOOK_ROOT
+    if not notebook_root.exists():
+        return
+    for nb_path in sorted(notebook_root.rglob("*.ipynb")):
+        if ".ipynb_checkpoints" in nb_path.parts:
+            continue
+        yield nb_path
+
+
+def _active_task_path(repo: Path, task: str) -> Path:
+    return repo / NOTEBOOK_ROOT / task
 
 
 def _notebook_rel(path: Path, repo: Path) -> str:
     return str(path.relative_to(repo))
 
 
+def _baseline_notebook_rel(rel: str) -> str:
+    prefix = f"{NOTEBOOK_ROOT.as_posix()}/"
+    if rel.startswith(prefix):
+        return rel.removeprefix(prefix)
+    return rel
+
+
 def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
     yield repo / "README.md"
     yield repo / "CONTRIBUTING.md"
     yield repo / "CHANGELOG.md"
-    for p in (repo / "docs").glob("*.md"):
+    for p in sorted((repo / "docs").rglob("*.md")):
+        if p.relative_to(repo).as_posix().startswith("docs/superpowers/"):
+            continue
         yield p
     for d in ACTIVE_TASK_DIRS:
-        for p in (repo / d).glob("*.md"):
+        for p in _active_task_path(repo, d).glob("*.md"):
             yield p
 
 
@@ -242,13 +517,31 @@ def _iter_in_scope_markdown_documents(repo: Path) -> Iterator[tuple[Path, Path, 
         yield nb_path, nb_path.parent, text
 
 
+def _required_shellcheck_targets(repo: Path) -> tuple[Path, ...]:
+    return (
+        repo / "vendor" / "genai-vanilla" / "start.sh",
+        repo / "vendor" / "genai-vanilla" / "stop.sh",
+        repo / "vendor" / "genai-vanilla" / "bootstrapper" / "_run.sh",
+        repo / "vendor" / "genai-vanilla" / "services" / "jupyterhub" / "build" / "scripts" / "startup.sh",
+    )
+
+
+def _shellcheck_targets(repo: Path) -> tuple[Path, ...]:
+    local_scripts = tuple(sorted((repo / "scripts").glob("*.sh")))
+    return tuple(path for path in (*local_scripts, *_required_shellcheck_targets(repo)) if path.exists())
+
+
+def _required_submodule_paths() -> tuple[str, ...]:
+    return ("vendor/genai-vanilla",)
+
+
 def check_structure(repo: Path) -> CheckResult:
     result = CheckResult(name="structure")
     tracked = set(_git_ls_files(repo))
 
     valid_types = {"code", "markdown", "raw"}
-    notebooks = list(_iter_notebooks(repo))
-    for nb in notebooks:
+    schema_notebooks = list(_iter_notebook_schema_files(repo))
+    for nb in schema_notebooks:
         try:
             raw_doc = json.loads(nb.read_text(encoding="utf-8"))
             for i, c in enumerate(raw_doc.get("cells", [])):
@@ -258,6 +551,16 @@ def check_structure(repo: Path) -> CheckResult:
                         location=f"{nb.relative_to(repo)}:cell[{i}]",
                         message="cell is missing required nbformat v4 id",
                     ))
+            try:
+                nbformat.validate(raw_doc)
+            except Exception as e:
+                result.findings.append(Finding(
+                    id="S1.schema",
+                    check="structure",
+                    severity="error",
+                    location=str(nb.relative_to(repo)),
+                    message=f"notebook schema validation failed: {e}",
+                ))
             doc = nbformat.read(nb, as_version=4)
             for i, c in enumerate(doc.cells):
                 if c.cell_type not in valid_types:
@@ -273,6 +576,7 @@ def check_structure(repo: Path) -> CheckResult:
                 message=f"failed to parse: {e}",
             ))
 
+    notebooks = list(_iter_notebooks(repo))
     for nb in notebooks:
         try:
             doc = nbformat.read(nb, as_version=4)
@@ -285,17 +589,30 @@ def check_structure(repo: Path) -> CheckResult:
         for ci, cell in enumerate(doc.cells):
             if cell.cell_type != "code":
                 continue
-            for li, line in enumerate(cell.source.splitlines()):
-                m = _IMPORT_RE.match(line)
-                if not m:
+            for imported in _imported_modules_from_source(cell.source):
+                module = imported.module
+                module_root = module.split(".", 1)[0]
+                li = imported.line
+                location = f"{nb.relative_to(repo)}:cell[{ci}]:line[{li}]"
+                if imported.relative:
+                    result.findings.append(Finding(
+                        id="S2.relative_import",
+                        check="structure",
+                        severity="error",
+                        location=location,
+                        message=(
+                            "notebook uses a relative import that will not resolve "
+                            f"reliably in a top-to-bottom kernel run: {module!r}"
+                        ),
+                    ))
                     continue
-                module = (m.group(1) or m.group(2) or "").split(".")[0]
                 if not module or module in seen_in_notebook:
                     continue
                 seen_in_notebook.add(module)
-                if module in sibling_modules:
+                if module_root in sibling_modules:
                     continue
-                location = f"{nb.relative_to(repo)}:cell[{ci}]:line[{li}]"
+                if module_root in _RUNTIME_ONLY_MODULES:
+                    continue
                 try:
                     spec = importlib.util.find_spec(module)
                 except (ImportError, ValueError) as e:
@@ -306,14 +623,14 @@ def check_structure(repo: Path) -> CheckResult:
                     ))
                     continue
                 if spec is None:
-                    severity = "warning" if module in _RUNTIME_ONLY_MODULES else "error"
+                    severity = "warning" if module_root in _RUNTIME_ONLY_MODULES else "error"
                     result.findings.append(Finding(
                         id="S2.unresolved_import", check="structure", severity=severity,
                         location=location,
                         message=(
                             f"module {module!r} not importable in verifier env"
                             + (" (expected only in runtime container)"
-                               if module in _RUNTIME_ONLY_MODULES else "")
+                               if module_root in _RUNTIME_ONLY_MODULES else "")
                         ),
                     ))
 
@@ -327,6 +644,16 @@ def check_structure(repo: Path) -> CheckResult:
             if not target and not fragment:
                 continue
             target_path = (base_dir / target).resolve() if target else doc_path.resolve()
+            try:
+                target_path.relative_to(repo.resolve())
+            except ValueError:
+                result.findings.append(Finding(
+                    id="S3.repo_escape_link", check="structure", severity="error",
+                    location=f"{doc_path.relative_to(repo)}",
+                    message=f"internal link escapes repository root: {target}",
+                    detail={"link": m.group(0)},
+                ))
+                continue
             if not target_path.exists():
                 result.findings.append(Finding(
                     id="S3.broken_link", check="structure", severity="error",
@@ -345,22 +672,28 @@ def check_structure(repo: Path) -> CheckResult:
                         detail={"link": m.group(0), "target": str(target_path.relative_to(repo))},
                     ))
 
-    _COMMON_IMPORT_RE = re.compile(r"^\s*(?:from\s+common(?:\.\w+)*\s+import\b|import\s+common(?:\.\w+)*)")
+    def add_common_import_findings(source: str, location_for_line: Callable[[int], str]) -> None:
+        for imported in _imported_modules_from_source(source):
+            if imported.relative:
+                continue
+            if imported.module == "common" or imported.module.startswith("common."):
+                result.findings.append(Finding(
+                    id="S5.common_import",
+                    check="structure",
+                    severity="error",
+                    location=location_for_line(imported.line),
+                    message="forbidden import; use `from nnx.` instead",
+                ))
+
     for path in tracked:
-        if path.startswith(("tests/", "archive/", "vendor/")):
+        if path.startswith(("tests/", "notebooks/archive/", "vendor/")):
             continue
         full = repo / path
         if not full.is_file():
             continue
         suffix = full.suffix.lower()
         if suffix == ".py":
-            for i, line in enumerate(_read_text(full).splitlines(), 1):
-                if _COMMON_IMPORT_RE.match(line):
-                    result.findings.append(Finding(
-                        id="S5.common_import", check="structure", severity="error",
-                        location=f"{path}:{i}",
-                        message="forbidden import; use `from nnx.` instead",
-                    ))
+            add_common_import_findings(_read_text(full), lambda line, path=path: f"{path}:{line}")
         elif suffix == ".ipynb":
             try:
                 doc = nbformat.read(full, as_version=4)
@@ -369,13 +702,10 @@ def check_structure(repo: Path) -> CheckResult:
             for ci, cell in enumerate(doc.cells):
                 if cell.cell_type != "code":
                     continue
-                for li, line in enumerate(cell.source.splitlines(), 1):
-                    if _COMMON_IMPORT_RE.match(line):
-                        result.findings.append(Finding(
-                            id="S5.common_import", check="structure", severity="error",
-                            location=f"{path}:cell[{ci}]:line[{li}]",
-                            message="forbidden import; use `from nnx.` instead",
-                        ))
+                add_common_import_findings(
+                    cell.source,
+                    lambda line, path=path, ci=ci: f"{path}:cell[{ci}]:line[{line}]",
+                )
 
     gitignore_lines = {
         line.strip() for line in _read_text(repo / ".gitignore").splitlines()
@@ -389,7 +719,7 @@ def check_structure(repo: Path) -> CheckResult:
                 message=f"required pattern absent: {pat}",
             ))
     for path in tracked:
-        if path.startswith(("docs/superpowers/",)):
+        if path.startswith(("docs/superpowers/",)) and not _is_allowed_tracked_superpowers_doc(path):
             result.findings.append(Finding(
                 id="S6.tracked_bloat", check="structure", severity="error",
                 location=path,
@@ -443,6 +773,46 @@ _H1_RE = re.compile(r"^# ([^\n]+)", re.MULTILINE)
 _H2_RE = re.compile(r"^## ([^\n]+)", re.MULTILINE)
 _MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _NUMBERED_HEADING_RE = re.compile(r"^(\d+(?:\.\d+)*)\.\s+\S")
+_STALE_LAYOUT_PATTERNS: tuple[tuple[str, re.Pattern], ...] = (
+    (
+        "flat top-level task-folder guidance",
+        re.compile(r"\b(?:top-level folder|top-level folders|flat top-level layout|<21 active task folders>)\b"),
+    ),
+    (
+        "old root archive guidance",
+        re.compile(r"(?<!notebooks/)archive/(?:README\.md)?"),
+    ),
+    (
+        "old nbviewer placeholder without notebooks prefix",
+        re.compile(r"nbviewer\.org/github/thekaveh/ml-eng-lab/(?:blob|tree)/main/<folder>"),
+    ),
+)
+_STALE_ACTIVE_NOTEBOOK_PATHS: tuple[tuple[str, re.Pattern], ...] = (
+    (
+        "old local repo path",
+        re.compile(r"/Users/[^/\s]+/repos/ml(?!-eng-lab)\b"),
+    ),
+    (
+        "old JupyterHub repo path",
+        re.compile(r"/home/jovyan/work/ml(?!-eng-lab)\b"),
+    ),
+    (
+        "old Codespaces repo path",
+        re.compile(r"/workspaces/ml(?!-eng-lab)\b"),
+    ),
+    (
+        "old GitHub repo URL",
+        re.compile(r"github\.com/thekaveh/ml-lab\b"),
+    ),
+    (
+        "removed in-repo nnx source tree",
+        re.compile(r"/(?:home/jovyan/work|workspaces)/ml-eng-lab/nnx/src/nnx\b"),
+    ),
+    (
+        "host-local Python environment path",
+        re.compile(r"/Users/[^/\s]+/\.pyenv\b"),
+    ),
+)
 
 
 def _markdown_headings(text: str, level: int) -> list[str]:
@@ -471,6 +841,9 @@ def _iter_numbered_doc_files(repo: Path) -> Iterator[Path]:
         if path.exists():
             yield path
     for rel in (
+        "index.md",
+        "architecture.md",
+        "diagrams/README.md",
         "FINDINGS-NNX.md",
         "FINDINGS-VENDOR.md",
         "dependency-contracts.md",
@@ -485,7 +858,7 @@ def _iter_numbered_doc_files(repo: Path) -> Iterator[Path]:
     if maintenance_dir.exists():
         yield from sorted(maintenance_dir.glob("*.md"))
     for d in ACTIVE_TASK_DIRS:
-        path = repo / d / "README.md"
+        path = _active_task_path(repo, d) / "README.md"
         if path.exists():
             yield path
 
@@ -516,6 +889,27 @@ def _numbered_heading_findings(repo: Path, path: Path) -> list[Finding]:
                 ),
                 detail={"heading": title},
             ))
+    return findings
+
+
+def _stale_layout_guidance_findings(repo: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    for rel in ("README.md", "CONTRIBUTING.md"):
+        path = repo / rel
+        if not path.exists():
+            continue
+        text = _strip_markdown_code(_read_text(path))
+        for label, pattern in _STALE_LAYOUT_PATTERNS:
+            for m in pattern.finditer(text):
+                line_no = text.count("\n", 0, m.start()) + 1
+                findings.append(Finding(
+                    id="D11.stale_notebook_layout",
+                    check="docs",
+                    severity="error",
+                    location=f"{rel}:{line_no}",
+                    message=f"stale pre-notebooks/ layout guidance: {label}",
+                    detail={"match": m.group(0)},
+                ))
     return findings
 
 
@@ -564,6 +958,124 @@ def _dependency_ledger_findings(repo: Path) -> list[Finding]:
                 ),
                 detail={"expected": expected_total, "actual": actual_total},
             ))
+    if "vendor/genai-vanilla" in text:
+        ledger_sha_match = re.search(r"currently pins tree entry\s+`([0-9a-f]{40})`", text)
+        if not ledger_sha_match:
+            findings.append(Finding(
+                id="D10.dependency_ledger_submodule_sha",
+                check="docs",
+                severity="error",
+                location="docs/dependency-contracts.md",
+                message=(
+                    "genai-vanilla ledger must include a parseable 40-character "
+                    "pinned tree-entry SHA"
+                ),
+            ))
+            return findings
+        ledger_sha = ledger_sha_match.group(1)
+        rc, out, _err = _run(["git", "ls-files", "--stage", "--", "vendor/genai-vanilla"], repo)
+        gitlink_match = re.search(r"160000 ([0-9a-f]{40}) \d+\s+vendor/genai-vanilla", out)
+        if rc != 0 or not gitlink_match:
+            findings.append(Finding(
+                id="D10.dependency_ledger_submodule_sha",
+                check="docs",
+                severity="error",
+                location="docs/dependency-contracts.md",
+                message="genai-vanilla ledger SHA cannot be compared to a parseable superproject gitlink",
+                detail={"ledger_sha": ledger_sha, "gitlink_sha": None},
+            ))
+            return findings
+        gitlink_sha = gitlink_match.group(1)
+        if ledger_sha != gitlink_sha:
+            findings.append(Finding(
+                id="D10.dependency_ledger_submodule_sha",
+                check="docs",
+                severity="error",
+                location="docs/dependency-contracts.md",
+                message=(
+                    "genai-vanilla ledger SHA does not match the superproject "
+                    "gitlink"
+                ),
+                detail={"ledger_sha": ledger_sha, "gitlink_sha": gitlink_sha},
+            ))
+    return findings
+
+
+def _workflow_action_pin_ledger(text: str) -> dict[str, tuple[str, str]]:
+    return {
+        action: (tag, sha)
+        for action, tag, sha in re.findall(
+            r"^\| `([^`]+)` \| `([^`]+)` \| `([0-9a-f]{40})` \|", text, re.M
+        )
+    }
+
+
+def _workflow_action_pin_findings(repo: Path) -> list[Finding]:
+    ledger_path = repo / "docs" / "dependency-contracts.md"
+    if not ledger_path.exists():
+        return []
+    ledger = _workflow_action_pin_ledger(_read_text(ledger_path))
+    findings: list[Finding] = []
+    workflow_dir = repo / ".github" / "workflows"
+    workflows = sorted((*workflow_dir.glob("*.yml"), *workflow_dir.glob("*.yaml")))
+    for workflow in workflows:
+        for line_no, line in enumerate(_read_text(workflow).splitlines(), start=1):
+            m = re.search(r"\buses:\s*([^\s#]+)(?:\s*#\s*(\S+))?", line)
+            if not m:
+                continue
+            uses_ref = m.group(1).strip("'\"")
+            tag_comment = (m.group(2) or "").strip()
+            if uses_ref.startswith(("./", "../")):
+                continue
+            if "@" not in uses_ref:
+                findings.append(Finding(
+                    id="D10.workflow_action_pin",
+                    check="docs",
+                    severity="error",
+                    location=f"{workflow.relative_to(repo)}:{line_no}",
+                    message=f"workflow action reference must include @ref: {uses_ref}",
+                ))
+                continue
+            action, ref = uses_ref.rsplit("@", 1)
+            if not re.fullmatch(r"[0-9a-f]{40}", ref):
+                findings.append(Finding(
+                    id="D10.workflow_action_pin",
+                    check="docs",
+                    severity="error",
+                    location=f"{workflow.relative_to(repo)}:{line_no}",
+                    message=f"workflow action reference must be pinned to a full SHA: {uses_ref}",
+                    detail={"action": action, "ref": ref},
+                ))
+                continue
+            if action not in ledger:
+                findings.append(Finding(
+                    id="D10.workflow_action_pin",
+                    check="docs",
+                    severity="error",
+                    location=f"{workflow.relative_to(repo)}:{line_no}",
+                    message=f"workflow action is SHA-pinned but missing from dependency ledger: {action}",
+                    detail={"action": action, "sha": ref},
+                ))
+                continue
+            ledger_tag, ledger_sha = ledger[action]
+            if ref != ledger_sha or tag_comment != ledger_tag:
+                findings.append(Finding(
+                    id="D10.workflow_action_pin",
+                    check="docs",
+                    severity="error",
+                    location=f"{workflow.relative_to(repo)}:{line_no}",
+                    message=(
+                        "workflow action SHA/comment must match dependency ledger "
+                        f"for {action}"
+                    ),
+                    detail={
+                        "action": action,
+                        "workflow_sha": ref,
+                        "workflow_tag_comment": tag_comment,
+                        "ledger_sha": ledger_sha,
+                        "ledger_tag": ledger_tag,
+                    },
+                ))
     return findings
 
 
@@ -648,11 +1160,12 @@ def check_docs(repo: Path) -> CheckResult:
             ))
 
     for d in ACTIVE_TASK_DIRS:
-        readme = repo / d / "README.md"
+        readme = _active_task_path(repo, d) / "README.md"
+        readme_rel = f"{NOTEBOOK_ROOT.as_posix()}/{d}/README.md"
         if not readme.exists():
             result.findings.append(Finding(
                 id="D3.missing_readme", check="docs", severity="error",
-                location=f"{d}/README.md", message="per-task README missing",
+                location=readme_rel, message="per-task README missing",
             ))
             continue
         h2s = _markdown_headings(_read_text(readme), level=2)
@@ -660,7 +1173,7 @@ def check_docs(repo: Path) -> CheckResult:
         if not ok:
             result.findings.append(Finding(
                 id="D3.missing_sections", check="docs", severity="error",
-                location=f"{d}/README.md",
+                location=readme_rel,
                 message=f"per-task README missing required H2s: {missing}",
                 detail={"found": h2s, "required": list(README_REQUIRED_H2)},
             ))
@@ -681,7 +1194,7 @@ def check_docs(repo: Path) -> CheckResult:
         1 for line in root_text.splitlines()
         if line.startswith("| [") and "/](" in line
     )
-    active_count = sum(1 for d in ACTIVE_TASK_DIRS if (repo / d).is_dir())
+    active_count = sum(1 for d in ACTIVE_TASK_DIRS if _active_task_path(repo, d).is_dir())
     if table_rows < active_count:
         result.findings.append(Finding(
             id="D5.task_table_mismatch", check="docs", severity="error",
@@ -739,6 +1252,8 @@ def check_docs(repo: Path) -> CheckResult:
         result.findings.extend(_numbered_heading_findings(repo, path))
 
     result.findings.extend(_dependency_ledger_findings(repo))
+    result.findings.extend(_workflow_action_pin_findings(repo))
+    result.findings.extend(_stale_layout_guidance_findings(repo))
 
     return result
 
@@ -798,7 +1313,7 @@ def _iter_in_scope_code(repo: Path):
             continue
         yield p, _read_text(p)
     for d in ACTIVE_TASK_DIRS:
-        for p in (repo / d).glob("*.py"):
+        for p in _active_task_path(repo, d).glob("*.py"):
             yield p, _read_text(p)
     for nb in _iter_notebooks(repo):
         try:
@@ -1031,7 +1546,9 @@ def _ci_tier_a_artifact_paths(repo: Path) -> tuple[str, ...]:
     return ()
 
 
-def _run(cmd: list[str], cwd: Path, timeout: int | None = None) -> tuple[int, str, str]:
+def _run(
+    cmd: list[str], cwd: Path, timeout: int | None = DEFAULT_SUBPROCESS_TIMEOUT
+) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired as e:
@@ -1054,24 +1571,26 @@ def _phase3_code_cells_unchanged(repo: Path) -> list[Finding]:
             message="pre-cleanup-baseline tag missing; E5 not enforceable",
         ))
         return findings
-    phase3 = list((repo / "node_classification-reddit-gnn-pyg").glob("phase3-*.ipynb"))
+    phase3 = list(_active_task_path(repo, "node_classification-reddit-gnn-pyg").glob("phase3-*.ipynb"))
     for nb in phase3:
+        rel = str(nb.relative_to(repo))
+        baseline_rel = _baseline_notebook_rel(rel)
         try:
             head_doc = nbformat.read(nb, as_version=4)
         except Exception as e:
             findings.append(Finding(
                 id="E5.head_parse_failed", check="execution", severity="error",
-                location=str(nb.relative_to(repo)),
+                location=rel,
                 message=f"HEAD notebook unparseable: {e}",
             ))
             continue
         rc, raw, err = _run(
-            ["git", "show", f"pre-cleanup-baseline:{nb.relative_to(repo)}"], repo,
+            ["git", "show", f"pre-cleanup-baseline:{baseline_rel}"], repo,
         )
         if rc != 0:
             findings.append(Finding(
                 id="E5.baseline_read_failed", check="execution", severity="error",
-                location=str(nb.relative_to(repo)),
+                location=rel,
                 message=f"could not read baseline: {err.strip()[:120]}",
             ))
             continue
@@ -1080,7 +1599,7 @@ def _phase3_code_cells_unchanged(repo: Path) -> list[Finding]:
         except Exception as e:
             findings.append(Finding(
                 id="E5.baseline_parse_failed", check="execution", severity="error",
-                location=str(nb.relative_to(repo)),
+                location=rel,
                 message=f"baseline notebook unparseable: {e}",
             ))
             continue
@@ -1089,7 +1608,7 @@ def _phase3_code_cells_unchanged(repo: Path) -> list[Finding]:
         if head_codes != base_codes:
             findings.append(Finding(
                 id="E5.code_cells_changed", check="execution", severity="error",
-                location=str(nb.relative_to(repo)),
+                location=rel,
                 message="Tier-C code cells diverged from baseline",
                 detail={"head_count": len(head_codes), "base_count": len(base_codes)},
             ))
@@ -1100,13 +1619,22 @@ def _runtime_available() -> bool:
     """True when the heavyweight ML runtime (torch, PyG) is importable in this env.
 
     The Tier-A/B/C papermill targets exercise notebooks that import torch,
-    torch_geometric, etc. When these are missing, running the make targets
-    fails with environment errors that have nothing to do with the notebooks'
-    correctness — so we downgrade E1-E3 to env-limited skips (warning), not
-    errors. The full execution check is meaningful only in the genai-vanilla
-    container or an equivalent fully-provisioned env.
+    torch_geometric, and PyG's compiled extension stack. When these are
+    missing, running the make targets fails with environment errors that have
+    nothing to do with the notebooks' correctness — so we downgrade E1-E3 to
+    env-limited skips (warning), not errors. The full execution check is
+    meaningful only in the genai-vanilla container or an equivalent
+    fully-provisioned env.
     """
-    for canary in ("torch", "torch_geometric"):
+    for canary in (
+        "torch",
+        "torch_geometric",
+        "torch_sparse",
+        "torch_scatter",
+        "torch_cluster",
+        "torch_spline_conv",
+        "pyg_lib",
+    ):
         if importlib.util.find_spec(canary) is None:
             return False
     return True
@@ -1287,7 +1815,112 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
                     message="cell source changed since last execution; re-run to refresh outputs",
                 ))
 
+    for nb in _iter_notebooks(repo):
+        rel = _notebook_rel(nb, repo)
+        text = _read_text(nb)
+        for label, pattern in _STALE_ACTIVE_NOTEBOOK_PATHS:
+            for match in pattern.finditer(text):
+                line_no = text.count("\n", 0, match.start()) + 1
+                result.findings.append(Finding(
+                    id="E13.stale_active_notebook_path",
+                    check="execution",
+                    severity="warning",
+                    location=f"{rel}:line[{line_no}]",
+                    message=f"stale active-notebook path artifact: {label}",
+                ))
+        try:
+            doc = nbformat.read(nb, as_version=4)
+        except Exception:
+            continue
+        papermill_meta = doc.get("metadata", {}).get("papermill") or {}
+        output_path = str(papermill_meta.get("output_path", ""))
+        if papermill_meta:
+            result.findings.append(Finding(
+                id="E14.source_papermill_metadata",
+                check="execution",
+                severity="warning",
+                location=rel,
+                message=(
+                    "active source notebook carries top-level papermill metadata; "
+                    "strip generated-run metadata before committing"
+                ),
+            ))
+        if output_path.startswith("/tmp/"):
+            result.findings.append(Finding(
+                id="E14.tmp_papermill_output_path",
+                check="execution",
+                severity="warning",
+                location=rel,
+                message=(
+                    "notebook metadata.papermill.output_path points at /tmp; "
+                    "strip or refresh papermill metadata before committing"
+                ),
+            ))
+
     result.findings.extend(_phase3_code_cells_unchanged(repo))
+
+    for submodule in _required_submodule_paths():
+        rc, out, err = _run(["git", "submodule", "status", "--", submodule], repo)
+        if rc != 0:
+            result.findings.append(Finding(
+                id="E6.submodule_status",
+                check="execution",
+                severity="warning",
+                location=submodule,
+                message=f"could not inspect required submodule status: {(out + err).strip()[-300:]}",
+            ))
+            continue
+        status = out.strip()
+        if status.startswith(("+", "-", "U")):
+            result.findings.append(Finding(
+                id="E6.submodule_dirty",
+                check="execution",
+                severity="error",
+                location=submodule,
+                message=(
+                    "required submodule checkout does not match the superproject "
+                    "gitlink; stage the intended gitlink or run git submodule update"
+                ),
+                detail={"status": status},
+            ))
+            continue
+        submodule_repo = repo / submodule
+        rc, out, err = _run(["git", "status", "--porcelain", "--", "."], submodule_repo)
+        if rc != 0:
+            result.findings.append(Finding(
+                id="E6.submodule_status",
+                check="execution",
+                severity="warning",
+                location=submodule,
+                message=f"could not inspect required submodule worktree: {(out + err).strip()[-300:]}",
+            ))
+            continue
+        worktree_status = out.strip()
+        if worktree_status:
+            result.findings.append(Finding(
+                id="E6.submodule_dirty",
+                check="execution",
+                severity="error",
+                location=submodule,
+                message=(
+                    "required submodule checkout has local modifications; commit, "
+                    "stash, or discard them before recording consumed-contract parity"
+                ),
+                detail={"status": worktree_status},
+            ))
+
+    for sh in _required_shellcheck_targets(repo):
+        if not sh.exists():
+            result.findings.append(Finding(
+                id="E6.shellcheck_target_missing",
+                check="execution",
+                severity="error",
+                location=str(sh.relative_to(repo)),
+                message=(
+                    "required consumed shellcheck target is missing; "
+                    "initialize submodules or update the consumed contract"
+                ),
+            ))
 
     rc_shellcheck, _, _ = _run(["which", "shellcheck"], repo)
     if rc_shellcheck != 0:
@@ -1297,7 +1930,7 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
             message="shellcheck not on PATH; install with `brew install shellcheck`",
         ))
     else:
-        for sh in (repo / "scripts").glob("*.sh"):
+        for sh in _shellcheck_targets(repo):
             rc, out, err = _run(["shellcheck", str(sh)], repo)
             if rc != 0:
                 result.findings.append(Finding(
@@ -1356,6 +1989,9 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--check is required unless --phase-b-out is used")
 
     repo_root = args.repo_root.resolve()
+    repo_config_path = repo_root / "scripts" / "verify_repo_config.yaml"
+    if repo_config_path.exists() and repo_config_path.resolve() != CONFIG_PATH.resolve():
+        _apply_config(_load_config(repo_config_path))
 
     if args.phase_b_out is not None:
         count = export_phase_b_candidates(repo_root, args.phase_b_out)

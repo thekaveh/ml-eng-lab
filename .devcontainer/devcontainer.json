@@ -1,17 +1,17 @@
-// GitHub Codespaces + VS Code "Reopen in Container" config for ml-lab.
+// GitHub Codespaces + VS Code "Reopen in Container" config for ml-eng-lab.
 //
-// Click "Create codespace on main" on github.com/thekaveh/ml-lab and ~2-3 min
+// Click "Create codespace on main" on github.com/thekaveh/ml-eng-lab and ~2-3 min
 // later you have browser-based VS Code, or JupyterLab if selected as the
 // Codespaces editor, with the 21 active task folders available and 28 of 29
 // active notebooks runnable under the pinned environment.
 // The manual-only quantization notebook still needs torch>=2.5. The
 // image_classification-mnist-ffnn-numpy notebook (the one with sibling .py
-// imports) works because the repo auto-clones into /workspaces/ml-lab and the
+// imports) works because the repo auto-clones into /workspaces/ml-eng-lab and the
 // kernel sees those files natively (no bind-mount wrapper needed).
 //
 // See README.md §3.4 for full motivation, scenarios, and limitations.
 {
-  "name": "ml-lab",
+  "name": "ml-eng-lab",
   "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
 
   // The Make target is the single source of truth for the Codespaces/venv

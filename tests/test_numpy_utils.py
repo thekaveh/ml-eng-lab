@@ -9,7 +9,7 @@ import numpy as np
 
 def _load_utils_class():
     repo_root = Path(__file__).resolve().parents[1]
-    module_path = repo_root / "image_classification-mnist-ffnn-numpy" / "utils.py"
+    module_path = repo_root / "notebooks" / "image_classification-mnist-ffnn-numpy" / "utils.py"
     spec = importlib.util.spec_from_file_location("mnist_numpy_utils", module_path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)

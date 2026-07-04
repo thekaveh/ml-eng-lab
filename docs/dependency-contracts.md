@@ -3,11 +3,12 @@
 This ledger records consumed dependency contracts that are intentionally pinned,
 manual-only, or known to carry security/tooling constraints. It complements
 `requirements.txt`, `torch-core-requirements.txt`, `torch-requirements.txt`,
-and the CI workflow; the manifests remain the source of truth for installation.
+`docs-requirements.txt`, and the CI workflow; the manifests remain the source
+of truth for installation.
 
 ## 1. Audit Snapshot
 
-Last reviewed: 2026-07-02, on branch `codex/overnight-maintenance`.
+Last reviewed: 2026-07-04, on branch `codex/overnight-maintenance`.
 
 Command:
 
@@ -16,6 +17,9 @@ pip-audit -r requirements.txt -r torch-requirements.txt
 ```
 
 Result: 23 known vulnerabilities across three resolved packages:
+
+Re-run on 2026-07-04 after adding `mkdocs-material`; the finding count and
+accepted package set were unchanged.
 
 | Package | Manifest Constraint | Audited Resolved Version | Finding Count | Current Disposition |
 | --- | --- | ---: | ---: | --- |
@@ -29,7 +33,13 @@ Because several manifest entries are intentionally ranged or floating today,
 the audited resolved versions and advisory IDs below are the accepted state, not
 just the package-level counts.
 
-Accepted advisory IDs from the 2026-07-02 audit. `pip-audit` currently emits
+Documentation-only CI jobs intentionally install `docs-requirements.txt` rather
+than the full ML runtime stack. This keeps MkDocs and GitHub Pages builds from
+resolving Torch, PyG, or NNx dependencies that are unrelated to rendered docs.
+The broader local development manifest still includes `mkdocs-material` so an
+existing full-dev install can run `make docs-build` without a second setup step.
+
+Accepted advisory IDs from the 2026-07-04 audit. `pip-audit` currently emits
 23 feed records; two Torch advisory IDs appear twice from overlapping sources.
 
 | Package | Advisory ID | Feed Records | Fix Versions |
@@ -89,7 +99,7 @@ Upgrade criteria:
 
 ## 3. Manual-Only Quantization Notebook
 
-`quantization-mnist-ffnn-pytorch/notebook.ipynb` depends on `torchao>=0.17`.
+`notebooks/quantization-mnist-ffnn-pytorch/notebook.ipynb` depends on `torchao>=0.17`.
 That torchao API references `torch.int1` at import time, which is unavailable in
 the pinned `torch==2.4.1` environment. The notebook remains an active task but is
 manual-only until the Torch stack is upgraded.
@@ -102,7 +112,34 @@ Expected local environment for this notebook:
 Do not add the quantization notebook back to `Makefile` Tier-A/B/C until the
 repository-wide Torch stack supports it.
 
-## 4. External Assets
+## 4. Papermill CLI Contract
+
+`requirements.txt` pins `papermill==2.7.0` because notebook re-execution is a
+consumed CLI contract, not just a Python import. The Makefile invokes it as
+`python -m papermill` by default through `PAPERMILL ?= $(PYTHON) -m papermill`
+so stale console-script shebangs cannot break notebook targets.
+
+Verified contract for `papermill==2.7.0`:
+
+- `python -m papermill --version` resolves the installed module.
+- `python -m papermill --help` exposes `--kernel` / `-k`, `--parameters` /
+  `-p`, `--start-timeout`, and `--execution-timeout`, which the Tier-A/B/C
+  Makefile targets use.
+- The injected `SMOKE_TEST` parameters cell remains parser-friendly for
+  papermill 2.7; `tests/test_inject_smoke_test_cell.py` guards this shape.
+- The Makefile centralizes notebook launch limits through
+  `PAPERMILL_START_TIMEOUT` and `PAPERMILL_EXECUTION_TIMEOUT`; override those
+  variables locally rather than deleting timeout flags from the targets.
+
+Upgrade criteria:
+
+1. Confirm `python -m papermill --version` reports the intended version.
+2. Confirm `python -m papermill --help` still accepts the Makefile flags.
+3. Run `pytest tests/test_inject_smoke_test_cell.py tests/test_verify_repo.py`.
+4. Run at least one cheap notebook target through `make run-tier-a` or a
+   targeted papermill command from the notebook directory.
+
+## 5. External Assets
 
 `make nlp-assets` downloads:
 
@@ -114,7 +151,142 @@ They are not locked by checksum today. If reproducibility becomes stricter than
 the current educational-notebook standard, add a lock/verification mechanism and
 update this section.
 
-## 5. Deferred Reproducibility Hardening
+## 6. NNx PyPI Pin and Editable Override Boundary
+
+`requirements.txt` pins `thekaveh-nnx[lm]==0.2.0`. That PyPI distribution is
+the canonical contract for ml-eng-lab notebook verification and CI. The static
+NNx surface tests intentionally inspect the installed `nnx` import surface, so
+they are only exact release-contract evidence when the environment resolves
+`nnx` from the pinned PyPI wheel.
+
+Editable installs are allowed only for active upstream NNx development, using
+the workflow in README §6 and `docs/jupyterhub-integration.md` §3. When an
+editable checkout is active, local tests are development-surface evidence, not
+release-contract evidence. Before treating local `tests/nnx_surface` results as
+release evidence, confirm:
+
+```bash
+python - <<'PY'
+import importlib.metadata as md
+import json
+from pathlib import Path
+
+dist = md.distribution("thekaveh-nnx")
+direct_url = Path(dist._path) / "direct_url.json"
+print(md.version("thekaveh-nnx"))
+print(json.loads(direct_url.read_text()) if direct_url.exists() else "wheel install")
+PY
+```
+
+Expected release-contract state: version `0.2.0` and no editable
+`direct_url.json`. If the output reports `{"editable": true}`, reinstall from
+`requirements.txt` before recording exact pinned-contract evidence, or document
+that the run intentionally used a local NNx development checkout.
+
+## 7. genai-vanilla Submodule Contract
+
+`.gitmodules` consumes `https://github.com/thekaveh/genai-vanilla.git` as the
+`vendor/genai-vanilla` submodule. The repository currently pins tree entry
+`10f840252404eb5399550f96fbb560153f1a47c7`; a read-only check on 2026-07-04
+found upstream `main` at the same SHA, so the submodule is current as of this
+ledger entry. The bump from `2bee05134d721a152a6ea579d9a65efd7e080701`
+through `a22b182a0f0cd1bb0be3599a7710d87890491eb8`, `448333d3b1a530fafd76d224ee1066181de8fac4`,
+`0bc3abd3cafb35b340f90c4efa89d64375ac9152`,
+`2997143758f58f4c40ecd6e258fa8422942cb7cd`, and
+`163134451a19d024e0e1c0df51139fd8c0a2ca52`,
+`b96a2924b5d30aa30eddb2fa43f9b7a47fc81bcb`,
+`ba21661e8a63b3727b9c4a14eaf5e61262d4b48e`,
+`329f883139f9b101ef923376b84d5d9199c47b56`,
+`c2ffe8d10f5f21c549b411d87861c83e518073ba`, and
+`10f840252404eb5399550f96fbb560153f1a47c7` contained Browserless, Supabase,
+OpenLIT, live-trading, FinRL FinGPT, heavy 3D infrastructure, voice-stack, Honcho,
+Redis Stack, RedisInsight, Perplexica, and Vane
+research documentation plus bootstrapper tests only;
+the JupyterHub runtime files below were re-verified unchanged for ml-eng-lab.
+
+The consumed contract is:
+
+- `vendor/genai-vanilla/start.sh` exists after `git submodule update --init --recursive`.
+- `vendor/genai-vanilla/docker-compose.yml` includes
+  `services/jupyterhub/compose.yml`, which defines the `jupyterhub` service.
+- `vendor/genai-vanilla/services/jupyterhub/build/requirements.txt` includes
+  `thekaveh-nnx[lm]==0.2.0`, `python-louvain`, `nltk`, `spacy`,
+  `torchao>=0.17`, and `prettytable` for ml-eng-lab runtime coverage.
+- `vendor/genai-vanilla/services/jupyterhub/build/Dockerfile` downloads the
+  `en_core_web_sm` spaCy model and the `vader_lexicon` NLTK corpus at image
+  build time.
+- `vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh` is the
+  JupyterHub image entrypoint copied by that Dockerfile.
+- The current upstream pin still has comments in the JupyterHub
+  `requirements.txt` and `Dockerfile` that use the old `ml-lab` repository
+  name and URL. The URL redirects to `ml-eng-lab`, and the runtime contract is
+  otherwise correct, so this is tracked as an upstream documentation cleanup
+  rather than patched directly from this maintenance branch.
+- `scripts/start-jupyterhub.sh` exports `ML_REPO_PATH`, exports
+  `ML_SSH_MOUNT_DIR`, layers `deploy/genai-vanilla-jupyterhub.override.yml`
+  through `COMPOSE_FILE`, changes into the submodule directory, and execs
+  `./start.sh`.
+- The override bind-mounts ml-eng-lab at `/home/jovyan/work/ml-eng-lab` and
+  mounts SSH keys only through the wrapper-controlled `ML_SSH_MOUNT_DIR`.
+
+Upgrade criteria:
+
+1. Update the submodule to the intended upstream SHA.
+2. Confirm `start.sh`, `docker-compose.yml`, and the `jupyterhub` service still
+   exist at that SHA.
+3. Run `shellcheck scripts/start-jupyterhub.sh vendor/genai-vanilla/start.sh
+   vendor/genai-vanilla/stop.sh vendor/genai-vanilla/bootstrapper/_run.sh
+   vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh`,
+   run `bash -n scripts/start-jupyterhub.sh`, and parse
+   `deploy/genai-vanilla-jupyterhub.override.yml`.
+4. In a Docker-capable environment, run `git submodule update --init --recursive`
+   followed by this command from the repository root:
+
+   ```bash
+   ML_REPO_PATH="$PWD" ML_SSH_MOUNT_DIR="$HOME/.ssh" docker compose --env-file \
+     vendor/genai-vanilla/.env.example \
+     -f vendor/genai-vanilla/docker-compose.yml \
+     -f deploy/genai-vanilla-jupyterhub.override.yml \
+     config
+   ```
+5. Update this section, README runtime caveats, and `docs/jupyterhub-integration.md`
+   if the service names, mount paths, or NNx package layer change.
+
+## 8. GitHub Actions Pins
+
+Workflow actions are pinned to exact commit SHAs, with an inline version comment
+showing the reviewed upstream major tag. On 2026-07-04, the reviewed tag refs
+were:
+
+| Action | Reviewed Tag | Pinned SHA |
+| --- | --- | --- |
+| `actions/checkout` | `v7` | `9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0` |
+| `actions/setup-python` | `v6` | `ece7cb06caefa5fff74198d8649806c4678c61a1` |
+| `actions/upload-artifact` | `v7` | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` |
+| `actions/configure-pages` | `v6` | `45bfe0192ca1faeb007ade9deae92b16b8254a0d` |
+| `actions/upload-pages-artifact` | `v5` | `fc324d3547104276b827a68afc52ff2a11cc49c9` |
+| `actions/deploy-pages` | `v5` | `cd2ce8fcbc39b97be8ca5fce6e763baed58fa128` |
+
+Upgrade criteria:
+
+1. Resolve the intended tag with `git ls-remote --tags`.
+2. Update the workflow SHA and inline tag comment together.
+3. Parse workflow YAML and run the relevant local contract checks.
+
+## 9. Bootstrap Tooling Gap
+
+The bootstrap paths still upgrade or install the Python packaging toolchain
+without exact pip/setuptools pins:
+
+- `Makefile` target `install-torch-stack` runs `pip install --upgrade pip`.
+- `Dockerfile` upgrades `pip` and `setuptools` before project requirements.
+
+This is accepted temporarily because pinning bootstrap tools changes every
+environment creation path and belongs with the coordinated dependency-lock
+work. Until then, maintenance passes should treat unexpected resolver behavior
+or build-isolation changes as dependency-contract findings.
+
+## 10. Deferred Reproducibility Hardening
 
 The current manifests still include floating and ranged Python dependencies, and
 the Docker/devcontainer bases are tag-pinned rather than digest-pinned. A full

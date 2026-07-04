@@ -1,0 +1,4 @@
+# Documentation-only dependency surface for MkDocs CI and GitHub Pages.
+# The broader local development environment also includes this package via
+# requirements.txt so existing full-dev installs can still run `make docs-build`.
+mkdocs-material>=9.6,<10.0
