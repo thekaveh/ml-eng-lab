@@ -89,7 +89,7 @@ Upgrade criteria:
 
 ## 3. Manual-Only Quantization Notebook
 
-`quantization-mnist-ffnn-pytorch/notebook.ipynb` depends on `torchao>=0.17`.
+`notebooks/quantization-mnist-ffnn-pytorch/notebook.ipynb` depends on `torchao>=0.17`.
 That torchao API references `torch.int1` at import time, which is unavailable in
 the pinned `torch==2.4.1` environment. The notebook remains an active task but is
 manual-only until the Torch stack is upgraded.

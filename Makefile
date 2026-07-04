@@ -17,38 +17,38 @@
 # notebooks ImportError at the first tokenizer call.
 
 TIER_A := \
-    image_classification-mnist-ffnn-numpy/notebook.ipynb \
-    node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
-    tabular_classification-iris-mlp-pytorch/notebook.ipynb \
-    model_surgery-mnist-ffnn-pytorch/notebook.ipynb \
-    pruning-mnist-ffnn-pytorch/notebook.ipynb \
-    knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb \
-    text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb \
-    peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb \
-    dim_reduction-iris-autoencoder-pytorch/notebook.ipynb \
-    tabular_regression-diabetes-mlp-pytorch/notebook.ipynb \
-    diffusion-mnist-ddpm-pytorch/notebook.ipynb \
-    moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb \
-    clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb \
-    link_prediction-karate-graphsage-pyg/notebook.ipynb \
-    community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb \
-    text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb \
-    sentiment_classification-vader-mlp-pytorch/notebook.ipynb \
-    preference_alignment-toy-dpo-pytorch/notebook.ipynb \
-    self_supervised-fmnist-jepa-pytorch/notebook.ipynb
+    notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb \
+    notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb \
+    notebooks/model_surgery-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/pruning-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb \
+    notebooks/peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb \
+    notebooks/dim_reduction-iris-autoencoder-pytorch/notebook.ipynb \
+    notebooks/tabular_regression-diabetes-mlp-pytorch/notebook.ipynb \
+    notebooks/diffusion-mnist-ddpm-pytorch/notebook.ipynb \
+    notebooks/moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb \
+    notebooks/clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb \
+    notebooks/link_prediction-karate-graphsage-pyg/notebook.ipynb \
+    notebooks/community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb \
+    notebooks/text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb \
+    notebooks/sentiment_classification-vader-mlp-pytorch/notebook.ipynb \
+    notebooks/preference_alignment-toy-dpo-pytorch/notebook.ipynb \
+    notebooks/self_supervised-fmnist-jepa-pytorch/notebook.ipynb
 
 TIER_B := \
-    image_classification-mnist-ffnn-pytorch/notebook.ipynb \
-    node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
-    node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb \
-    node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb \
-    node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb
+    notebooks/image_classification-mnist-ffnn-pytorch/notebook.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb
 
-# quantization-mnist-ffnn-pytorch/notebook.ipynb was previously the 2nd entry
+# notebooks/quantization-mnist-ffnn-pytorch/notebook.ipynb was previously the 2nd entry
 # above. Removed 2026-06-16 after the weekly smoke-tier-b cron failed at the
 # quantization import: `torchao>=0.17` (requirements.txt pin, smallest version
 # exposing nnx.quantize_int8's `Int8WeightOnlyConfig` API) references
-# `torch.int1` at module load; `torch.int1` was added in torch 2.5; ml-lab
+# `torch.int1` at module load; `torch.int1` was added in torch 2.5; ml-eng-lab
 # pins `torch==2.4.1` for genai-vanilla image-parity (see torch-core-requirements.txt
 # + issue #10). No torchao version satisfies both nnx's API requirement AND
 # the torch 2.4.1 import surface, so the notebook cannot execute under
@@ -59,10 +59,10 @@ TIER_B := \
 # the cron was supposed to cover.
 
 TIER_C := \
-    node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb \
-    node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb \
-    node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb \
-    node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb
+    notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb \
+    notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb
 
 SMOKE_OUT := /tmp/ml-smoke
 

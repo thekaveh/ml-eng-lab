@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Move every active and archived experiment into `notebooks/`, make each notebook rerunnable from its new directory, and rename live repository identity references from `ml-lab` to `ml-eng-lab`.
+**Goal:** Move every active and archived experiment into `notebooks/`, make each notebook rerunnable from its new directory, and rename live repository identity references from `ml-eng-lab` to `ml-eng-lab`.
 
 **Architecture:** Treat `notebooks/<experiment>/` as the canonical experiment root. Move active task directories wholesale under `notebooks/`, move archived CodeXGLUE experiments under `notebooks/archive/`, update verifier/tooling to understand the new root, then rewrite live docs and links. Preserve historical output/changelog text unless it is active guidance or a live path contract.
 
@@ -15,7 +15,7 @@
 - Per-experiment `README.md`, task-local helper `.py` files, tracked archived `src/`, and tracked archived `model/` files move with their notebooks.
 - Each notebook must be rerunnable from its new directory using local relative `./data`, `./runs`, `./model`, and sibling imports.
 - Live repository identity must be `ml-eng-lab`, including GitHub URLs, nbviewer URLs, Docker tags, Codespaces examples, and JupyterHub bind-mount examples.
-- Historical changelog entries, findings, and preserved notebook outputs may keep `ml-lab` only when they describe past events or recorded execution output.
+- Historical changelog entries, findings, and preserved notebook outputs may keep `ml-eng-lab` only when they describe past events or recorded execution output.
 - Do not redesign ML experiments or change model behavior.
 - Do not re-execute expensive Tier-B or Tier-C notebooks in place.
 - Use `git mv` for tracked moves whenever possible.
@@ -50,8 +50,8 @@
 - `pyproject.toml`: ruff ignore path for Tier-C notebooks.
 - `.devcontainer/devcontainer.json`: display name, comments, repo path examples.
 - `Dockerfile`: only live repository-name references found during implementation.
-- `deploy/genai-vanilla-jupyterhub.override.yml`: bind mount target path if it names `ml-lab`.
-- `scripts/start-jupyterhub.sh`: comments or mount-path wording that names `ml-lab`.
+- `deploy/genai-vanilla-jupyterhub.override.yml`: bind mount target path if it names `ml-eng-lab`.
+- `scripts/start-jupyterhub.sh`: comments or mount-path wording that names `ml-eng-lab`.
 - `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `docs/*.md`, per-experiment READMEs, notebook markdown cells.
 
 ### No Permanent New Runtime Code
@@ -229,7 +229,7 @@ def test_baseline_notebook_rel_removes_notebooks_prefix():
         verify_repo._baseline_notebook_rel(
             "notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb"
         )
-        == "node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb"
+        == "notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb"
     )
     assert verify_repo._baseline_notebook_rel("legacy/notebook.ipynb") == "legacy/notebook.ipynb"
 ```
@@ -398,9 +398,9 @@ def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
 Replace current path references in `tests/nnx_surface/*.py` from:
 
 ```text
-image_classification-mnist-ffnn-pytorch/notebook.ipynb
-node_classification-reddit-gnn-pyg/...
-tabular_classification-iris-mlp-pytorch/notebook.ipynb
+notebooks/image_classification-mnist-ffnn-pytorch/notebook.ipynb
+notebooks/node_classification-reddit-gnn-pyg/...
+notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb
 ```
 
 to:
@@ -438,7 +438,7 @@ git commit -m "test: discover notebooks under notebooks root"
 **Files:**
 - Move: all active root task directories to `notebooks/<task>/`
 - Move: `archive/README.md` to `notebooks/archive/README.md`
-- Move: `archive/codexglue_summarization/` to `notebooks/archive/codexglue_summarization/`
+- Move: `notebooks/archive/codexglue_summarization/` to `notebooks/archive/codexglue_summarization/`
 - Move ignored artifacts by filesystem rename as part of directory moves.
 
 **Interfaces:**
@@ -708,8 +708,8 @@ active = [
 for task in active:
     text = text.replace(f"            {task}/", f"            notebooks/{task}/")
     text = text.replace(f"`{task}/", f"`notebooks/{task}/")
-text = text.replace("ml-lab-ci", "ml-eng-lab-ci")
-text = text.replace("ml-lab pins", "ml-eng-lab pins")
+text = text.replace("ml-eng-lab-ci", "ml-eng-lab-ci")
+text = text.replace("ml-eng-lab pins", "ml-eng-lab pins")
 path.write_text(text, encoding="utf-8")
 PY
 ```
@@ -814,25 +814,25 @@ files = [
     Path("Makefile"),
 ]
 replacements = {
-    "github.com/thekaveh/ml-lab": "github.com/thekaveh/ml-eng-lab",
-    "thekaveh/ml-lab": "thekaveh/ml-eng-lab",
-    "nbviewer.org/github/thekaveh/ml-lab": "nbviewer.org/github/thekaveh/ml-eng-lab",
-    "/workspaces/ml-lab": "/workspaces/ml-eng-lab",
-    "/home/jovyan/work/ml-lab": "/home/jovyan/work/ml-eng-lab",
-    "~/repos/ml-lab": "~/repos/ml-eng-lab",
-    "ml-lab-ci": "ml-eng-lab-ci",
-    "ml-lab .": "ml-eng-lab .",
-    "ml-lab\n": "ml-eng-lab\n",
-    "`ml-lab`": "`ml-eng-lab`",
-    "# ml-lab": "# ml-eng-lab",
-    " ml-lab ": " ml-eng-lab ",
-    " ml-lab's ": " ml-eng-lab's ",
-    "ml-lab dep set": "ml-eng-lab dep set",
-    "ml-lab notebooks": "ml-eng-lab notebooks",
-    "ml-lab work": "ml-eng-lab work",
-    "ml-lab tree": "ml-eng-lab tree",
-    "ml-lab repo": "ml-eng-lab repo",
-    "ml-lab's": "ml-eng-lab's",
+    "github.com/thekaveh/ml-eng-lab": "github.com/thekaveh/ml-eng-lab",
+    "thekaveh/ml-eng-lab": "thekaveh/ml-eng-lab",
+    "nbviewer.org/github/thekaveh/ml-eng-lab": "nbviewer.org/github/thekaveh/ml-eng-lab",
+    "/workspaces/ml-eng-lab": "/workspaces/ml-eng-lab",
+    "/home/jovyan/work/ml-eng-lab": "/home/jovyan/work/ml-eng-lab",
+    "~/repos/ml-eng-lab": "~/repos/ml-eng-lab",
+    "ml-eng-lab-ci": "ml-eng-lab-ci",
+    "ml-eng-lab .": "ml-eng-lab .",
+    "ml-eng-lab\n": "ml-eng-lab\n",
+    "`ml-eng-lab`": "`ml-eng-lab`",
+    "# ml-eng-lab": "# ml-eng-lab",
+    " ml-eng-lab ": " ml-eng-lab ",
+    " ml-eng-lab's ": " ml-eng-lab's ",
+    "ml-eng-lab dep set": "ml-eng-lab dep set",
+    "ml-eng-lab notebooks": "ml-eng-lab notebooks",
+    "ml-eng-lab work": "ml-eng-lab work",
+    "ml-eng-lab tree": "ml-eng-lab tree",
+    "ml-eng-lab repo": "ml-eng-lab repo",
+    "ml-eng-lab's": "ml-eng-lab's",
 }
 for path in files:
     if not path.exists():
@@ -887,7 +887,7 @@ scripts/start-jupyterhub.sh
 Run:
 
 ```bash
-rg -n 'ml-lab|thekaveh/ml-lab|/workspaces/ml-lab|/home/jovyan/work/ml-lab|nbviewer.org/github/thekaveh/ml-lab' \
+rg -n 'ml-eng-lab|thekaveh/ml-eng-lab|/workspaces/ml-eng-lab|/home/jovyan/work/ml-eng-lab|nbviewer.org/github/thekaveh/ml-eng-lab' \
   README.md CONTRIBUTING.md docs/*.md .devcontainer .github scripts deploy Dockerfile Makefile pyproject.toml
 ```
 
@@ -964,8 +964,8 @@ for path in md_files:
         text = text.replace(f"({task}/", f"(notebooks/{task}/")
         text = text.replace(f"`{task}/", f"`notebooks/{task}/")
     text = text.replace("(archive/README.md)", "(notebooks/archive/README.md)")
-    text = text.replace("(archive/codexglue_summarization/)", "(notebooks/archive/codexglue_summarization/)")
-    text = text.replace("archive/codexglue_summarization/", "notebooks/archive/codexglue_summarization/")
+    text = text.replace("(notebooks/archive/codexglue_summarization/)", "(notebooks/archive/codexglue_summarization/)")
+    text = text.replace("notebooks/archive/codexglue_summarization/", "notebooks/archive/codexglue_summarization/")
     if path.parts[:1] == ("notebooks",):
         text = text.replace("(../docs/", "(../../docs/")
         text = text.replace("](../docs/", "](../../docs/")
@@ -1019,7 +1019,7 @@ for nb_path in sorted(Path("notebooks").glob("**/*.ipynb")):
             continue
         source = cell.source
         original = source
-        source = source.replace("https://nbviewer.org/github/thekaveh/ml-lab/", "https://nbviewer.org/github/thekaveh/ml-eng-lab/")
+        source = source.replace("https://nbviewer.org/github/thekaveh/ml-eng-lab/", "https://nbviewer.org/github/thekaveh/ml-eng-lab/")
         source = source.replace("https://nbviewer.org/github/thekaveh/ml-eng-lab/tree/main/", "https://nbviewer.org/github/thekaveh/ml-eng-lab/tree/main/notebooks/")
         source = source.replace("https://nbviewer.org/github/thekaveh/ml-eng-lab/blob/main/", "https://nbviewer.org/github/thekaveh/ml-eng-lab/blob/main/notebooks/")
         for task in active:
@@ -1043,7 +1043,7 @@ Expected: only markdown cells change. Review `git diff --stat` to confirm no cod
 Run:
 
 ```bash
-rg -n '\]\(\.\./docs/|\]\(docs/|nbviewer.org/github/thekaveh/ml-lab|github.com/thekaveh/ml-lab|blob/main/[^n]' notebooks README.md CONTRIBUTING.md docs
+rg -n '\]\(\.\./docs/|\]\(docs/|nbviewer.org/github/thekaveh/ml-eng-lab|github.com/thekaveh/ml-eng-lab|blob/main/[^n]' notebooks README.md CONTRIBUTING.md docs
 ```
 
 Expected: no hits for old repo URLs. For remaining `../docs/` hits inside `notebooks/<task>/README.md`, replace with `../../docs/`.
@@ -1091,8 +1091,8 @@ In `README.md`, replace the repository layout block with this shape:
 ```text
 ml-eng-lab/
 ├── notebooks/                                 (active and archived experiment homes)
-│   ├── image_classification-mnist-ffnn-numpy/ (README, notebook, helper .py, ignored data/)
-│   ├── node_classification-reddit-gnn-pyg/    (multi-phase notebooks, ignored data/)
+│   ├── notebooks/image_classification-mnist-ffnn-numpy/ (README, notebook, helper .py, ignored data/)
+│   ├── notebooks/node_classification-reddit-gnn-pyg/    (multi-phase notebooks, ignored data/)
 │   └── archive/                               (preserved CodeXGLUE experiments)
 ├── scripts/                                   (jupyterhub start, verifier, notebook edit/import helpers)
 ├── tests/                                     (verifier and NNx surface tests)
@@ -1182,7 +1182,7 @@ git commit -m "docs: describe notebooks as experiment homes"
 Run:
 
 ```bash
-rg -n '(^|["` ])(?:image_classification|node_classification|tabular_|model_surgery|quantization|pruning|knowledge_distillation|text_generation|peft|dim_reduction|diffusion|moe|clustering|link_prediction|community_detection|text_classification|sentiment_classification|preference_alignment|self_supervised)[^"` ]*/.*\.ipynb|ml-lab|thekaveh/ml-lab|archive/codexglue_summarization' tests
+rg -n '(^|["` ])(?:image_classification|node_classification|tabular_|model_surgery|quantization|pruning|knowledge_distillation|text_generation|peft|dim_reduction|diffusion|moe|clustering|link_prediction|community_detection|text_classification|sentiment_classification|preference_alignment|self_supervised)[^"` ]*/.*\.ipynb|ml-eng-lab|thekaveh/ml-eng-lab|archive/codexglue_summarization' tests
 ```
 
 Expected: hits show concrete tests/docstrings to update.
@@ -1265,7 +1265,7 @@ for nb_path in sorted(Path("notebooks").glob("**/*.ipynb")):
     pm = nb.metadata.get("papermill", {})
     input_path = str(pm.get("input_path", ""))
     output_path = str(pm.get("output_path", ""))
-    if "ml-lab" in input_path or "ml-lab" in output_path or (input_path and not input_path.startswith("notebooks/")):
+    if "ml-eng-lab" in input_path or "ml-eng-lab" in output_path or (input_path and not input_path.startswith("notebooks/")):
         print(nb_path, "input=", input_path, "output=", output_path)
 PY
 ```
@@ -1290,7 +1290,7 @@ for nb_path in sorted(Path("notebooks").glob("**/*.ipynb")):
     new_rel = nb_path.as_posix()
     for key in ("input_path", "output_path"):
         value = pm.get(key)
-        if isinstance(value, str) and (value.endswith(".ipynb") or "ml-lab" in value or "/ml/" in value):
+        if isinstance(value, str) and (value.endswith(".ipynb") or "ml-eng-lab" in value or "/ml/" in value):
             pm[key] = new_rel
             changed = True
     if changed:
@@ -1434,7 +1434,7 @@ Expected: no live hits outside text that intentionally explains the historical s
 Run:
 
 ```bash
-rg -n 'github.com/thekaveh/ml-lab|nbviewer.org/github/thekaveh/ml-lab|/workspaces/ml-lab|/home/jovyan/work/ml-lab|ml-lab-ci|docker build -t ml-lab|docker run .* ml-lab|# ml-lab|`ml-lab`' \
+rg -n 'github.com/thekaveh/ml-eng-lab|nbviewer.org/github/thekaveh/ml-eng-lab|/workspaces/ml-eng-lab|/home/jovyan/work/ml-eng-lab|ml-eng-lab-ci|docker build -t ml-eng-lab|docker run .* ml-eng-lab|# ml-eng-lab|`ml-eng-lab`' \
   README.md CONTRIBUTING.md docs scripts tests .github .devcontainer deploy Dockerfile Makefile pyproject.toml notebooks
 ```
 
@@ -1445,7 +1445,7 @@ Expected: no output. If output appears in `docs/FINDINGS-NNX.md` as historical l
 At the top of `CHANGELOG.md` under `[Unreleased]`, add:
 
 ```markdown
-- **Repository layout and identity migration**: active and archived experiment notebooks now live under `notebooks/`, with each experiment directory acting as the runnable home for its README, notebook(s), helper code, and ignored local artifacts. Live repository identity references now target `ml-eng-lab` rather than `ml-lab`, including GitHub URLs, nbviewer links, Docker tags, Codespaces paths, and JupyterHub bind-mount examples.
+- **Repository layout and identity migration**: active and archived experiment notebooks now live under `notebooks/`, with each experiment directory acting as the runnable home for its README, notebook(s), helper code, and ignored local artifacts. Live repository identity references now target `ml-eng-lab` rather than `ml-eng-lab`, including GitHub URLs, nbviewer links, Docker tags, Codespaces paths, and JupyterHub bind-mount examples.
 ```
 
 - [ ] **Step 5: Commit**
@@ -1556,7 +1556,7 @@ Run:
 
 ```bash
 git ls-files '*.ipynb' | awk '$0 !~ /^notebooks\// {print}'
-rg -n 'github.com/thekaveh/ml-lab|nbviewer.org/github/thekaveh/ml-lab|/workspaces/ml-lab|/home/jovyan/work/ml-lab|ml-lab-ci|docker build -t ml-lab|docker run .* ml-lab' \
+rg -n 'github.com/thekaveh/ml-eng-lab|nbviewer.org/github/thekaveh/ml-eng-lab|/workspaces/ml-eng-lab|/home/jovyan/work/ml-eng-lab|ml-eng-lab-ci|docker build -t ml-eng-lab|docker run .* ml-eng-lab' \
   README.md CONTRIBUTING.md docs scripts tests .github .devcontainer deploy Dockerfile Makefile pyproject.toml notebooks
 ```
 

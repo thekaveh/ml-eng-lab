@@ -32,200 +32,200 @@ active_task_dirs:
 # Model / Training / Evaluation & Results); phase exploration notebooks may use
 # their explicit variants below.
 required_sections:
-  image_classification-mnist-ffnn-numpy/notebook.ipynb:
+  notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  image_classification-mnist-ffnn-pytorch/notebook.ipynb:
+  notebooks/image_classification-mnist-ffnn-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Dataset deep-dive"
-  node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook1.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook2.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook3.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook4.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook2.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook3.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb:
+  notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook4.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  tabular_classification-iris-mlp-pytorch/notebook.ipynb:
+  notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  model_surgery-mnist-ffnn-pytorch/notebook.ipynb:
+  notebooks/model_surgery-mnist-ffnn-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  quantization-mnist-ffnn-pytorch/notebook.ipynb:
+  notebooks/quantization-mnist-ffnn-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  pruning-mnist-ffnn-pytorch/notebook.ipynb:
+  notebooks/pruning-mnist-ffnn-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb:
+  notebooks/knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb:
+  notebooks/text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb:
+  notebooks/peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  dim_reduction-iris-autoencoder-pytorch/notebook.ipynb:
+  notebooks/dim_reduction-iris-autoencoder-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  tabular_regression-diabetes-mlp-pytorch/notebook.ipynb:
+  notebooks/tabular_regression-diabetes-mlp-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  diffusion-mnist-ddpm-pytorch/notebook.ipynb:
+  notebooks/diffusion-mnist-ddpm-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb:
+  notebooks/moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb:
+  notebooks/clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  link_prediction-karate-graphsage-pyg/notebook.ipynb:
+  notebooks/link_prediction-karate-graphsage-pyg/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb:
+  notebooks/community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb:
+  notebooks/text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  sentiment_classification-vader-mlp-pytorch/notebook.ipynb:
+  notebooks/sentiment_classification-vader-mlp-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  preference_alignment-toy-dpo-pytorch/notebook.ipynb:
+  notebooks/preference_alignment-toy-dpo-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
     - "4. Model"
     - "5. Training"
     - "6. Evaluation & Results"
-  self_supervised-fmnist-jepa-pytorch/notebook.ipynb:
+  notebooks/self_supervised-fmnist-jepa-pytorch/notebook.ipynb:
     - "1. Overview"
     - "2. Environment & Setup"
     - "3. Data"
@@ -236,22 +236,22 @@ required_sections:
 # Notebooks Tier-A runs in-place (refreshes outputs in CI).
 # Keep this list in sync with Makefile's TIER_A variable.
 tier_a_notebooks:
-  - image_classification-mnist-ffnn-numpy/notebook.ipynb
-  - node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb
-  - tabular_classification-iris-mlp-pytorch/notebook.ipynb
-  - model_surgery-mnist-ffnn-pytorch/notebook.ipynb
-  - pruning-mnist-ffnn-pytorch/notebook.ipynb
-  - knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb
-  - text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb
-  - peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb
-  - dim_reduction-iris-autoencoder-pytorch/notebook.ipynb
-  - tabular_regression-diabetes-mlp-pytorch/notebook.ipynb
-  - diffusion-mnist-ddpm-pytorch/notebook.ipynb
-  - moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb
-  - clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb
-  - link_prediction-karate-graphsage-pyg/notebook.ipynb
-  - community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb
-  - text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb
-  - sentiment_classification-vader-mlp-pytorch/notebook.ipynb
-  - preference_alignment-toy-dpo-pytorch/notebook.ipynb
-  - self_supervised-fmnist-jepa-pytorch/notebook.ipynb
+  - notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb
+  - notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb
+  - notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb
+  - notebooks/model_surgery-mnist-ffnn-pytorch/notebook.ipynb
+  - notebooks/pruning-mnist-ffnn-pytorch/notebook.ipynb
+  - notebooks/knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb
+  - notebooks/text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb
+  - notebooks/peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb
+  - notebooks/dim_reduction-iris-autoencoder-pytorch/notebook.ipynb
+  - notebooks/tabular_regression-diabetes-mlp-pytorch/notebook.ipynb
+  - notebooks/diffusion-mnist-ddpm-pytorch/notebook.ipynb
+  - notebooks/moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb
+  - notebooks/clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb
+  - notebooks/link_prediction-karate-graphsage-pyg/notebook.ipynb
+  - notebooks/community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb
+  - notebooks/text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb
+  - notebooks/sentiment_classification-vader-mlp-pytorch/notebook.ipynb
+  - notebooks/preference_alignment-toy-dpo-pytorch/notebook.ipynb
+  - notebooks/self_supervised-fmnist-jepa-pytorch/notebook.ipynb

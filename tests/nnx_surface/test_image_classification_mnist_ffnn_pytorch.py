@@ -1,4 +1,4 @@
-"""NNx-surface contract test for image_classification-mnist-ffnn-pytorch/notebook.ipynb.
+"""NNx-surface contract test for notebooks/image_classification-mnist-ffnn-pytorch/notebook.ipynb.
 
 If this test fails after a `thekaveh-nnx` version upgrade, the bump broke
 something the MNIST FFNN notebook depends on. Test asserts the *shape*

@@ -4,17 +4,17 @@ Four paths, pick whichever fits the moment.
 
 ## 1. genai-vanilla jupyterhub (recommended)
 
-As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the ml-lab dep set — `python-louvain` + `nltk` + `spacy` + `torchao` + `prettytable`, plus the `en_core_web_sm` spaCy model + `vader_lexicon` NLTK corpus baked at image-build time. The image's pip layer currently installs the now-defunct `nnx-pytorch[lm]` distribution name (replaced by `thekaveh-nnx` on PyPI as of 2026-06-14); a coordinated upstream bump is tracked as a follow-up. Two paths, pick by need.
+As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the ml-eng-lab dep set — `python-louvain` + `nltk` + `spacy` + `torchao` + `prettytable`, plus the `en_core_web_sm` spaCy model + `vader_lexicon` NLTK corpus baked at image-build time. The image's pip layer currently installs the now-defunct `nnx-pytorch[lm]` distribution name (replaced by `thekaveh-nnx` on PyPI as of 2026-06-14); a coordinated upstream bump is tracked as a follow-up. Two paths, pick by need.
 
 ### 1.1. Default — standalone genai-vanilla + VS Code Mode 2
 
-Once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`, this path covers the tier-covered ml-lab notebooks except the from-scratch `image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder and needs the §1.2 wrapper-and-bind-mount path. The quantization notebook remains manual-only under `torch>=2.5` + `torchao>=0.17`. Until then, the path covers the subset of notebooks that don't touch the nnx import surface (limited; mostly the from-scratch numpy task isn't one of them).
+Once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`, this path covers the tier-covered ml-eng-lab notebooks except the from-scratch `notebooks/image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder and needs the §1.2 wrapper-and-bind-mount path. The quantization notebook remains manual-only under `torch>=2.5` + `torchao>=0.17`. Until then, the path covers the subset of notebooks that don't touch the nnx import surface (limited; mostly the from-scratch numpy task isn't one of them).
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh
 ```
 
-Then open any ml-lab notebook locally in VS Code and `Cmd-Shift-P` → **Jupyter: Specify Jupyter Server for Connections** → `http://localhost:63081/?token=<JUPYTERHUB_TOKEN>`. See [vscode-remote-access.md](vscode-remote-access.md) Mode 2 for the token-retrieval detail.
+Then open any ml-eng-lab notebook locally in VS Code and `Cmd-Shift-P` → **Jupyter: Specify Jupyter Server for Connections** → `http://localhost:63081/?token=<JUPYTERHUB_TOKEN>`. See [vscode-remote-access.md](vscode-remote-access.md) Mode 2 for the token-retrieval detail.
 
 Trade-off: notebook code that does `pd.read_csv("./data/foo.csv")` or `NNRun.save()` writes to the kernel's CWD inside the container (`/home/jovyan/`), not to your host repo. Artifacts land in the `jupyterhub-data` named volume — opaque to `git status`, wiped by `docker volume rm`. Acceptable for Tier-A demos with small re-downloadable datasets; not acceptable when you want host-side persistence (see §1.2).
 
@@ -22,7 +22,7 @@ Trade-off: notebook code that does `pd.read_csv("./data/foo.csv")` or `NNRun.sav
 
 Use when you want any of:
 - Datasets + `runs/` checkpoints to land on your host filesystem (visible in `git status`, survives `docker compose down -v`).
-- The from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` to work (sibling `.py` modules).
+- The from-scratch `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb` to work (sibling `.py` modules).
 - A workflow where you `git commit` notebook edits + dataset downloads from inside the container.
 
 ```bash
@@ -30,13 +30,13 @@ git submodule update --init --recursive      # one-time, for vendor/genai-vanill
 scripts/start-jupyterhub.sh                  # each session
 ```
 
-The wrapper layers `deploy/genai-vanilla-jupyterhub.override.yml` onto the `vendor/genai-vanilla` submodule's compose, bind-mounting the repo at `/home/jovyan/work/ml-lab/`. It mounts an empty `.ssh` directory by default; set `HOST_SSH_DIR=/path/to/keys` only when you explicitly want host SSH keys mounted read-only. See [jupyterhub-integration.md](jupyterhub-integration.md) for the full two-path walkthrough.
+The wrapper layers `deploy/genai-vanilla-jupyterhub.override.yml` onto the `vendor/genai-vanilla` submodule's compose, bind-mounting the repo at `/home/jovyan/work/ml-eng-lab/`. It mounts an empty `.ssh` directory by default; set `HOST_SSH_DIR=/path/to/keys` only when you explicitly want host SSH keys mounted read-only. See [jupyterhub-integration.md](jupyterhub-integration.md) for the full two-path walkthrough.
 
 ## 2. Local Docker
 
 ```bash
-docker build -t ml-lab .                   # uses the in-repo Dockerfile
-docker run -p 8888:8888 -v "$(pwd):/home/jovyan/work" --shm-size=4g ml-lab
+docker build -t ml-eng-lab .                   # uses the in-repo Dockerfile
+docker run -p 8888:8888 -v "$(pwd):/home/jovyan/work" --shm-size=4g ml-eng-lab
 ```
 
 Open `http://localhost:8888/?token=<token>` (token printed at startup).
@@ -67,12 +67,12 @@ Caveats:
 
 ## 4. GitHub Codespaces (zero-click cloud dev)
 
-Click **Code → Codespaces → Create codespace on main** on github.com/thekaveh/ml-lab. The repo ships [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) which declaratively defines the runtime:
+Click **Code → Codespaces → Create codespace on main** on github.com/thekaveh/ml-eng-lab. The repo ships [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) which declaratively defines the runtime:
 
 - **Base image**: `mcr.microsoft.com/devcontainers/python:3.11-bookworm` (Python 3.11, matches the version pin in `.python-version` + CI).
 - **`postCreateCommand`**: `make codespace-setup` — runs the Torch-first install target, `pip install -r requirements.txt`, and `make nlp-assets` in the same order CI uses. ~2-3 min one-time per Codespace.
 - **VS Code extensions** preinstalled: `ms-python.python`, `ms-toolsai.jupyter` + `jupyter-cell-tags` (makes the papermill `parameters` tag visible) + `jupyter-keymap` + `jupyter-renderers`.
-- **Repo location**: `/workspaces/ml-lab` — auto-cloned, persistent across kernel restarts within the Codespace. The `image_classification-mnist-ffnn-numpy` notebook's sibling `.py` imports resolve here natively.
+- **Repo location**: `/workspaces/ml-eng-lab` — auto-cloned, persistent across kernel restarts within the Codespace. The `image_classification-mnist-ffnn-numpy` notebook's sibling `.py` imports resolve here natively.
 
 **Editor choice**: open notebooks in the browser-based VS Code that Codespaces ships with, or set JupyterLab as your default editor at [github.com/settings/codespaces → Editor preference → JupyterLab](https://github.com/settings/codespaces) for single-click access.
 
@@ -94,29 +94,29 @@ The current setup is CPU-only. No GPU image variant is shipped. For GPU training
 The authoritative list lives in `Makefile` (`TIER_A` / `TIER_B` / `TIER_C` variables) and `scripts/verify_repo_config.yaml` (`tier_a_notebooks`). The lists below are mirrored from there; if they drift, the Makefile + YAML win.
 
 - **Tier-A** (`make run-tier-a`, runs in CI on every PR):
-  - `image_classification-mnist-ffnn-numpy/notebook.ipynb`
-  - `node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb`
-  - `tabular_classification-iris-mlp-pytorch/notebook.ipynb`
-  - `model_surgery-mnist-ffnn-pytorch/notebook.ipynb`
-  - `pruning-mnist-ffnn-pytorch/notebook.ipynb`
-  - `knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb`
-  - `text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb`
-  - `peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb`
-  - `dim_reduction-iris-autoencoder-pytorch/notebook.ipynb`
-  - `tabular_regression-diabetes-mlp-pytorch/notebook.ipynb`
-  - `diffusion-mnist-ddpm-pytorch/notebook.ipynb`
-  - `moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb`
-  - `clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb`
-  - `link_prediction-karate-graphsage-pyg/notebook.ipynb`
-  - `community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb`
-  - `text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb`
-  - `sentiment_classification-vader-mlp-pytorch/notebook.ipynb`
-  - `preference_alignment-toy-dpo-pytorch/notebook.ipynb`
-  - `self_supervised-fmnist-jepa-pytorch/notebook.ipynb`
+  - `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb`
+  - `notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb`
+  - `notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb`
+  - `notebooks/model_surgery-mnist-ffnn-pytorch/notebook.ipynb`
+  - `notebooks/pruning-mnist-ffnn-pytorch/notebook.ipynb`
+  - `notebooks/knowledge_distillation-mnist-ffnn-pytorch/notebook.ipynb`
+  - `notebooks/text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb`
+  - `notebooks/peft-mnist-to-fmnist-dora-vs-lora-pytorch/notebook.ipynb`
+  - `notebooks/dim_reduction-iris-autoencoder-pytorch/notebook.ipynb`
+  - `notebooks/tabular_regression-diabetes-mlp-pytorch/notebook.ipynb`
+  - `notebooks/diffusion-mnist-ddpm-pytorch/notebook.ipynb`
+  - `notebooks/moe-fmnist-mixture-of-experts-pytorch/notebook.ipynb`
+  - `notebooks/clustering-iris-kmeans-vs-ae-pytorch/notebook.ipynb`
+  - `notebooks/link_prediction-karate-graphsage-pyg/notebook.ipynb`
+  - `notebooks/community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb`
+  - `notebooks/text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb`
+  - `notebooks/sentiment_classification-vader-mlp-pytorch/notebook.ipynb`
+  - `notebooks/preference_alignment-toy-dpo-pytorch/notebook.ipynb`
+  - `notebooks/self_supervised-fmnist-jepa-pytorch/notebook.ipynb`
 - **Tier-B** (`make smoke-tier-b`; CI runs on weekly cron, `workflow_dispatch`, or PRs labeled `tier-b-smoke`; passes `-p SMOKE_TEST 1` and writes to /tmp; the parameterized mnist-pytorch notebook shrinks its sweep, and the 4 phase2 reddit notebooks run smoke-truncated epochs/subsets, with notebook4 also reducing fanout):
-  - `image_classification-mnist-ffnn-pytorch/notebook.ipynb` (full `[9 hidden_dims × 2 dropouts × 500 epochs]` sweep — `~17 min macOS / >90 min Linux`; moved out of Tier-A per [issue #7](https://github.com/thekaveh/ml-lab/issues/7))
-  - `node_classification-reddit-gnn-pyg/phase2-model-selection-notebook{1,2,3,4}.ipynb`
-- **Manual-only** (excluded from Tier-A/B/C; cannot run in ml-lab's pinned environment):
-  - `quantization-mnist-ffnn-pytorch/notebook.ipynb` (torchao ≥ 0.9.0 — the earliest version with `Int8WeightOnlyConfig` — references `torch.int1` at import time, which requires `torch ≥ 2.5`; ml-lab pins `torch==2.4.1` for genai-vanilla image-parity. Was Tier-A until 2026-06-02 (#10), Tier-B until 2026-06-16 (`Makefile` TIER_B header comment explains the cron-failure-driven removal). Run locally under `torch>=2.5` + `torchao>=0.17`.)
+  - `notebooks/image_classification-mnist-ffnn-pytorch/notebook.ipynb` (full `[9 hidden_dims × 2 dropouts × 500 epochs]` sweep — `~17 min macOS / >90 min Linux`; moved out of Tier-A per [issue #7](https://github.com/thekaveh/ml-eng-lab/issues/7))
+  - `notebooks/node_classification-reddit-gnn-pyg/phase2-model-selection-notebook{1,2,3,4}.ipynb`
+- **Manual-only** (excluded from Tier-A/B/C; cannot run in ml-eng-lab's pinned environment):
+  - `notebooks/quantization-mnist-ffnn-pytorch/notebook.ipynb` (torchao ≥ 0.9.0 — the earliest version with `Int8WeightOnlyConfig` — references `torch.int1` at import time, which requires `torch ≥ 2.5`; ml-eng-lab pins `torch==2.4.1` for genai-vanilla image-parity. Was Tier-A until 2026-06-02 (#10), Tier-B until 2026-06-16 (`Makefile` TIER_B header comment explains the cron-failure-driven removal). Run locally under `torch>=2.5` + `torchao>=0.17`.)
 - **Tier-C** (`make smoke-tier-c`; CI runs on weekly cron or `workflow_dispatch`; writes to /tmp):
-  - `node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook{,2,3,4}.ipynb`
+  - `notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook{,2,3,4}.ipynb`

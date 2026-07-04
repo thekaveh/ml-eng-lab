@@ -1,5 +1,5 @@
 # Root pyproject.toml — for ruff configuration only.
-# The ml-lab repo is NOT pip-installable as a package itself. Each task folder
+# The ml-eng-lab repo is NOT pip-installable as a package itself. Each task folder
 # is a self-contained set of notebooks; library code lives in `thekaveh-nnx`,
 # installed from PyPI via requirements.txt (as of 2026-06-14 PyPI migration).
 
@@ -7,7 +7,7 @@
 line-length = 120
 target-version = "py311"
 exclude = [
-    "archive/",                             # preserved as-is
+    "notebooks/archive/",                   # preserved as-is
     ".venv/",
     "vendor/",
 ]
@@ -25,4 +25,4 @@ ignore = [
 # E5 code-cell source-equality gate (scripts/verify_repo.py:_phase3_code_cells_unchanged).
 # Auto-fixing F401/F541/F811 in these would trip the gate, so suppress those
 # rules here only. E/W rules still apply.
-"node_classification-reddit-gnn-pyg/phase3-*.ipynb" = ["F401", "F541", "F811"]
+"notebooks/node_classification-reddit-gnn-pyg/phase3-*.ipynb" = ["F401", "F541", "F811"]

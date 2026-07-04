@@ -1,16 +1,16 @@
 # JupyterHub integration
 
-The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), that image natively ships the ml-lab dependency set:
+The recommended runtime for these notebooks is the `jupyterhub` service in the [`genai-vanilla`](https://github.com/thekaveh/genai-vanilla) stack. As of genai-vanilla `cbad341` (PR #26, 2026-06-02), that image natively ships the ml-eng-lab dependency set:
 
 - `python-louvain`, `nltk`, `spacy`, `torchao`, `prettytable`
 - The `en_core_web_sm` spaCy model + the `vader_lexicon` NLTK corpus, downloaded at image-build time
-- nnx — the image's pip layer currently installs the now-defunct `nnx-pytorch[lm]` distribution name. ml-lab switched to the PyPI-stable `thekaveh-nnx[lm]==0.2.0` on 2026-06-14; the genai-vanilla image needs a coordinated upstream bump (see §6 failure mode and the 2026-06-14 entry in `CHANGELOG.md`).
+- nnx — the image's pip layer currently installs the now-defunct `nnx-pytorch[lm]` distribution name. ml-eng-lab switched to the PyPI-stable `thekaveh-nnx[lm]==0.2.0` on 2026-06-14; the genai-vanilla image needs a coordinated upstream bump (see §6 failure mode and the 2026-06-14 entry in `CHANGELOG.md`).
 
 For most workflows you do NOT need this repo's wrapper script or override file — just start the standalone stack and connect from VS Code.
 
 ## 1. Default path: standalone genai-vanilla + VS Code Mode 2
 
-This is the recommended path for **most tier-covered ml-lab notebooks** — the exception being the from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access, and needs the §2 path). The quantization notebook is still manual-only under `torch>=2.5` + `torchao>=0.17`. Until the genai-vanilla image bumps its baked `nnx-pytorch` name to `thekaveh-nnx[lm]==0.2.0`, the standalone path also requires a per-session manual fix (`docker exec ... pip install thekaveh-nnx[lm]==0.2.0` inside the running jupyterhub container) for notebooks that import `nnx`.
+This is the recommended path for **most tier-covered ml-eng-lab notebooks** — the exception being the from-scratch `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb` (which imports sibling `.py` modules from its own folder, requiring filesystem access, and needs the §2 path). The quantization notebook is still manual-only under `torch>=2.5` + `torchao>=0.17`. Until the genai-vanilla image bumps its baked `nnx-pytorch` name to `thekaveh-nnx[lm]==0.2.0`, the standalone path also requires a per-session manual fix (`docker exec ... pip install thekaveh-nnx[lm]==0.2.0` inside the running jupyterhub container) for notebooks that import `nnx`.
 
 1. Bring the stack up from a standalone clone of genai-vanilla:
 
@@ -19,7 +19,7 @@ This is the recommended path for **most tier-covered ml-lab notebooks** — the 
     ./start.sh
     ```
 
-2. Open any ml-lab notebook locally in VS Code (it stays on your host filesystem).
+2. Open any ml-eng-lab notebook locally in VS Code (it stays on your host filesystem).
 
 3. Point VS Code at the remote kernel — see [vscode-remote-access.md Mode 2](vscode-remote-access.md#2-mode-2-connect-to-remote-jupyter-server-default).
 
@@ -32,15 +32,15 @@ What this path does NOT give you: notebook code that does `pd.read_csv("./data/f
 Use this when you want any of:
 
 - Datasets and `runs/` checkpoints to land on your host filesystem (visible in `git status`, survives `docker compose down -v`).
-- The from-scratch `image_classification-mnist-ffnn-numpy/notebook.ipynb` notebook to work (it imports sibling `.py` modules from its own folder).
+- The from-scratch `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb` notebook to work (it imports sibling `.py` modules from its own folder).
 - A development workflow where you `git commit` notebook edits + dataset downloads from inside the container.
 
-This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla) and ships a wrapper script that layers an ml-lab override onto the standalone compose:
+This repo vendors a snapshot of genai-vanilla as a git submodule at [`vendor/genai-vanilla`](../vendor/genai-vanilla) and ships a wrapper script that layers an ml-eng-lab override onto the standalone compose:
 
 ### 2.1. Clone with submodules
 
 ```bash
-git clone --recurse-submodules https://github.com/thekaveh/ml-lab.git
+git clone --recurse-submodules https://github.com/thekaveh/ml-eng-lab.git
 # Or, if already cloned:
 git submodule update --init --recursive
 ```
@@ -51,7 +51,7 @@ git submodule update --init --recursive
 scripts/start-jupyterhub.sh
 ```
 
-The wrapper sets `ML_REPO_PATH` (the ml-lab repo root), exports `COMPOSE_FILE` to layer [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml) onto genai-vanilla's base compose, and execs the submodule's `./start.sh`. The override bind-mounts `${ML_REPO_PATH}:/home/jovyan/work/ml-lab`, so from the running container's perspective, the repo is at `/home/jovyan/work/ml-lab/`.
+The wrapper sets `ML_REPO_PATH` (the ml-eng-lab repo root), exports `COMPOSE_FILE` to layer [`deploy/genai-vanilla-jupyterhub.override.yml`](../deploy/genai-vanilla-jupyterhub.override.yml) onto genai-vanilla's base compose, and execs the submodule's `./start.sh`. The override bind-mounts `${ML_REPO_PATH}:/home/jovyan/work/ml-eng-lab`, so from the running container's perspective, the repo is at `/home/jovyan/work/ml-eng-lab/`.
 
 By default, the wrapper mounts an empty ignored directory at `/home/jovyan/.ssh`; host SSH keys are not exposed to notebook code. To opt into a read-only SSH-key mount for `git push`, set `HOST_SSH_DIR` explicitly:
 
@@ -61,7 +61,7 @@ HOST_SSH_DIR=/path/to/keys scripts/start-jupyterhub.sh
 
 ## 3. nnx development: editable install override
 
-If you're hacking on `nnx` itself (editing source on your host and wanting changes to land in the running kernel without a `pip install` cycle), clone [`thekaveh/NNx`](https://github.com/thekaveh/NNx) anywhere outside the ml-lab tree, then bind-mount your clone into the running container alongside ml-lab (extend `deploy/genai-vanilla-jupyterhub.override.yml` with a second volume) and:
+If you're hacking on `nnx` itself (editing source on your host and wanting changes to land in the running kernel without a `pip install` cycle), clone [`thekaveh/NNx`](https://github.com/thekaveh/NNx) anywhere outside the ml-eng-lab tree, then bind-mount your clone into the running container alongside ml-eng-lab (extend `deploy/genai-vanilla-jupyterhub.override.yml` with a second volume) and:
 
 ```bash
 docker exec -it <project>-jupyterhub pip install -e /home/jovyan/work/NNx[lm]
@@ -80,14 +80,14 @@ git checkout main
 git pull origin main
 cd ../..
 git add vendor/genai-vanilla
-git commit -m "ml-lab: bump genai-vanilla submodule to <new-sha>"
+git commit -m "ml-eng-lab: bump genai-vanilla submodule to <new-sha>"
 ```
 
 The submodule pin matters for the §2 path; the §1 path uses your standalone genai-vanilla checkout and is independent of the submodule.
 
 ## 5. Tested against
 
-genai-vanilla `cbad341` (PR #26, 2026-06-02) or later — the first commit where the ml-lab dep set is baked into the jupyterhub image.
+genai-vanilla `cbad341` (PR #26, 2026-06-02) or later — the first commit where the ml-eng-lab dep set is baked into the jupyterhub image.
 
 ## 6. Common failure modes
 

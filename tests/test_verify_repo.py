@@ -8,7 +8,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "verify_repo.py"
-ACTIVE_FIXTURE_DIR = "image_classification-mnist-ffnn-numpy"
+ACTIVE_FIXTURE_DIR = "notebooks/image_classification-mnist-ffnn-numpy"
 
 
 def run_verify(*args: str) -> subprocess.CompletedProcess:
@@ -478,11 +478,11 @@ def test_required_sections_loaded_from_yaml_config():
         import verify_repo
         assert isinstance(verify_repo.REQUIRED_SECTIONS, dict)
         for d in verify_repo.ACTIVE_TASK_DIRS:
-            assert any(k.startswith(d) for k in verify_repo.REQUIRED_SECTIONS), (
+            assert any(k.startswith(f"notebooks/{d}/") for k in verify_repo.REQUIRED_SECTIONS), (
                 f"no entries for {d}"
             )
         phase1 = verify_repo.REQUIRED_SECTIONS.get(
-            "node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb"
+            "notebooks/node_classification-reddit-gnn-pyg/phase1-dataset-exploration-notebook.ipynb"
         )
         assert phase1 is not None
         assert "4. Model" not in phase1
@@ -541,6 +541,42 @@ def _load_verify_module():
     sys.modules["verify_repo"] = mod
     spec.loader.exec_module(mod)
     return mod
+
+
+def test_iter_notebooks_reads_active_tasks_under_notebooks(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    active = tmp_path / "notebooks" / "task-a"
+    archive = tmp_path / "notebooks" / "archive" / "old-task"
+    old_root = tmp_path / "task-a"
+    active.mkdir(parents=True)
+    archive.mkdir(parents=True)
+    old_root.mkdir()
+
+    (active / "notebook.ipynb").write_text("{}", encoding="utf-8")
+    (archive / "notebook.ipynb").write_text("{}", encoding="utf-8")
+    (old_root / "notebook.ipynb").write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ("task-a",))
+
+    found = [str(p.relative_to(tmp_path)) for p in verify_repo._iter_notebooks(tmp_path)]
+
+    assert found == ["notebooks/task-a/notebook.ipynb"]
+
+
+def test_baseline_notebook_rel_removes_notebooks_prefix():
+    verify_repo = _load_verify_module()
+    baseline_rel = "/".join([
+        "node_classification-reddit-gnn-pyg",
+        "phase3-main-model-training-and-eval-notebook.ipynb",
+    ])
+
+    assert (
+        verify_repo._baseline_notebook_rel(
+            "notebooks/node_classification-reddit-gnn-pyg/phase3-main-model-training-and-eval-notebook.ipynb"
+        )
+        == baseline_rel
+    )
+    assert verify_repo._baseline_notebook_rel("legacy/notebook.ipynb") == "legacy/notebook.ipynb"
 
 
 def test_assignment_names_ignore_comments_and_strings():

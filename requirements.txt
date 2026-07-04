@@ -9,12 +9,12 @@ matplotlib
 seaborn
 networkx
 scikit-learn
-spacy  # direct: text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb (en_core_web_sm tokenizer)
-python-louvain  # direct: community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb (community.best_partition)
-tqdm  # direct: image_classification-mnist-ffnn-numpy/feed_fwd_nn.py training-loop progress bar
+spacy  # direct: notebooks/text_classification-agnews-spacy-mlp-pytorch/notebook.ipynb (en_core_web_sm tokenizer)
+python-louvain  # direct: notebooks/community_detection-karate-louvain-vs-gnn-pyg/notebook.ipynb (community.best_partition)
+tqdm  # direct: notebooks/image_classification-mnist-ffnn-numpy/feed_fwd_nn.py training-loop progress bar
 nbformat  # direct: scripts/{verify_repo,edit_notebook_markdown,inject_smoke_test_cell}.py + tests/
-nltk>=3.9.3   # direct: sentiment_classification-vader-mlp-pytorch/notebook.ipynb (SentimentIntensityAnalyzer)
-torchao>=0.17  # direct: quantization-mnist-ffnn-pytorch/notebook.ipynb (nnx.quantize_int8 + qat_train_step_factory)
+nltk>=3.9.3   # direct: notebooks/sentiment_classification-vader-mlp-pytorch/notebook.ipynb (SentimentIntensityAnalyzer)
+torchao>=0.17  # direct: notebooks/quantization-mnist-ffnn-pytorch/notebook.ipynb (nnx.quantize_int8 + qat_train_step_factory)
 pyyaml  # direct: scripts/verify_repo.py loads scripts/verify_repo_config.yaml via yaml.safe_load
 
 # NNx — PyTorch toolkit consumed via PyPI as of 2026-06-14 (thekaveh-nnx v0.2.0).

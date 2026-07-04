@@ -62,7 +62,7 @@ def _visutils_only_methods() -> set[str]:
 
 
 def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
-    """Every git-tracked notebook except the archived codexglue set + checkpoints."""
+    """Every git-tracked active notebook under notebooks/, excluding archive + checkpoints."""
     tracked = subprocess.run(
         ["git", "ls-files", "--", "*.ipynb"],
         cwd=repo_root,
@@ -73,7 +73,8 @@ def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
     return sorted(
         repo_root / rel
         for rel in tracked
-        if not rel.startswith("archive/")
+        if rel.startswith("notebooks/")
+        and not rel.startswith("notebooks/archive/")
         and ".ipynb_checkpoints" not in Path(rel).parts
     )
 
@@ -171,11 +172,12 @@ def test_active_notebooks_discovered():
 
 def test_active_notebooks_uses_git_tracked_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Untracked scratch notebooks on disk must not affect the static surface scans."""
-    tracked_nb = tmp_path / "task" / "notebook.ipynb"
-    archive_nb = tmp_path / "archive" / "old.ipynb"
-    checkpoint_nb = tmp_path / "task" / ".ipynb_checkpoints" / "scratch.ipynb"
-    untracked_nb = tmp_path / "task" / "scratch.ipynb"
-    for path in (tracked_nb, archive_nb, checkpoint_nb, untracked_nb):
+    tracked_nb = tmp_path / "notebooks" / "task" / "notebook.ipynb"
+    archive_nb = tmp_path / "notebooks" / "archive" / "old.ipynb"
+    checkpoint_nb = tmp_path / "notebooks" / "task" / ".ipynb_checkpoints" / "scratch.ipynb"
+    old_root_nb = tmp_path / "task" / "notebook.ipynb"
+    untracked_nb = tmp_path / "notebooks" / "task" / "scratch.ipynb"
+    for path in (tracked_nb, archive_nb, checkpoint_nb, old_root_nb, untracked_nb):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{}", encoding="utf-8")
 
@@ -186,9 +188,10 @@ def test_active_notebooks_uses_git_tracked_files(tmp_path: Path, monkeypatch: py
         assert text is True
         assert check is True
         stdout = "\n".join([
+            "notebooks/task/notebook.ipynb",
+            "notebooks/archive/old.ipynb",
+            "notebooks/task/.ipynb_checkpoints/scratch.ipynb",
             "task/notebook.ipynb",
-            "archive/old.ipynb",
-            "task/.ipynb_checkpoints/scratch.ipynb",
         ])
         return subprocess.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
 

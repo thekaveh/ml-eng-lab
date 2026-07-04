@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Start genai-vanilla (vendored at vendor/genai-vanilla, pinned to main)
-# with the ml-lab integration override layered on top.
+# with the ml-eng-lab integration override layered on top.
 #
 # Usage:
 #   scripts/start-jupyterhub.sh           # no host SSH keys mounted by default

@@ -1,12 +1,12 @@
-# Docker Compose override for ml-lab integration with genai-vanilla.
+# Docker Compose override for ml-eng-lab integration with genai-vanilla.
 #
-# This file lives in the ml-lab repo. It is NOT auto-discovered by Docker
+# This file lives in the ml-eng-lab repo. It is NOT auto-discovered by Docker
 # Compose. Use `scripts/start-jupyterhub.sh` which sets the required
 # env vars and layers this file onto genai-vanilla's base compose
 # (the submodule at vendor/genai-vanilla, pinned to main).
 #
 # Required env vars:
-#   ML_REPO_PATH    absolute path to the ml-lab repo root
+#   ML_REPO_PATH    absolute path to the ml-eng-lab repo root
 #   ML_SSH_MOUNT_DIR absolute path mounted at /home/jovyan/.ssh
 #                    (wrapper defaults to an empty ignored dir; set HOST_SSH_DIR
 #                    explicitly to opt into mounting host SSH keys)
@@ -14,5 +14,5 @@
 services:
   jupyterhub:
     volumes:
-      - ${ML_REPO_PATH}:/home/jovyan/work/ml-lab
+      - ${ML_REPO_PATH}:/home/jovyan/work/ml-eng-lab
       - ${ML_SSH_MOUNT_DIR}:/home/jovyan/.ssh:ro

@@ -6,7 +6,7 @@ Move every experiment notebook into a dedicated top-level `notebooks/` tree, mak
 `notebooks/<experiment>/` directory the canonical runnable home for that experiment. Active
 experiments, archived CodeXGLUE experiments, per-experiment READMEs, local helper code, and
 runtime artifact directories move together so notebooks remain rerunnable from their new
-locations. In the same migration, rename the repository identity from `ml-lab` to
+locations. In the same migration, rename the repository identity from `ml-eng-lab` to
 `ml-eng-lab` across live documentation, tooling, container names, GitHub URLs, nbviewer URLs,
 and runtime path examples.
 
@@ -22,7 +22,7 @@ and runtime path examples.
   `.gitignore`) with their archived experiments.
 - Update all tooling, tests, CI paths, verifier rules, documentation links, nbviewer links,
   and notebook markdown links to the new paths.
-- Update live references from `ml-lab` to `ml-eng-lab`, including GitHub repository URLs,
+- Update live references from `ml-eng-lab` to `ml-eng-lab`, including GitHub repository URLs,
   nbviewer URLs, Docker image tags, Codespaces paths, container bind-mount paths, examples,
   and prose that describes the current repository.
 - Leave the repository with passing verification or clearly document any environment-limited
@@ -37,7 +37,7 @@ and runtime path examples.
 - Do not preserve compatibility with old notebook paths beyond updated documentation and git
   history.
 - Do not rewrite historical changelog entries or preserved notebook outputs merely because
-  they mention `ml-lab`; only update them when the text is current guidance, a live link, or
+  they mention `ml-eng-lab`; only update them when the text is current guidance, a live link, or
   an active path contract.
 - Do not introduce a new package layout for shared ML code; `thekaveh-nnx` remains the shared
   library dependency.
@@ -47,7 +47,7 @@ and runtime path examples.
 Active experiment directories move from the repository root to `notebooks/`:
 
 ```text
-image_classification-mnist-ffnn-numpy/
+notebooks/image_classification-mnist-ffnn-numpy/
   README.md
   notebook.ipynb
   *.py
@@ -79,7 +79,7 @@ notebooks/<task>/
 Archived CodeXGLUE experiments move under `notebooks/archive/`:
 
 ```text
-archive/codexglue_summarization/<experiment>/
+notebooks/archive/codexglue_summarization/<experiment>/
   notebook.ipynb
   src/         # tracked for some experiments
   model/       # tracked result artifacts for some experiments
@@ -158,7 +158,7 @@ are not advertised:
   - Update new-task scaffolding instructions.
   - Update nbviewer examples.
   - Update verifier and Makefile registration instructions.
-  - Update current-repo prose from `ml-lab` to `ml-eng-lab`.
+  - Update current-repo prose from `ml-eng-lab` to `ml-eng-lab`.
 - Per-experiment `README.md` files
   - Update links to notebooks and docs after the README moves under `notebooks/<task>/`.
   - Update nbviewer URLs to include `notebooks/`.
@@ -166,7 +166,7 @@ are not advertised:
   - Update relative links to root docs, usually from `../docs/...` to `../../docs/...`.
 - `docs/*.md`
   - Update runtime, environment, VS Code, JupyterHub, dependency, and findings references to
-    old notebook paths and live `ml-lab` repository paths.
+    old notebook paths and live `ml-eng-lab` repository paths.
 - `CHANGELOG.md`
   - Add a new unreleased entry describing the notebook move and repo rename.
   - Historical entries may remain historically accurate unless they contain live guidance,
@@ -176,19 +176,19 @@ are not advertised:
 
 ## 8. Repository Rename Handling
 
-Treat the repo rename from `ml-lab` to `ml-eng-lab` as part of the same implementation:
+Treat the repo rename from `ml-eng-lab` to `ml-eng-lab` as part of the same implementation:
 
-- Update current repository branding and prose from `ml-lab` to `ml-eng-lab`.
-- Update GitHub URLs from `github.com/thekaveh/ml-lab` to
+- Update current repository branding and prose from `ml-eng-lab` to `ml-eng-lab`.
+- Update GitHub URLs from `github.com/thekaveh/ml-eng-lab` to
   `github.com/thekaveh/ml-eng-lab`.
-- Update nbviewer URLs from `nbviewer.org/github/thekaveh/ml-lab/...` to
+- Update nbviewer URLs from `nbviewer.org/github/thekaveh/ml-eng-lab/...` to
   `nbviewer.org/github/thekaveh/ml-eng-lab/...`, while also inserting the new
   `notebooks/` path segment for moved notebooks.
-- Update Codespaces path examples from `/workspaces/ml-lab` to
+- Update Codespaces path examples from `/workspaces/ml-eng-lab` to
   `/workspaces/ml-eng-lab`.
-- Update JupyterHub and Docker bind-mount examples from `/home/jovyan/work/ml-lab` to
+- Update JupyterHub and Docker bind-mount examples from `/home/jovyan/work/ml-eng-lab` to
   `/home/jovyan/work/ml-eng-lab`.
-- Update Docker tags such as `ml-lab` and `ml-lab-ci` to `ml-eng-lab` and
+- Update Docker tags such as `ml-eng-lab` and `ml-eng-lab-ci` to `ml-eng-lab` and
   `ml-eng-lab-ci`.
 - Update scripts and deploy comments or variables only when they encode user-facing
   names, paths, or container-visible mount points. Keep generic variable names such as
@@ -236,8 +236,8 @@ limitation is explicitly reported:
 8. Focused stale-path scans for old active and archive notebook locations
 9. Focused notebook parse checks for all moved notebooks
 10. Targeted papermill smoke checks where feasible without replaying the full expensive fleet
-11. Focused stale-reference scans for live `ml-lab`, `thekaveh/ml-lab`,
-    `/workspaces/ml-lab`, `/home/jovyan/work/ml-lab`, and `nbviewer` references
+11. Focused stale-reference scans for live `ml-eng-lab`, `thekaveh/ml-eng-lab`,
+    `/workspaces/ml-eng-lab`, `/home/jovyan/work/ml-eng-lab`, and `nbviewer` references
 
 ## 11. Risks And Mitigations
 
@@ -275,6 +275,6 @@ limitation is explicitly reported:
   Docker tags, Codespaces examples, and JupyterHub bind-mount examples.
 - Stale scans find no live references to old notebook paths except historical changelog or
   preserved output contexts that are intentionally documented.
-- Stale scans find no live references to `ml-lab` except historical changelog, findings, or
+- Stale scans find no live references to `ml-eng-lab` except historical changelog, findings, or
   preserved output contexts that are intentionally documented.
 - Required verification commands pass or have explicit environment-limited exceptions.

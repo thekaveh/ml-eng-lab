@@ -55,8 +55,10 @@ if not _active_task_dirs_raw:
             "verify_repo_config.yaml is missing the required 'active_task_dirs' key."
         )
 ACTIVE_TASK_DIRS = tuple(_active_task_dirs_raw)
+NOTEBOOK_ROOT = Path("notebooks")
+ARCHIVE_NOTEBOOK_ROOT = NOTEBOOK_ROOT / "archive"
 
-VERIFY_ONLY_DIRS = ("archive", "vendor")
+VERIFY_ONLY_DIRS = ("notebooks/archive", "vendor")
 
 
 def _required_sections_from_config() -> dict[str, tuple[str, ...]]:
@@ -222,12 +224,23 @@ def _split_markdown_link_target(target: str) -> tuple[str, str]:
 
 def _iter_notebooks(repo: Path) -> Iterator[Path]:
     for d in ACTIVE_TASK_DIRS:
-        for nb_path in (repo / d).glob("*.ipynb"):
+        for nb_path in _active_task_path(repo, d).glob("*.ipynb"):
             yield nb_path
+
+
+def _active_task_path(repo: Path, task: str) -> Path:
+    return repo / NOTEBOOK_ROOT / task
 
 
 def _notebook_rel(path: Path, repo: Path) -> str:
     return str(path.relative_to(repo))
+
+
+def _baseline_notebook_rel(rel: str) -> str:
+    prefix = f"{NOTEBOOK_ROOT.as_posix()}/"
+    if rel.startswith(prefix):
+        return rel.removeprefix(prefix)
+    return rel
 
 
 def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
@@ -237,7 +250,7 @@ def _iter_in_scope_text_files(repo: Path) -> Iterator[Path]:
     for p in (repo / "docs").glob("*.md"):
         yield p
     for d in ACTIVE_TASK_DIRS:
-        for p in (repo / d).glob("*.md"):
+        for p in _active_task_path(repo, d).glob("*.md"):
             yield p
 
 
@@ -498,7 +511,7 @@ def _iter_numbered_doc_files(repo: Path) -> Iterator[Path]:
     if maintenance_dir.exists():
         yield from sorted(maintenance_dir.glob("*.md"))
     for d in ACTIVE_TASK_DIRS:
-        path = repo / d / "README.md"
+        path = _active_task_path(repo, d) / "README.md"
         if path.exists():
             yield path
 
@@ -661,11 +674,12 @@ def check_docs(repo: Path) -> CheckResult:
             ))
 
     for d in ACTIVE_TASK_DIRS:
-        readme = repo / d / "README.md"
+        readme = _active_task_path(repo, d) / "README.md"
+        readme_rel = f"{NOTEBOOK_ROOT.as_posix()}/{d}/README.md"
         if not readme.exists():
             result.findings.append(Finding(
                 id="D3.missing_readme", check="docs", severity="error",
-                location=f"{d}/README.md", message="per-task README missing",
+                location=readme_rel, message="per-task README missing",
             ))
             continue
         h2s = _markdown_headings(_read_text(readme), level=2)
@@ -673,7 +687,7 @@ def check_docs(repo: Path) -> CheckResult:
         if not ok:
             result.findings.append(Finding(
                 id="D3.missing_sections", check="docs", severity="error",
-                location=f"{d}/README.md",
+                location=readme_rel,
                 message=f"per-task README missing required H2s: {missing}",
                 detail={"found": h2s, "required": list(README_REQUIRED_H2)},
             ))
@@ -694,7 +708,7 @@ def check_docs(repo: Path) -> CheckResult:
         1 for line in root_text.splitlines()
         if line.startswith("| [") and "/](" in line
     )
-    active_count = sum(1 for d in ACTIVE_TASK_DIRS if (repo / d).is_dir())
+    active_count = sum(1 for d in ACTIVE_TASK_DIRS if _active_task_path(repo, d).is_dir())
     if table_rows < active_count:
         result.findings.append(Finding(
             id="D5.task_table_mismatch", check="docs", severity="error",
@@ -811,7 +825,7 @@ def _iter_in_scope_code(repo: Path):
             continue
         yield p, _read_text(p)
     for d in ACTIVE_TASK_DIRS:
-        for p in (repo / d).glob("*.py"):
+        for p in _active_task_path(repo, d).glob("*.py"):
             yield p, _read_text(p)
     for nb in _iter_notebooks(repo):
         try:
@@ -1067,24 +1081,26 @@ def _phase3_code_cells_unchanged(repo: Path) -> list[Finding]:
             message="pre-cleanup-baseline tag missing; E5 not enforceable",
         ))
         return findings
-    phase3 = list((repo / "node_classification-reddit-gnn-pyg").glob("phase3-*.ipynb"))
+    phase3 = list(_active_task_path(repo, "node_classification-reddit-gnn-pyg").glob("phase3-*.ipynb"))
     for nb in phase3:
+        rel = str(nb.relative_to(repo))
+        baseline_rel = _baseline_notebook_rel(rel)
         try:
             head_doc = nbformat.read(nb, as_version=4)
         except Exception as e:
             findings.append(Finding(
                 id="E5.head_parse_failed", check="execution", severity="error",
-                location=str(nb.relative_to(repo)),
+                location=rel,
                 message=f"HEAD notebook unparseable: {e}",
             ))
             continue
         rc, raw, err = _run(
-            ["git", "show", f"pre-cleanup-baseline:{nb.relative_to(repo)}"], repo,
+            ["git", "show", f"pre-cleanup-baseline:{baseline_rel}"], repo,
         )
         if rc != 0:
             findings.append(Finding(
                 id="E5.baseline_read_failed", check="execution", severity="error",
-                location=str(nb.relative_to(repo)),
+                location=rel,
                 message=f"could not read baseline: {err.strip()[:120]}",
             ))
             continue
@@ -1093,7 +1109,7 @@ def _phase3_code_cells_unchanged(repo: Path) -> list[Finding]:
         except Exception as e:
             findings.append(Finding(
                 id="E5.baseline_parse_failed", check="execution", severity="error",
-                location=str(nb.relative_to(repo)),
+                location=rel,
                 message=f"baseline notebook unparseable: {e}",
             ))
             continue
@@ -1102,7 +1118,7 @@ def _phase3_code_cells_unchanged(repo: Path) -> list[Finding]:
         if head_codes != base_codes:
             findings.append(Finding(
                 id="E5.code_cells_changed", check="execution", severity="error",
-                location=str(nb.relative_to(repo)),
+                location=rel,
                 message="Tier-C code cells diverged from baseline",
                 detail={"head_count": len(head_codes), "base_count": len(base_codes)},
             ))

@@ -2,7 +2,7 @@
 """Rewrite `from common.X` → `from nnx.X` in Jupyter notebooks.
 
 Handles both modern (`from common.nn.X`) and old-style flat (`from common.X`)
-imports. Used once during the ml-lab revival to migrate notebooks to the new
+imports. Used once during the ml-eng-lab revival to migrate notebooks to the new
 NNx submodule package layout. Idempotent: re-running on already-rewritten
 notebooks is a no-op.
 
