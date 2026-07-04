@@ -62,9 +62,8 @@ def _visutils_only_methods() -> set[str]:
     return _public_attrs(VisUtils) - _public_attrs(Utils)
 
 
-def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
-    """Every git-tracked active notebook under notebooks/, excluding archive + checkpoints."""
-    tracked = subprocess.run(
+def _tracked_ipynb_files(repo_root: Path = REPO_ROOT) -> list[str]:
+    return subprocess.run(
         ["git", "ls-files", "--", "*.ipynb"],
         cwd=repo_root,
         capture_output=True,
@@ -72,6 +71,11 @@ def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
         check=True,
         timeout=TEST_SUBPROCESS_TIMEOUT,
     ).stdout.splitlines()
+
+
+def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
+    """Every git-tracked active notebook under notebooks/, excluding archive + checkpoints."""
+    tracked = _tracked_ipynb_files(repo_root)
     return sorted(
         repo_root / rel
         for rel in tracked
@@ -82,8 +86,15 @@ def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
 
 
 def _archive_cross_language_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
-    archive_root = repo_root / "notebooks" / "archive" / "codexglue_summarization"
-    return sorted(archive_root.glob("codexglue-summarization-cross-*/notebook.ipynb"))
+    tracked = _tracked_ipynb_files(repo_root)
+    prefix = "notebooks/archive/codexglue_summarization/codexglue-summarization-cross-"
+    return sorted(repo_root / rel for rel in tracked if rel.startswith(prefix))
+
+
+def _archive_roberta_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
+    tracked = _tracked_ipynb_files(repo_root)
+    prefix = "notebooks/archive/codexglue_summarization/codexglue-summarization-roberta-"
+    return sorted(repo_root / rel for rel in tracked if rel.startswith(prefix))
 
 
 def _code_cells(nb: dict) -> list[dict]:
@@ -208,14 +219,46 @@ def test_active_notebooks_uses_git_tracked_files(tmp_path: Path, monkeypatch: py
     assert _active_notebooks(tmp_path) == [tracked_nb]
 
 
+def test_archive_notebook_guards_use_git_tracked_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Untracked archive scratch notebooks must not affect archive guard scans."""
+    cross_nb = tmp_path / "notebooks/archive/codexglue_summarization/codexglue-summarization-cross-java-on-go/notebook.ipynb"
+    roberta_nb = tmp_path / "notebooks/archive/codexglue_summarization/codexglue-summarization-roberta-codebert-java/notebook.ipynb"
+    untracked_cross = tmp_path / "notebooks/archive/codexglue_summarization/codexglue-summarization-cross-scratch/notebook.ipynb"
+    untracked_roberta = tmp_path / "notebooks/archive/codexglue_summarization/codexglue-summarization-roberta-scratch/notebook.ipynb"
+    for path in (cross_nb, roberta_nb, untracked_cross, untracked_roberta):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+
+    def fake_run(cmd, cwd, capture_output, text, check, timeout):
+        assert cmd == ["git", "ls-files", "--", "*.ipynb"]
+        assert cwd == tmp_path
+        assert capture_output is True
+        assert text is True
+        assert check is True
+        assert timeout == TEST_SUBPROCESS_TIMEOUT
+        stdout = "\n".join([
+            "notebooks/archive/codexglue_summarization/codexglue-summarization-cross-java-on-go/notebook.ipynb",
+            "notebooks/archive/codexglue_summarization/codexglue-summarization-roberta-codebert-java/notebook.ipynb",
+        ])
+        return subprocess.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert _archive_cross_language_notebooks(tmp_path) == [cross_nb]
+    assert _archive_roberta_notebooks(tmp_path) == [roberta_nb]
+
+
 def test_archive_cross_language_notebooks_guard_missing_model_artifacts():
     """Archived CodeXGLUE transfer notebooks should rerun as references even
     when historical model outputs are absent from the archive snapshot."""
     notebooks = _archive_cross_language_notebooks()
     assert len(notebooks) == 10
     required_fragments = (
+        "ARCHIVE_SUBPROCESS_TIMEOUT_SECONDS = 6 * 60 * 60",
         "if not os.path.exists(run_py_path):",
         "elif not os.path.exists(checkpoint_path):",
+        "elif not os.path.exists(test_filename_path):",
+        "timeout=ARCHIVE_SUBPROCESS_TIMEOUT_SECONDS",
         "if not os.path.exists(bleu_score_path):",
         "if not os.path.exists(_gold_path):",
         "if not os.path.exists(_output_path):",
@@ -225,6 +268,30 @@ def test_archive_cross_language_notebooks_guard_missing_model_artifacts():
         source = "\n".join("".join(_source_lines(cell)) for cell in _code_cells(nb))
         missing = [fragment for fragment in required_fragments if fragment not in source]
         assert not missing, f"{path.relative_to(REPO_ROOT)} missing archive guards: {missing}"
+
+
+def test_archive_roberta_notebooks_require_explicit_rerun_opt_in():
+    """Archived RoBERTa CodeXGLUE notebooks should preserve historical model
+    artifacts by default and only clone/download/train/test when explicitly enabled."""
+    notebooks = _archive_roberta_notebooks()
+    assert len(notebooks) == 12
+    required_fragments = (
+        "ARCHIVE_RERUN_ENABLED = False",
+        "ARCHIVE_SUBPROCESS_TIMEOUT_SECONDS = 6 * 60 * 60",
+        "if ARCHIVE_RERUN_ENABLED and os.path.exists(path=os.path.join(model_path)):",
+        "if not ARCHIVE_RERUN_ENABLED:",
+        "elif not os.path.exists(run_py_path):",
+        "timeout=ARCHIVE_SUBPROCESS_TIMEOUT_SECONDS",
+        "if not os.path.exists(_train_losses_path):",
+        "if not os.path.exists(_bleu_score_path):",
+        "if not os.path.exists(_gold_path):",
+        "if not os.path.exists(_output_path):",
+    )
+    for path in notebooks:
+        nb = json.loads(path.read_text(encoding="utf-8"))
+        source = "\n".join("".join(_source_lines(cell)) for cell in _code_cells(nb))
+        missing = [fragment for fragment in required_fragments if fragment not in source]
+        assert not missing, f"{path.relative_to(REPO_ROOT)} missing archive rerun guards: {missing}"
 
 
 @pytest.mark.parametrize("nb_path", _NOTEBOOKS, ids=_IDS)

@@ -92,7 +92,7 @@ def test_finding_shape():
         assert f["severity"] in ("error", "warning")
 
 
-def test_structure_s1_notebooks_parse(tmp_path):
+def test_structure_s1_notebooks_parse():
     r = run_verify("--check", "structure", "--fast")
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
     s1 = [f for f in data["findings"] if f["id"].startswith("S1")]
@@ -926,6 +926,7 @@ def test_run_helper_supplies_default_timeout(monkeypatch):
     seen: dict[str, int | None] = {}
 
     def fake_run(cmd, cwd, capture_output, text, timeout):
+        del cwd, capture_output, text
         seen["timeout"] = timeout
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
