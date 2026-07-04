@@ -1410,6 +1410,17 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
             continue
         papermill_meta = doc.get("metadata", {}).get("papermill") or {}
         output_path = str(papermill_meta.get("output_path", ""))
+        if papermill_meta:
+            result.findings.append(Finding(
+                id="E14.source_papermill_metadata",
+                check="execution",
+                severity="warning",
+                location=rel,
+                message=(
+                    "active source notebook carries top-level papermill metadata; "
+                    "strip generated-run metadata before committing"
+                ),
+            ))
         if output_path.startswith("/tmp/"):
             result.findings.append(Finding(
                 id="E14.tmp_papermill_output_path",

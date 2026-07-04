@@ -9,6 +9,7 @@ import nbformat
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "edit_notebook_markdown.py"
+TEST_SUBPROCESS_TIMEOUT = 30
 
 
 def _make_notebook(path: Path) -> None:
@@ -34,7 +35,7 @@ def test_replace_markdown_preserves_code_cells(tmp_path):
          "--notebook", str(nb_path),
          "--cell", "0",
          "--text", "# New title\nnew intro"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, timeout=TEST_SUBPROCESS_TIMEOUT,
     )
     assert r.returncode == 0, r.stderr
 
@@ -55,7 +56,7 @@ def test_refuses_to_edit_code_cell(tmp_path):
          "--notebook", str(nb_path),
          "--cell", "1",
          "--text", "should-be-rejected"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, timeout=TEST_SUBPROCESS_TIMEOUT,
     )
     assert r.returncode != 0
     assert "code" in (r.stderr + r.stdout).lower()
@@ -69,7 +70,7 @@ def test_insert_markdown_cell_at_index(tmp_path):
          "--notebook", str(nb_path),
          "--insert-at", "1",
          "--text", "## New section"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, timeout=TEST_SUBPROCESS_TIMEOUT,
     )
     assert r.returncode == 0, r.stderr
     doc = nbformat.read(nb_path, as_version=4)

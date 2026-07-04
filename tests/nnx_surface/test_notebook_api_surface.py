@@ -45,6 +45,7 @@ from nnx.vis_utils import VisUtils
 # Repo root resolved from this file (the autouse conftest fixture chdirs tests
 # into a tmp_path, so cwd is NOT the repo root — never rely on it here).
 REPO_ROOT = Path(__file__).resolve().parents[2]
+TEST_SUBPROCESS_TIMEOUT = 30
 
 # Bare `Utils.<attr>` access, excluding the `VisUtils.` suffix-match.
 _UTILS_ATTR_RE = re.compile(r"(?<![A-Za-z0-9_])Utils\.([A-Za-z_]\w*)")
@@ -69,6 +70,7 @@ def _active_notebooks(repo_root: Path = REPO_ROOT) -> list[Path]:
         capture_output=True,
         text=True,
         check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
     ).stdout.splitlines()
     return sorted(
         repo_root / rel
@@ -181,12 +183,13 @@ def test_active_notebooks_uses_git_tracked_files(tmp_path: Path, monkeypatch: py
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{}", encoding="utf-8")
 
-    def fake_run(cmd, cwd, capture_output, text, check):
+    def fake_run(cmd, cwd, capture_output, text, check, timeout):
         assert cmd == ["git", "ls-files", "--", "*.ipynb"]
         assert cwd == tmp_path
         assert capture_output is True
         assert text is True
         assert check is True
+        assert timeout == TEST_SUBPROCESS_TIMEOUT
         stdout = "\n".join([
             "notebooks/task/notebook.ipynb",
             "notebooks/archive/old.ipynb",

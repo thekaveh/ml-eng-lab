@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+TEST_SUBPROCESS_TIMEOUT = 30
+
 
 def _make_notebook(tmp_path: Path, name: str, cells: list[dict]) -> Path:
     """Write a minimal nbformat-4 notebook to disk and return its path."""
@@ -37,6 +39,7 @@ def _run(path: Path) -> None:
         check=True,
         capture_output=True,
         text=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
     )
 
 
@@ -54,6 +57,7 @@ def test_help_exits_zero_and_prints_usage():
         check=False,
         capture_output=True,
         text=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
     )
     assert result.returncode == 0
     assert "Usage:" in result.stdout

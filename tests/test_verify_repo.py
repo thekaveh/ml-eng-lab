@@ -9,6 +9,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "verify_repo.py"
 ACTIVE_FIXTURE_DIR = "notebooks/image_classification-mnist-ffnn-numpy"
+TEST_SUBPROCESS_TIMEOUT = 30
 
 
 def run_verify(*args: str) -> subprocess.CompletedProcess:
@@ -17,12 +18,20 @@ def run_verify(*args: str) -> subprocess.CompletedProcess:
         capture_output=True,
         text=True,
         cwd=REPO,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
     )
 
 
 def _temp_repo(tmp_path: Path) -> Path:
     (tmp_path / ACTIVE_FIXTURE_DIR).mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True, text=True, check=True)
+    subprocess.run(
+        ["git", "init"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
     return tmp_path
 
 
@@ -42,6 +51,7 @@ def test_help_does_not_require_adjacent_config(tmp_path):
         capture_output=True,
         text=True,
         cwd=tmp_path,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
     )
     assert r.returncode == 0, r.stderr
     assert "--check" in r.stdout
@@ -143,7 +153,12 @@ def test_structure_s6_allows_committed_superpowers_specs_and_plans(tmp_path):
     plan.parent.mkdir(parents=True, exist_ok=True)
     spec.write_text("# Design\n", encoding="utf-8")
     plan.write_text("# Plan\n", encoding="utf-8")
-    subprocess.run(["git", "add", "-f", str(spec), str(plan)], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "add", "-f", str(spec), str(plan)],
+        cwd=repo,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
 
     r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
@@ -163,7 +178,12 @@ def test_structure_s6_flags_other_tracked_superpowers_files(tmp_path):
     scratch = repo / "docs" / "superpowers" / "scratch.md"
     scratch.parent.mkdir(parents=True, exist_ok=True)
     scratch.write_text("# Scratch\n", encoding="utf-8")
-    subprocess.run(["git", "add", "-f", str(scratch)], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "add", "-f", str(scratch)],
+        cwd=repo,
+        check=True,
+        timeout=TEST_SUBPROCESS_TIMEOUT,
+    )
 
     r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
     data = json.loads(r.stdout) if r.stdout else {"findings": []}
@@ -673,6 +693,37 @@ def test_e14_flags_tmp_papermill_output_path(tmp_path, monkeypatch):
     result = verify_repo.check_execution(repo, fast=True)
 
     hits = [f for f in result.findings if f.id == "E14.tmp_papermill_output_path"]
+    assert hits
+    assert hits[0].location == str(nb_path.relative_to(repo))
+
+
+def test_e14_flags_source_notebook_papermill_metadata(tmp_path, monkeypatch):
+    verify_repo = _load_verify_module()
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    task = "source-papermill-task"
+    active_dir = repo / "notebooks" / task
+    active_dir.mkdir(parents=True)
+    nb_path = active_dir / "notebook.ipynb"
+
+    nb = nbformat.v4.new_notebook()
+    nb.metadata["papermill"] = {
+        "input_path": "notebook.ipynb",
+        "output_path": str(nb_path.relative_to(repo)),
+    }
+    cell = nbformat.v4.new_code_cell("# parser-friendly comment\nSMOKE_TEST = 0\n")
+    cell.metadata["tags"] = ["parameters"]
+    nb.cells = [cell]
+    nbformat.write(nb, str(nb_path))
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", (task,))
+    monkeypatch.setattr(verify_repo, "REQUIRED_SECTIONS", {str(nb_path.relative_to(repo)): ()})
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    hits = [f for f in result.findings if f.id == "E14.source_papermill_metadata"]
     assert hits
     assert hits[0].location == str(nb_path.relative_to(repo))
 

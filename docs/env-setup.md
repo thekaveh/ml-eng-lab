@@ -4,11 +4,11 @@ Four paths, pick whichever fits the moment.
 
 ## 1. genai-vanilla jupyterhub (recommended)
 
-As of genai-vanilla `cbad341` (PR #26, 2026-06-02), the `jupyterhub` image natively ships the ml-eng-lab dep set — `python-louvain` + `nltk` + `spacy` + `torchao` + `prettytable`, plus the `en_core_web_sm` spaCy model + `vader_lexicon` NLTK corpus baked at image-build time. The image's pip layer currently installs the now-defunct `nnx-pytorch[lm]` distribution name (replaced by `thekaveh-nnx` on PyPI as of 2026-06-14); a coordinated upstream bump is tracked as a follow-up. Two paths, pick by need.
+As of genai-vanilla `0e4e9643` (pinned in `vendor/genai-vanilla`), the `jupyterhub` image natively ships the ml-eng-lab dependency set — `thekaveh-nnx[lm]==0.2.0`, `python-louvain`, `nltk`, `spacy`, `torchao`, and `prettytable` — plus the `en_core_web_sm` spaCy model and `vader_lexicon` NLTK corpus baked at image-build time. Two paths, pick by need.
 
 ### 1.1. Default — standalone genai-vanilla + VS Code Mode 2
 
-Once the genai-vanilla image bumps to `thekaveh-nnx[lm]==0.2.0`, this path covers the tier-covered ml-eng-lab notebooks except the from-scratch `notebooks/image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder and needs the §1.2 wrapper-and-bind-mount path. The quantization notebook remains manual-only under `torch>=2.5` + `torchao>=0.17`. Until then, the path covers the subset of notebooks that don't touch the nnx import surface (limited; mostly the from-scratch numpy task isn't one of them).
+A current genai-vanilla checkout covers the tier-covered ml-eng-lab notebooks except the from-scratch `notebooks/image_classification-mnist-ffnn-numpy/`, which imports sibling `.py` modules from its own folder and needs the §1.2 wrapper-and-bind-mount path. The quantization notebook remains manual-only under `torch>=2.5` + `torchao>=0.17`.
 
 ```bash
 cd ~/repos/genai-vanilla && ./start.sh
