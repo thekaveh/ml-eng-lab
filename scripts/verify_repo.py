@@ -1587,6 +1587,19 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
 
     result.findings.extend(_phase3_code_cells_unchanged(repo))
 
+    for sh in _required_shellcheck_targets(repo):
+        if not sh.exists():
+            result.findings.append(Finding(
+                id="E6.shellcheck_target_missing",
+                check="execution",
+                severity="error",
+                location=str(sh.relative_to(repo)),
+                message=(
+                    "required consumed shellcheck target is missing; "
+                    "initialize submodules or update the consumed contract"
+                ),
+            ))
+
     rc_shellcheck, _, _ = _run(["which", "shellcheck"], repo)
     if rc_shellcheck != 0:
         result.findings.append(Finding(
@@ -1595,18 +1608,6 @@ def check_execution(repo: Path, fast: bool) -> CheckResult:
             message="shellcheck not on PATH; install with `brew install shellcheck`",
         ))
     else:
-        for sh in _required_shellcheck_targets(repo):
-            if not sh.exists():
-                result.findings.append(Finding(
-                    id="E6.shellcheck_target_missing",
-                    check="execution",
-                    severity="error",
-                    location=str(sh.relative_to(repo)),
-                    message=(
-                        "required consumed shellcheck target is missing; "
-                        "initialize submodules or update the consumed contract"
-                    ),
-                ))
         for sh in _shellcheck_targets(repo):
             rc, out, err = _run(["shellcheck", str(sh)], repo)
             if rc != 0:

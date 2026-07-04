@@ -1024,6 +1024,43 @@ def test_e6_flags_missing_required_vendor_shellcheck_targets(tmp_path, monkeypat
     } == {f.location for f in hits}
 
 
+def test_e6_flags_missing_required_vendor_shellcheck_targets_without_shellcheck(
+    tmp_path, monkeypatch
+):
+    verify_repo = _load_verify_module()
+    repo = _temp_repo(tmp_path)
+    scripts = repo / "scripts"
+    scripts.mkdir()
+    (scripts / "start-jupyterhub.sh").write_text("#!/bin/sh\ntrue\n", encoding="utf-8")
+
+    monkeypatch.setattr(verify_repo, "ACTIVE_TASK_DIRS", ())
+    monkeypatch.setattr(verify_repo, "TIER_A_NOTEBOOKS", ())
+    monkeypatch.setattr(verify_repo, "_phase3_code_cells_unchanged", lambda _repo: [])
+
+    def fake_run(cmd, cwd, timeout=None):
+        if cmd == ["which", "shellcheck"]:
+            return 1, "", ""
+        assert not (cmd and cmd[0] == "shellcheck")
+        return 0, "", ""
+
+    monkeypatch.setattr(verify_repo, "_run", fake_run)
+
+    result = verify_repo.check_execution(repo, fast=True)
+
+    missing_binary = [f for f in result.findings if f.id == "E6.shellcheck_missing"]
+    assert len(missing_binary) == 1
+
+    missing_targets = [
+        f for f in result.findings if f.id == "E6.shellcheck_target_missing"
+    ]
+    assert {
+        "vendor/genai-vanilla/start.sh",
+        "vendor/genai-vanilla/stop.sh",
+        "vendor/genai-vanilla/bootstrapper/_run.sh",
+        "vendor/genai-vanilla/services/jupyterhub/build/scripts/startup.sh",
+    } == {f.location for f in missing_targets}
+
+
 def _load_verify_module():
     import importlib.util
     if "verify_repo" in sys.modules:

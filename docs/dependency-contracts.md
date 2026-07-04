@@ -3,7 +3,8 @@
 This ledger records consumed dependency contracts that are intentionally pinned,
 manual-only, or known to carry security/tooling constraints. It complements
 `requirements.txt`, `torch-core-requirements.txt`, `torch-requirements.txt`,
-and the CI workflow; the manifests remain the source of truth for installation.
+`docs-requirements.txt`, and the CI workflow; the manifests remain the source
+of truth for installation.
 
 ## 1. Audit Snapshot
 
@@ -31,6 +32,12 @@ findings are maintenance issues until either fixed or added here with rationale.
 Because several manifest entries are intentionally ranged or floating today,
 the audited resolved versions and advisory IDs below are the accepted state, not
 just the package-level counts.
+
+Documentation-only CI jobs intentionally install `docs-requirements.txt` rather
+than the full ML runtime stack. This keeps MkDocs and GitHub Pages builds from
+resolving Torch, PyG, or NNx dependencies that are unrelated to rendered docs.
+The broader local development manifest still includes `mkdocs-material` so an
+existing full-dev install can run `make docs-build` without a second setup step.
 
 Accepted advisory IDs from the 2026-07-04 audit. `pip-audit` currently emits
 23 feed records; two Torch advisory IDs appear twice from overlapping sources.
