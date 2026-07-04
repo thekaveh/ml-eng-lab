@@ -541,6 +541,16 @@ def check_structure(repo: Path) -> CheckResult:
                         location=f"{nb.relative_to(repo)}:cell[{i}]",
                         message="cell is missing required nbformat v4 id",
                     ))
+            try:
+                nbformat.validate(raw_doc)
+            except Exception as e:
+                result.findings.append(Finding(
+                    id="S1.schema",
+                    check="structure",
+                    severity="error",
+                    location=str(nb.relative_to(repo)),
+                    message=f"notebook schema validation failed: {e}",
+                ))
             doc = nbformat.read(nb, as_version=4)
             for i, c in enumerate(doc.cells):
                 if c.cell_type not in valid_types:

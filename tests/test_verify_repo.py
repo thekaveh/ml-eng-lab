@@ -127,6 +127,34 @@ def test_structure_s1_flags_missing_notebook_cell_id(tmp_path):
     assert hits, f"expected S1.cell_id for {name}; got {data.get('findings')}"
 
 
+def test_structure_s1_flags_invalid_notebook_schema(tmp_path):
+    """Raw notebook schema validation should catch id/minor-version mismatches."""
+    repo = _temp_repo(tmp_path)
+    name = "invalid-schema.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    fake.write_text(json.dumps({
+        "cells": [{
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "abc123",
+            "metadata": {},
+            "outputs": [],
+            "source": "x = 1\n",
+        }],
+        "metadata": {},
+        "nbformat": 4,
+        "nbformat_minor": 2,
+    }))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S1.schema" and name in f["location"]
+    ]
+    assert hits, f"expected S1.schema for invalid notebook schema; got {data.get('findings')}"
+
+
 def test_repo_root_uses_target_repo_config_for_active_dirs(tmp_path):
     """`--repo-root` should verify notebooks listed by that repo's own config."""
     repo = tmp_path

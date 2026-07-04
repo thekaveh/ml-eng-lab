@@ -78,6 +78,13 @@ def test_module_path_rewrite_common_alias_inside_multi_import(tmp_path):
     assert _cell_source(p, 0) == "import os, nnx.utils as common_utils  # migrate this alias\n"
 
 
+def test_module_path_rewrite_from_common_import_utils(tmp_path):
+    src = "from common import utils\n"
+    p = _make_notebook(tmp_path, "from_common_import_utils.ipynb", [_code_cell(src)])
+    _run(p)
+    assert _cell_source(p, 0) == "from nnx import utils\n"
+
+
 def test_idempotent_on_already_rewritten(tmp_path):
     src = "from nnx.nn.nn_model import NNModel\n"
     p = _make_notebook(tmp_path, "ok.ipynb", [_code_cell(src)])
@@ -420,6 +427,19 @@ def test_non_call_param_references_are_rewritten_with_import(tmp_path):
     assert "ParamsClass = NNParams" in src
     assert "is_old = isinstance(params, NNParams)" in src
     compile(src, "<rewritten-cell>", "exec")
+
+
+def test_param_name_references_preserve_binding_positions(tmp_path):
+    src = (
+        "def train(GraphAttNNParams):\n"
+        "    return GraphAttNNParams\n"
+        "GraphConvNNParams = object()\n"
+        "for GraphSageNNParams in values:\n"
+        "    print(GraphSageNNParams)\n"
+    )
+    p = _make_notebook(tmp_path, "binding_positions.ipynb", [_code_cell(src)])
+    _run(p)
+    assert _cell_source(p, 0) == src
 
 
 def test_params_call_site_with_backslash_continuation_renamed_to_nnparams(tmp_path):

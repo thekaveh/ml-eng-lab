@@ -10,6 +10,7 @@ Usage:
     python scripts/rewrite_imports.py path/to/notebook.ipynb [more.ipynb ...]
 """
 from __future__ import annotations
+import ast
 import io
 import json
 import re
@@ -31,6 +32,8 @@ SIMPLE_MAPPINGS: list[tuple[str, str]] = [
     ("from common.nn_model",      "from nnx.nn.nn_model"),
     ("from common.nn_params",     "from nnx.nn.params.nn_params"),
     # Modern nested imports → just rename root.
+    ("from common import vis_utils", "from nnx import vis_utils"),
+    ("from common import utils",     "from nnx import utils"),
     ("from common.nn.",           "from nnx.nn."),
     ("from common.utils",         "from nnx.utils"),
     ("from common.vis_utils",     "from nnx.vis_utils"),
@@ -250,13 +253,52 @@ def _drop_deprecated_from_import(line: str) -> tuple[str, list[str], bool]:
     return rebuilt + ("\n" if had_nl else ""), nnparams_imports, True
 
 
-def _rewrite_param_name_references(line: str) -> tuple[str, bool]:
+def _deprecated_binding_names(source: str) -> set[str]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+
+    bindings: set[str] = set()
+
+    def collect(target: ast.expr) -> None:
+        if isinstance(target, ast.Name) and target.id in DEPRECATED_PARAM_NAMES:
+            bindings.add(target.id)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for element in target.elts:
+                collect(element)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.arg) and node.arg in DEPRECATED_PARAM_NAMES:
+            bindings.add(node.arg)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name in DEPRECATED_PARAM_NAMES:
+            bindings.add(node.name)
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                collect(target)
+        elif isinstance(node, ast.AnnAssign):
+            collect(node.target)
+        elif isinstance(node, ast.AugAssign):
+            collect(node.target)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            collect(node.target)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    collect(item.optional_vars)
+        elif isinstance(node, ast.ExceptHandler) and node.name in DEPRECATED_PARAM_NAMES:
+            bindings.add(node.name)
+    return bindings
+
+
+def _rewrite_param_name_references(line: str, protected_names: set[str] | None = None) -> tuple[str, bool]:
     """Rewrite executable unqualified deprecated Params references to `NNParams`.
 
     Tokenization keeps comments and string literals untouched, so prose-only
     cells do not gain executable imports. Qualified attributes and declaration
     names are left alone.
     """
+    protected_names = protected_names or set()
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(line).readline))
     except tokenize.TokenError:
@@ -278,7 +320,7 @@ def _rewrite_param_name_references(line: str) -> tuple[str, bool]:
 
     replacements: list[tuple[int, int]] = []
     for idx, token in enumerate(tokens):
-        if token.type != tokenize.NAME or token.string not in DEPRECATED_PARAM_NAMES:
+        if token.type != tokenize.NAME or token.string not in DEPRECATED_PARAM_NAMES or token.string in protected_names:
             continue
         prev_token = next(
             (
@@ -301,7 +343,10 @@ def _rewrite_param_name_references(line: str) -> tuple[str, bool]:
     return new_line, True
 
 
-def _rewrite_call_sites_across_continuations(lines: list[str]) -> tuple[list[str], bool]:
+def _rewrite_call_sites_across_continuations(
+    lines: list[str],
+    protected_names: set[str] | None = None,
+) -> tuple[list[str], bool]:
     rewritten: list[str] = []
     changed = False
     idx = 0
@@ -311,7 +356,7 @@ def _rewrite_call_sites_across_continuations(lines: list[str]) -> tuple[list[str
             idx += 1
             chunk.append(lines[idx])
         if len(chunk) > 1:
-            new_chunk, chunk_changed = _rewrite_param_name_references("".join(chunk))
+            new_chunk, chunk_changed = _rewrite_param_name_references("".join(chunk), protected_names)
             if chunk_changed:
                 changed = True
                 rewritten.extend(new_chunk.splitlines(keepends=True))
@@ -349,6 +394,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
     out: list[str] = []
     needed_nnparams_imports: set[str] = set()
     existing_nnparams_imports: set[str] = set()
+    protected_names = _deprecated_binding_names("".join(source_lines))
     protected_lines = _multiline_string_line_numbers(source_lines)
     in_parenthesized_import = False
     parenthesized_import_open = ""
@@ -461,7 +507,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                     continue
                 new_line = rewritten
         # 2026-05-27: rewrite executable uses of deprecated per-net Params.
-        new_line, param_reference_changed = _rewrite_param_name_references(new_line)
+        new_line, param_reference_changed = _rewrite_param_name_references(new_line, protected_names)
         if param_reference_changed:
             needed_nnparams_imports.add("NNParams")
         # Track whether NNParams is being imported in this cell already.
@@ -471,7 +517,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         if nnparams_import:
             existing_nnparams_imports.update(_nnparams_import_requirements(nnparams_import.group(1)))
         out.append(new_line)
-    out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(out)
+    out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(out, protected_names)
     if continuation_call_site_changed:
         needed_nnparams_imports.add("NNParams")
     # If any call site or rewrite needs NNParams but the cell never imports it,
