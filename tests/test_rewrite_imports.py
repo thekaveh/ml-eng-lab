@@ -101,6 +101,26 @@ def test_module_path_rewrite_ignores_comments_and_strings(tmp_path):
     assert "from nnx.nn.nn_model import NNModel" in rewritten
 
 
+def test_module_path_rewrite_preserves_multiline_strings(tmp_path):
+    src = (
+        'example = """\n'
+        "from common.nn_model import NNModel\n"
+        "import os, common.utils as common_utils\n"
+        "GraphAttNNParams(n_heads=2, input_dim=4, output_dim=2)\n"
+        '"""\n'
+    )
+    p = _make_notebook(tmp_path, "multiline_string_common_imports.ipynb", [_code_cell(src)])
+    _run(p)
+    assert _cell_source(p, 0) == src
+
+
+def test_module_path_rewrite_skips_non_python_cell_magic(tmp_path):
+    src = "%%bash\nimport os, common.utils as common_utils\n"
+    p = _make_notebook(tmp_path, "bash_cell_common_import.ipynb", [_code_cell(src)])
+    _run(p)
+    assert _cell_source(p, 0) == src
+
+
 # ----- NEW: symbol-consolidation rules --------------------------------------
 
 def test_graph_att_params_import_consolidates_to_nnparams(tmp_path):
@@ -127,6 +147,19 @@ def test_aliased_graph_att_params_import_consolidates_to_aliased_nnparams(tmp_pa
     assert "from nnx.nn.net.graph_att_nn import NNParams" not in src
     assert "from nnx.nn.params.nn_params import NNParams as GATParams" in src
     assert "GraphAttNNParams" not in src
+
+
+def test_existing_aliased_nnparams_import_suppresses_identical_injection(tmp_path):
+    src = (
+        "from nnx.nn.params.nn_params import NNParams as GATParams\n"
+        "from nnx.nn.net.graph_att_nn import GraphAttNNParams as GATParams\n"
+        "params = GATParams(n_heads=2, input_dim=4, output_dim=2)\n"
+    )
+    p = _make_notebook(tmp_path, "existing_aliased_nnparams.ipynb", [_code_cell(src)])
+    _run(p)
+    rewritten = _cell_source(p, 0)
+    assert rewritten.count("from nnx.nn.params.nn_params import NNParams as GATParams") == 1
+    assert "GraphAttNNParams" not in rewritten
 
 
 def test_parenthesized_graph_att_params_import_consolidates_to_nnparams(tmp_path):
@@ -504,6 +537,21 @@ def test_parenthesized_rewrite_preserves_kept_member_comments(tmp_path):
     ) in rewritten
     assert "from nnx.nn.params.nn_params import NNParams" in rewritten
     compile(rewritten, "<rewritten-cell>", "exec")
+
+
+def test_parenthesized_rewrite_preserves_closing_paren_comment(tmp_path):
+    src = (
+        "from nnx.nn.net.graph_att_nn import (\n"
+        "    GraphAttNN,\n"
+        "    GraphAttNNParams,\n"
+        ")  # keep close note\n"
+    )
+    p = _make_notebook(tmp_path, "parenthesized_rewrite_preserves_closing_comment.ipynb", [_code_cell(src)])
+    _run(p)
+    rewritten = _cell_source(p, 0)
+    assert ")  # keep close note" in rewritten
+    assert "GraphAttNNParams" not in rewritten
+    assert "from nnx.nn.params.nn_params import NNParams" in rewritten
 
 
 def test_common_nn_model_split_import_with_inline_comment(tmp_path):

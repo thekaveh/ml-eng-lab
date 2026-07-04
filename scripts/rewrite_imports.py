@@ -78,6 +78,47 @@ DEPRECATED_PARAM_NAMES: list[str] = [
     "GraphSageNNParams",
 ]
 
+NON_PYTHON_CELL_MAGICS = frozenset({
+    "bash",
+    "html",
+    "javascript",
+    "js",
+    "latex",
+    "perl",
+    "ruby",
+    "script",
+    "sh",
+    "svg",
+    "writefile",
+})
+
+
+def _non_python_cell_magic(lines: list[str]) -> bool:
+    for line in lines:
+        stripped = line.lstrip()
+        if not stripped:
+            continue
+        if not stripped.startswith("%%"):
+            return False
+        return stripped[2:].split(None, 1)[0].strip().lower() in NON_PYTHON_CELL_MAGICS
+    return False
+
+
+def _multiline_string_line_numbers(lines: list[str]) -> set[int]:
+    protected: set[int] = set()
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO("".join(lines)).readline)
+        for token in tokens:
+            if token.type != tokenize.STRING:
+                continue
+            start_line, _ = token.start
+            end_line, _ = token.end
+            if end_line > start_line:
+                protected.update(range(start_line, end_line + 1))
+    except tokenize.TokenError:
+        return protected
+    return protected
+
 
 def _symbol_without_inline_comment(symbol: str) -> str:
     return symbol.split("#", 1)[0].strip()
@@ -96,7 +137,11 @@ def _nnparams_replacement_for_symbol(symbol: str) -> str | None:
 def _closing_paren_line(line: str) -> str:
     indent = re.match(r"^(\s*)", line).group(1)
     suffix = "\n" if line.endswith("\n") else ""
-    return f"{indent}){suffix}"
+    trailing = ""
+    m = re.match(r"^\s*\)([^\n]*?)(\n?)$", line)
+    if m and "#" in m.group(1):
+        trailing = m.group(1).rstrip()
+    return f"{indent}){trailing}{suffix}"
 
 
 def _single_line_parenthesized_import(line: str) -> str:
@@ -134,14 +179,14 @@ def _rewrite_common_import_aliases(line: str) -> str:
     return f"{indent}import {', '.join(rewritten_aliases)}{trailing}{newline}"
 
 
-def _imported_symbol_bindings(symbols: str) -> set[str]:
-    bindings = set()
+def _nnparams_import_requirements(symbols: str) -> set[str]:
+    requirements = set()
     for part in (p.strip() for p in symbols.split(",") if p.strip()):
         part = _symbol_without_inline_comment(part)
-        m = re.match(r"^([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?$", part)
+        m = re.match(r"^NNParams(?:\s+as\s+([A-Za-z_]\w*))?$", part)
         if m:
-            bindings.add(m.group(2) or m.group(1))
-    return bindings
+            requirements.add(f"NNParams as {m.group(1)}" if m.group(1) else "NNParams")
+    return requirements
 
 
 def _rewrite_parenthesized_import_member_line(line: str) -> tuple[list[str], list[str], bool]:
@@ -299,17 +344,23 @@ def _parenthesized_import_opener(line: str) -> tuple[str, str] | None:
 
 def rewrite_lines(source_lines: list[str]) -> list[str]:
     """Apply all rewrites to a list of source lines (each preserving its trailing \\n if present)."""
+    if _non_python_cell_magic(source_lines):
+        return source_lines
     out: list[str] = []
     needed_nnparams_imports: set[str] = set()
     existing_nnparams_imports: set[str] = set()
+    protected_lines = _multiline_string_line_numbers(source_lines)
     in_parenthesized_import = False
     parenthesized_import_open = ""
     parenthesized_import_kept: list[str] = []
     parenthesized_import_raw: list[str] = []
     parenthesized_import_changed = False
-    for line in source_lines:
+    for line_no, line in enumerate(source_lines, 1):
         stripped_nl = line.rstrip("\n")
         had_nl = line.endswith("\n")
+        if line_no in protected_lines:
+            out.append(line)
+            continue
         if in_parenthesized_import:
             parenthesized_import_raw.append(line)
             kept_lines, nnparams_imports, closes_import = _rewrite_parenthesized_import_member_line(line)
@@ -319,7 +370,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
             if _is_nnparams_parenthesized_import(parenthesized_import_open):
                 for kept_line in kept_lines:
                     if "NNParams" in kept_line:
-                        existing_nnparams_imports.update(_imported_symbol_bindings(kept_line.strip().rstrip(",")))
+                        existing_nnparams_imports.update(_nnparams_import_requirements(kept_line.strip().rstrip(",")))
             if closes_import:
                 if not parenthesized_import_changed:
                     out.extend(parenthesized_import_raw)
@@ -327,7 +378,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                         for raw_line in parenthesized_import_raw:
                             if "NNParams" in raw_line:
                                 existing_nnparams_imports.update(
-                                    _imported_symbol_bindings(raw_line.split(")", 1)[0].strip().rstrip(","))
+                                    _nnparams_import_requirements(raw_line.split(")", 1)[0].strip().rstrip(","))
                                 )
                 elif parenthesized_import_kept:
                     out.append(parenthesized_import_open)
@@ -379,7 +430,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                 if _is_nnparams_parenthesized_import(parenthesized_import_open):
                     for kept_line in kept_lines:
                         if "NNParams" in kept_line:
-                            existing_nnparams_imports.update(_imported_symbol_bindings(kept_line.strip().rstrip(",")))
+                            existing_nnparams_imports.update(_nnparams_import_requirements(kept_line.strip().rstrip(",")))
                 if closes_import:
                     if not parenthesized_import_changed:
                         out.extend(parenthesized_import_raw)
@@ -387,7 +438,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
                             for raw_line in parenthesized_import_raw:
                                 if "NNParams" in raw_line:
                                     existing_nnparams_imports.update(
-                                        _imported_symbol_bindings(raw_line.split(")", 1)[0].strip().rstrip(","))
+                                        _nnparams_import_requirements(raw_line.split(")", 1)[0].strip().rstrip(","))
                                     )
                     elif parenthesized_import_kept:
                         out.append(parenthesized_import_open)
@@ -418,7 +469,7 @@ def rewrite_lines(source_lines: list[str]) -> list[str]:
         # comments / strings that happen to contain the substring.
         nnparams_import = re.match(r"^\s*from\s+nnx\.nn\.params\.nn_params\s+import\s+(.+?)(\s*)$", new_line.rstrip("\n"))
         if nnparams_import:
-            existing_nnparams_imports.update(_imported_symbol_bindings(nnparams_import.group(1)))
+            existing_nnparams_imports.update(_nnparams_import_requirements(nnparams_import.group(1)))
         out.append(new_line)
     out, continuation_call_site_changed = _rewrite_call_sites_across_continuations(out)
     if continuation_call_site_changed:

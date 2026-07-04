@@ -215,15 +215,28 @@ def _literal_dynamic_import(
     return first_arg.value
 
 
+def _paren_balance_delta(line: str) -> int:
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(line).readline)
+        return sum(
+            1 if token.string == "(" else -1 if token.string == ")" else 0
+            for token in tokens
+            if token.type == tokenize.OP
+        )
+    except tokenize.TokenError:
+        code_text = line.split("#", 1)[0]
+        return code_text.count("(") - code_text.count(")")
+
+
 def _fallback_statement(lines: list[str], start: int) -> tuple[str, int]:
     statement_lines = [lines[start]]
-    balance = lines[start].count("(") - lines[start].count(")")
+    balance = _paren_balance_delta(lines[start])
     end = start
     while (balance > 0 or statement_lines[-1].rstrip().endswith("\\")) and end + 1 < len(lines):
         end += 1
         next_line = lines[end]
         statement_lines.append(next_line)
-        balance += next_line.count("(") - next_line.count(")")
+        balance += _paren_balance_delta(next_line)
     return "\n".join(statement_lines), end
 
 

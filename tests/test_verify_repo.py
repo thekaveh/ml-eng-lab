@@ -479,6 +479,36 @@ def test_structure_s2_fallback_checks_multiline_literal_dynamic_import_aliases(t
     assert hits, f"expected S2.unresolved_import for multiline fallback alias; got {data.get('findings')}"
 
 
+def test_structure_s2_fallback_ignores_parentheses_in_import_comments(tmp_path):
+    """Comment text must not break fallback reconstruction of multiline imports."""
+    import nbformat
+
+    repo = _temp_repo(tmp_path)
+    name = "fallback-comment-parentheses.ipynb"
+    fake = repo / ACTIVE_FIXTURE_DIR / name
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_code_cell(
+            "from importlib import (  # keep ) in comment\n"
+            "    import_module,\n"
+            ")\n"
+            "not valid python ???\n"
+            "import_module('definitely_missing_comment_paren_dynamic')\n"
+        )
+    ]
+    nbformat.write(nb, str(fake))
+
+    r = run_verify("--repo-root", str(repo), "--check", "structure", "--fast")
+    data = json.loads(r.stdout) if r.stdout else {"findings": []}
+    hits = [
+        f for f in data["findings"]
+        if f["id"] == "S2.unresolved_import"
+        and name in f["location"]
+        and "definitely_missing_comment_paren_dynamic" in f["message"]
+    ]
+    assert hits, f"expected S2.unresolved_import with comment paren import alias; got {data.get('findings')}"
+
+
 def test_structure_s2_fallback_checks_multiline_literal_dynamic_import_calls(tmp_path):
     """Syntax-error fallback should still check multiline import_module calls."""
     import nbformat
