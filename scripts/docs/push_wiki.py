@@ -50,6 +50,12 @@ def push_wiki(src: Path, remote: str, key_path: Path | None, *, push: bool) -> i
         repo_dir = Path(td) / "wiki"
         cmd = ["git", "clone", "--depth", "1", remote, str(repo_dir)] if push else ["git", "init", str(repo_dir)]
         env = os.environ.copy()
+        # Ensure a commit identity even on runners with no global git config (the CI wiki job
+        # failed with "empty ident name not allowed" once there were real changes to commit).
+        env.setdefault("GIT_AUTHOR_NAME", "ml-eng-lab-docs-bot")
+        env.setdefault("GIT_AUTHOR_EMAIL", "actions@github.com")
+        env.setdefault("GIT_COMMITTER_NAME", "ml-eng-lab-docs-bot")
+        env.setdefault("GIT_COMMITTER_EMAIL", "actions@github.com")
         if key_path is not None:
             env["GIT_SSH_COMMAND"] = authenticated_remote(remote, key_path)
         subprocess.run(cmd, env=env, check=True)
