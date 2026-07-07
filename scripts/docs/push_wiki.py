@@ -61,7 +61,9 @@ def push_wiki(src: Path, remote: str, key_path: Path | None, *, push: bool) -> i
         staged = subprocess.run(["git", "-C", str(repo_dir), "diff", "--cached", "--quiet"], env=env)
         if staged.returncode != 0:
             subprocess.run(["git", "-C", str(repo_dir), "commit", "-m", "docs: sync wiki"], env=env, check=True)
-        subprocess.run(["git", "-C", str(repo_dir), "push", remote, "main"], env=env, check=True)
+        # GitHub wikis render from the `master` branch (not the repo's default `main`);
+        # `git clone` checks out `master`, so push local `master` → remote `master`.
+        subprocess.run(["git", "-C", str(repo_dir), "push", remote, "master"], env=env, check=True)
         print("wiki pushed")
         return 0
 

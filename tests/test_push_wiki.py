@@ -36,17 +36,17 @@ def test_push_wiki_skips_commit_when_wiki_unchanged(tmp_path, monkeypatch):
         "GIT_COMMITTER_EMAIL": "test@example.com",
     }.items():
         monkeypatch.setenv(k, v)
-    # local bare repo acting as the wiki remote (no network)
+    # local bare repo acting as the wiki remote (no network). GitHub wikis use `master`.
     remote = tmp_path / "remote.git"
-    subprocess.run(["git", "init", "--bare", "-b", "main", str(remote)], check=True)
-    # seed the remote with an initial wiki state on main
+    subprocess.run(["git", "init", "--bare", "-b", "master", str(remote)], check=True)
+    # seed the remote with an initial wiki state on master
     seed = tmp_path / "seed"
     seed.mkdir()
-    subprocess.run(["git", "init", "-b", "main", str(seed)], check=True)
+    subprocess.run(["git", "init", "-b", "master", str(seed)], check=True)
     (seed / "Home.md").write_text("home", encoding="utf-8")
     subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(seed), "commit", "-m", "init"], check=True)
-    subprocess.run(["git", "-C", str(seed), "push", str(remote), "main"], check=True)
+    subprocess.run(["git", "-C", str(seed), "push", str(remote), "master"], check=True)
     # wiki src byte-identical to the live remote → nothing staged after `add -A`
     src = tmp_path / "wiki"
     src.mkdir()
