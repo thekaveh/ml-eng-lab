@@ -123,6 +123,8 @@ The notebook reports this number directly as `moe_layer.last_aux_loss`.
 
 ## 8.9.4 Architecture
 
+![Mixture-of-Experts routing](../diagrams/img/moe.png)
+
 `MoEClassifier` subclasses `nnx.FeedFwdNN` and swaps the first hidden `Linear` for an
 `MoELinear`. Concretely, with `hidden_dims=[128]`, `num_experts=4`, `top_k=2`, the network is:
 

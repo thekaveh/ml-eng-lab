@@ -7,19 +7,23 @@ skill). We extract the SVG and rasterize via cairosvg. No browser dependency.
 
 from __future__ import annotations
 
+import html
 import re
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SVG_RE = re.compile(r"<svg[\s\S]*?</svg>", re.IGNORECASE)
+# Named HTML entities that are NOT predefined in XML (lt/gt/amp/quot/apos) break cairosvg +
+# browsers loading the standalone .svg. Convert them to their unicode characters.
+_NON_XML_ENTITY_RE = re.compile(r"&(?!amp;|lt;|gt;|quot;|apos;|#)[a-zA-Z]+;")
 
 
-def extract_svg(html: str) -> str:
-    match = SVG_RE.search(html)
+def extract_svg(html_src: str) -> str:
+    match = SVG_RE.search(html_src)
     if not match:
         raise ValueError("no inline <svg> found in diagram HTML master")
-    return match.group(0)
+    return _NON_XML_ENTITY_RE.sub(lambda m: html.unescape(m.group(0)), match.group(0))
 
 
 def svg_to_png(svg: str, out_path: Path, *, width: int) -> None:

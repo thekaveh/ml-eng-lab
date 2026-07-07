@@ -105,6 +105,8 @@ treating the sigmoid score as the ranking statistic.
 
 ## 8.14.4 Architecture
 
+![GNN message-passing](../diagrams/img/gnn.png)
+
 The model family is `nnx.GraphSageNN` (built on PyG's `SAGEConv`): a two-layer encoder
 \(34 \to 32 \to 16\) with ReLU activation and no dropout. The full contract:
 

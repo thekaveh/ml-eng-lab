@@ -97,6 +97,8 @@ catastrophic, and this targeted smoothing improves generalization at no extra pa
 
 ## 8.6.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 The architecture is `Nets.FEED_FWD` (`nnx.FeedFwdNN`): a 784-unit input layer (flattened MNIST),
 two hidden layers `[128, 64]` with ReLU, and a 10-unit output layer consumed by softmax +
 cross-entropy. Crucially, *the same architecture* is used for student and teacher — that is the

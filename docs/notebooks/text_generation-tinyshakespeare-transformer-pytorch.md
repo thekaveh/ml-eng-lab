@@ -111,6 +111,8 @@ long-shot tokens. The notebook uses \(\tau = 0.8\) and \(k = 20\).
 
 ## 8.16.4 Architecture
 
+![Transformer block](../diagrams/img/transformer.png)
+
 The network family is `Nets.TRANSFORMER` (`nnx.TransformerNN`): a decoder-only stack with tied
 input/output embeddings, RoPE positional encoding, and causal self-attention. The exact contract:
 

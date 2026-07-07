@@ -135,6 +135,8 @@ and runs are ranked by this quantity. Lower is better; a 0.0160 best-run value
 
 ## 8.4.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 The network family is `Nets.FEED_FWD` (`nnx.FeedFwdNN`): an input layer of 784
 units (one per normalized pixel), zero or more hidden layers each followed by
 LeakyReLU and dropout, and a 10-unit output layer consumed by softmax +

@@ -88,3 +88,11 @@ def test_build_check_is_deterministic(tmp_path):
     rc1 = build(tmp_path / "docs/manifest.yaml", tmp_path, site=True, check=True)
     rc2 = build(tmp_path / "docs/manifest.yaml", tmp_path, site=True, check=True)
     assert rc1 == 0 and rc2 == 0
+
+
+def test_rewrite_images_site_preserves_subdir_prefix():
+    from scripts.docs.build_docs import _rewrite_images_site
+    # deep-dive in notebooks/ uses ../diagrams/img/... → must keep ../ for the generated site
+    assert _rewrite_images_site("![MLP](../diagrams/img/mlp.png)") == "![MLP](../assets/img/mlp.svg)"
+    # root doc (no prefix) still resolves at the site root
+    assert _rewrite_images_site("![x](diagrams/img/system.png)") == "![x](assets/img/system.svg)"

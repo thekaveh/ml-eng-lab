@@ -166,3 +166,15 @@ diagrams:
     master: docs/diagrams/ml-eng-lab-system.html
   - id: docs-sync
     master: docs/diagrams/ml-eng-lab-docs-sync.html
+  - id: mlp
+    master: docs/diagrams/ml-eng-lab-mlp.html
+  - id: transformer
+    master: docs/diagrams/ml-eng-lab-transformer.html
+  - id: gnn
+    master: docs/diagrams/ml-eng-lab-gnn.html
+  - id: ddpm
+    master: docs/diagrams/ml-eng-lab-ddpm.html
+  - id: autoencoder
+    master: docs/diagrams/ml-eng-lab-autoencoder.html
+  - id: moe
+    master: docs/diagrams/ml-eng-lab-moe.html

@@ -13,12 +13,13 @@ from scripts.docs.transforms import build_source_map, rewrite_for_surface
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Image refs: in-repo PNG path → site SVG asset path.
-_PNG_RE = re.compile(r"!\[([^\]]*)\]\(([^)]*diagrams/img/([^.]+)\.png)\)")
+# Image refs: in-repo PNG path → site SVG asset path. Preserve any ../ prefix so images
+# resolve from subdirectory docs (e.g. docs/notebooks/<task>.md → ../assets/img/<id>.svg).
+_PNG_RE = re.compile(r"!\[([^\]]*)\]\(((?:\.\./)*)diagrams/img/([^.]+)\.png\)")
 
 
 def _rewrite_images_site(md: str) -> str:
-    return _PNG_RE.sub(lambda m: f"![{m.group(1)}](assets/img/{m.group(3)}.svg)", md)
+    return _PNG_RE.sub(lambda m: f"![{m.group(1)}]({m.group(2)}assets/img/{m.group(3)}.svg)", md)
 
 
 def render_site(manifest: Manifest, repo_root: Path, out_dir: Path) -> list[Path]:

@@ -101,6 +101,8 @@ is why they are preferred over plain accuracy for clustering evaluation.
 
 ## 8.15.4 Architecture
 
+![GNN message-passing](../diagrams/img/gnn.png)
+
 The notebook runs two independent recipes against the same graph.
 
 **Louvain contract:**
