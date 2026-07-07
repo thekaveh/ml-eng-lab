@@ -151,6 +151,10 @@ id_ed25519
 # mkdocs documentation
 /site
 
+# generated documentation surfaces (Approach A — derived from canonical docs/)
+/generated/
+/mkdocs.yml
+
 # mypy
 .dmypy.json
 dmypy.json
