@@ -119,6 +119,8 @@ held-out win-rate.
 
 ## 8.19.4 Architecture
 
+![Transformer block](../diagrams/img/transformer.png)
+
 Two identical transformer models — a frozen reference and a trainable policy — sharing the same
 architecture and the same starting weights.
 

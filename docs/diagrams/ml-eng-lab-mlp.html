@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ml-eng-lab — Feed-Forward MLP Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #020617; color: #e2e8f0; font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px; }
+    header { margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 22px; }
+    .subtitle { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+    .panel { border: 1px solid rgba(34, 211, 238, 0.28); border-radius: 8px; background: #020617; overflow: hidden; }
+    svg { display: block; width: 100%; height: auto; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+    .card { border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 8px; padding: 14px; background: rgba(15, 23, 42, 0.75); }
+    .card h2 { margin: 0 0 10px; font-size: 12px; color: #67e8f9; }
+    .card ul { margin: 0; padding-left: 18px; color: #cbd5e1; font-size: 10px; line-height: 1.7; }
+    footer { color: #64748b; font-size: 9px; margin-top: 14px; }
+    @media (max-width: 760px) { .wrap { padding: 16px; } .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ml-eng-lab — Feed-Forward MLP Architecture</h1>
+      <div class="subtitle">The collection's <code>nnx.FeedFwdNN</code>: input &rarr; hidden layer(s) (Linear &rarr; LeakyReLU &rarr; dropout) &rarr; linear logits &rarr; softmax cross-entropy. Forward pass left&rarr;right; backpropagation gradient flow right&rarr;left.</div>
+    </header>
+    <div class="panel">
+      <svg viewBox="0 0 1240 720" role="img" aria-labelledby="title desc">
+        <title id="title">ml-eng-lab feed-forward MLP architecture</title>
+        <desc id="desc">FeedFwdNN topology: input features feed hidden layers of Linear + activation + dropout, a final Linear layer produces logits, softmax cross-entropy computes the loss, and autograd backpropagates gradients to every weight and bias.</desc>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+          <marker id="arrowfwd" markerWidth="11" markerHeight="8" refX="9.5" refY="4" orient="auto">
+            <polygon points="0 0, 11 4, 0 8" fill="#34d399"/>
+          </marker>
+          <marker id="arrowback" markerWidth="11" markerHeight="8" refX="9.5" refY="4" orient="auto">
+            <polygon points="0 0, 11 4, 0 8" fill="#fbbf24"/>
+          </marker>
+        </defs>
+        <rect width="1240" height="720" fill="#020617"/>
+        <rect width="1240" height="720" fill="url(#grid)"/>
+
+        <!-- ============ OUTER BOUNDARY ============ -->
+        <rect x="30" y="55" width="1180" height="600" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="48" y="44" fill="#fbbf24" font-size="10" font-weight="600">FeedFwdNN (nnx) — forward pass ──→  ·  backpropagation ──←</text>
+
+        <!-- ============ FORWARD RAIL (above the mesh) ============ -->
+        <path d="M 210 140 L 1056 140" stroke="#34d399" stroke-width="2.2" marker-end="url(#arrowfwd)"/>
+        <text x="210" y="128" fill="#34d399" font-size="9" font-weight="600">forward pass  a₀ = x  →  a₁  →  a₂  →  logits  →  L</text>
+
+        <!-- ============ CONNECTION MESHES (thin, faint, all-to-all) ============ -->
+        <path stroke="#34d399" stroke-width="0.7" stroke-opacity="0.22" fill="none" d="
+          M196,200 L454,200 M196,200 L454,260 M196,200 L454,320 M196,200 L454,380
+          M196,260 L454,200 M196,260 L454,260 M196,260 L454,320 M196,260 L454,380
+          M196,320 L454,200 M196,320 L454,260 M196,320 L454,320 M196,320 L454,380
+          M196,380 L454,200 M196,380 L454,260 M196,380 L454,320 M196,380 L454,380"/>
+        <path stroke="#34d399" stroke-width="0.7" stroke-opacity="0.22" fill="none" d="
+          M486,200 L744,200 M486,200 L744,260 M486,200 L744,320 M486,200 L744,380
+          M486,260 L744,200 M486,260 L744,260 M486,260 L744,320 M486,260 L744,380
+          M486,320 L744,200 M486,320 L744,260 M486,320 L744,320 M486,320 L744,380
+          M486,380 L744,200 M486,380 L744,260 M486,380 L744,320 M486,380 L744,380"/>
+        <path stroke="#22d3ee" stroke-width="0.7" stroke-opacity="0.22" fill="none" d="
+          M776,200 L994,230 M776,200 L994,290 M776,200 L994,350
+          M776,260 L994,230 M776,260 L994,290 M776,260 L994,350
+          M776,320 L994,230 M776,320 L994,290 M776,320 L994,350
+          M776,380 L994,230 M776,380 L994,290 M776,380 L994,350"/>
+
+        <!-- edge weight tags (one per gap, above the mesh midpoints) -->
+        <text x="325" y="194" fill="#475569" font-size="8" text-anchor="middle">W₁ , b₁</text>
+        <text x="615" y="194" fill="#475569" font-size="8" text-anchor="middle">W₂ , b₂</text>
+        <text x="885" y="194" fill="#475569" font-size="8" text-anchor="middle">W₃ , b₃</text>
+
+        <!-- ============ COLUMN HEADERS ============ -->
+        <text x="180" y="85" fill="#a78bfa" font-size="11" font-weight="600" text-anchor="middle">Input layer</text>
+        <text x="180" y="102" fill="#94a3b8" font-size="8" text-anchor="middle">4 features  (Iris)</text>
+        <text x="470" y="85" fill="#34d399" font-size="11" font-weight="600" text-anchor="middle">Hidden layer 1</text>
+        <text x="470" y="102" fill="#94a3b8" font-size="8" text-anchor="middle">h units  (8 or 16)</text>
+        <text x="760" y="85" fill="#34d399" font-size="11" font-weight="600" text-anchor="middle">Hidden layer 2</text>
+        <text x="760" y="102" fill="#94a3b8" font-size="8" text-anchor="middle">h units  (8)</text>
+        <text x="1010" y="85" fill="#22d3ee" font-size="11" font-weight="600" text-anchor="middle">Output layer</text>
+        <text x="1010" y="102" fill="#94a3b8" font-size="8" text-anchor="middle">3 classes  (Iris)</text>
+        <text x="1135" y="85" fill="#fbbf24" font-size="11" font-weight="600" text-anchor="middle">Loss</text>
+        <text x="1135" y="102" fill="#94a3b8" font-size="8" text-anchor="middle">softmax + CE</text>
+
+        <!-- ============ NODES ============ -->
+        <!-- input (violet) -->
+        <g>
+          <circle cx="180" cy="200" r="16" fill="#0f172a"/><circle cx="180" cy="200" r="16" fill="rgba(76,29,149,0.45)" stroke="#a78bfa" stroke-width="1.6"/>
+          <circle cx="180" cy="260" r="16" fill="#0f172a"/><circle cx="180" cy="260" r="16" fill="rgba(76,29,149,0.45)" stroke="#a78bfa" stroke-width="1.6"/>
+          <circle cx="180" cy="320" r="16" fill="#0f172a"/><circle cx="180" cy="320" r="16" fill="rgba(76,29,149,0.45)" stroke="#a78bfa" stroke-width="1.6"/>
+          <circle cx="180" cy="380" r="16" fill="#0f172a"/><circle cx="180" cy="380" r="16" fill="rgba(76,29,149,0.45)" stroke="#a78bfa" stroke-width="1.6"/>
+          <text x="180" y="204" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">x₁</text>
+          <text x="180" y="264" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">x₂</text>
+          <text x="180" y="324" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">x₃</text>
+          <text x="180" y="384" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">x₄</text>
+        </g>
+        <!-- hidden 1 (emerald) -->
+        <g>
+          <circle cx="470" cy="200" r="16" fill="#0f172a"/><circle cx="470" cy="200" r="16" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+          <circle cx="470" cy="260" r="16" fill="#0f172a"/><circle cx="470" cy="260" r="16" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+          <circle cx="470" cy="320" r="16" fill="#0f172a"/><circle cx="470" cy="320" r="16" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+          <circle cx="470" cy="380" r="16" fill="#0f172a"/><circle cx="470" cy="380" r="16" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+        </g>
+        <!-- hidden 2 (emerald) -->
+        <g>
+          <circle cx="760" cy="200" r="16" fill="#0f172a"/><circle cx="760" cy="200" r="16" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+          <circle cx="760" cy="260" r="16" fill="#0f172a"/><circle cx="760" cy="260" r="16" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+          <circle cx="760" cy="320" r="16" fill="#0f172a"/><circle cx="760" cy="320" r="16" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+          <circle cx="760" cy="380" r="16" fill="#0f172a"/><circle cx="760" cy="380" r="16" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+        </g>
+        <!-- output (cyan) -->
+        <g>
+          <circle cx="1010" cy="230" r="16" fill="#0f172a"/><circle cx="1010" cy="230" r="16" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1.6"/>
+          <circle cx="1010" cy="290" r="16" fill="#0f172a"/><circle cx="1010" cy="290" r="16" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1.6"/>
+          <circle cx="1010" cy="350" r="16" fill="#0f172a"/><circle cx="1010" cy="350" r="16" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1.6"/>
+          <text x="1010" y="234" fill="#fff" font-size="9" font-weight="600" text-anchor="middle">ŷ₁</text>
+          <text x="1010" y="294" fill="#fff" font-size="9" font-weight="600" text-anchor="middle">ŷ₂</text>
+          <text x="1010" y="354" fill="#fff" font-size="9" font-weight="600" text-anchor="middle">ŷ₃</text>
+        </g>
+
+        <!-- ============ ACTIVATION GATE BADGES (between layers) ============ -->
+        <g>
+          <rect x="298" y="406" width="54" height="18" rx="4" fill="#0f172a" stroke="#34d399" stroke-width="1"/>
+          <text x="325" y="419" fill="#34d399" font-size="9" text-anchor="middle">σ · dropout</text>
+          <rect x="588" y="406" width="54" height="18" rx="4" fill="#0f172a" stroke="#34d399" stroke-width="1"/>
+          <text x="615" y="419" fill="#34d399" font-size="9" text-anchor="middle">σ · dropout</text>
+          <rect x="858" y="406" width="54" height="18" rx="4" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>
+          <text x="885" y="419" fill="#22d3ee" font-size="9" text-anchor="middle">linear</text>
+        </g>
+
+        <!-- ============ MATH ANNOTATIONS (below the gates) ============ -->
+        <text x="325" y="450" fill="#e2e8f0" font-size="10" text-anchor="middle">z₁ = W₁x + b₁</text>
+        <text x="325" y="466" fill="#94a3b8" font-size="9" text-anchor="middle">a₁ = σ(z₁)</text>
+        <text x="615" y="450" fill="#e2e8f0" font-size="10" text-anchor="middle">z₂ = W₂a₁ + b₂</text>
+        <text x="615" y="466" fill="#94a3b8" font-size="9" text-anchor="middle">a₂ = σ(z₂)</text>
+        <text x="885" y="450" fill="#e2e8f0" font-size="10" text-anchor="middle">z₃ = W₃a₂ + b₃</text>
+        <text x="885" y="466" fill="#94a3b8" font-size="9" text-anchor="middle">= logits  (no σ)</text>
+
+        <!-- σ / topology footnote -->
+        <text x="48" y="450" fill="#64748b" font-size="8">σ = LeakyReLU (nnx default)</text>
+        <text x="48" y="464" fill="#64748b" font-size="8">dropout active in .train(), off in .eval()</text>
+        <text x="780" y="450" fill="#64748b" font-size="8">MNIST variant: 784 → hidden(s) → 10</text>
+        <text x="780" y="464" fill="#64748b" font-size="8">dims = [in, h₁, h₂, …, out]</text>
+
+        <!-- ============ LOSS BOX ============ -->
+        <rect x="1060" y="235" width="150" height="112" rx="6" fill="#0f172a"/>
+        <rect x="1060" y="235" width="150" height="112" rx="6" fill="rgba(120,53,15,0.32)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="1135" y="257" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">softmax + CE</text>
+        <text x="1135" y="277" fill="#94a3b8" font-size="9" text-anchor="middle">L = −Σ yᵢ log ŷᵢ</text>
+        <text x="1135" y="295" fill="#94a3b8" font-size="8" text-anchor="middle">softmax folded into</text>
+        <text x="1135" y="307" fill="#94a3b8" font-size="8" text-anchor="middle">nn.CrossEntropyLoss</text>
+        <text x="1135" y="329" fill="#fbbf24" font-size="8" text-anchor="middle">target = integer class label</text>
+        <!-- output -> loss arrow -->
+        <path d="M 1026 290 L 1057 290" stroke="#22d3ee" stroke-width="1.8" marker-end="url(#arrowfwd)"/>
+
+        <!-- ============ BACKPROP ARC (right → left, dashed amber) ============ -->
+        <path d="M 1135 347 C 1135 600, 196 600, 196 397"
+              stroke="#fbbf24" stroke-width="2" stroke-dasharray="8,5" fill="none" marker-end="url(#arrowback)"/>
+        <text x="665" y="572" fill="#fbbf24" font-size="11" font-weight="600" text-anchor="middle">backprop ∇</text>
+        <text x="665" y="589" fill="#cbd5e1" font-size="9" text-anchor="middle">autograd computes ∂L/∂Wₗ , ∂L/∂bₗ   for ℓ ∈ {1, 2, 3}</text>
+        <text x="665" y="605" fill="#cbd5e1" font-size="9" text-anchor="middle">Adam step:  Wₗ ← Wₗ − η · ∂L/∂Wₗ</text>
+        <text x="665" y="621" fill="#64748b" font-size="8" text-anchor="middle">gradients flow right → left through every Linear layer (PyTorch autograd)</text>
+
+        <!-- ============ LEGEND ============ -->
+        <rect x="30" y="670" width="1180" height="36" rx="6" fill="#0f172a"/>
+        <rect x="30" y="670" width="1180" height="36" rx="6" fill="rgba(30,41,59,0.35)" stroke="#334155" stroke-width="1"/>
+        <text x="58" y="692" fill="#22d3ee" font-size="9">Legend:</text>
+        <text x="116" y="692" fill="#a78bfa" font-size="9">input / features</text>
+        <text x="246" y="692" fill="#34d399" font-size="9">model layers (Linear + σ)</text>
+        <text x="430" y="692" fill="#22d3ee" font-size="9">output / prediction</text>
+        <text x="578" y="692" fill="#fbbf24" font-size="9">loss / training</text>
+        <text x="688" y="692" fill="#34d399" font-size="9">→ forward pass</text>
+        <text x="810" y="692" fill="#fbbf24" font-size="9">⇐ backprop (∇)</text>
+        <text x="930" y="692" fill="#94a3b8" font-size="9">edge weight / formula</text>
+      </svg>
+    </div>
+    <section class="cards" aria-label="MLP summary">
+      <div class="card">
+        <h2>Topology</h2>
+        <ul>
+          <li><code>dims = [in, h₁, h₂, …, out]</code>; one <code>nn.Linear</code> per adjacent pair.</li>
+          <li>Iris sweep: <code>[4]</code> → <code>[4,8,3]</code> → <code>[4,16,8,3]</code>; MNIST: <code>784 → … → 10</code>.</li>
+          <li>Input is feature data; hidden + output layers are the model.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Forward pass</h2>
+        <ul>
+          <li>Hidden: <code>zₗ = Wₗaₗ₋₁ + bₗ</code>, <code>aₗ = σ(zₗ)</code> (LeakyReLU) + dropout.</li>
+          <li>Last layer is linear — returns logits; no σ before the loss.</li>
+          <li>Softmax is folded into <code>nn.CrossEntropyLoss</code> (expects raw logits).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Backpropagation</h2>
+        <ul>
+          <li>PyTorch autograd flows <code>∂L/∂Wₗ</code>, <code>∂L/∂bₗ</code> right → left.</li>
+          <li>Adam update: <code>Wₗ ← Wₗ − η · ∂L/∂Wₗ</code>.</li>
+          <li>Dropout on in <code>.train()</code>, off in <code>.eval()</code> — same forward graph.</li>
+        </ul>
+      </div>
+    </section>
+    <footer>Generated for ml-eng-lab per-notebook concept diagrams, 2026-07-07.</footer>
+  </div>
+</body>
+</html>

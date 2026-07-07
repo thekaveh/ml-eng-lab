@@ -123,6 +123,8 @@ b \leftarrow b - \eta\, \frac{\partial \mathcal{L}}{\partial b}.
 
 ## 8.3.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 `FeedFwdNN` composes exactly three layer objects; the full graph is:
 
 ```

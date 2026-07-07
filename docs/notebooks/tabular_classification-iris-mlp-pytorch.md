@@ -91,6 +91,8 @@ about.
 
 ## 8.1.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 The network family is `Nets.FEED_FWD` (`nnx.FeedFwdNN`): an input layer of four units (one per
 scaled feature), zero or more hidden layers with LeakyReLU activation and optional dropout, and
 a three-unit output layer consumed by softmax + cross-entropy. The notebook sweeps three

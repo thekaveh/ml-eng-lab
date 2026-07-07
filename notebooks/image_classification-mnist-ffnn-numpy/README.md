@@ -22,7 +22,7 @@ This folder does **not** use the shared `nnx` library. It's intentionally standa
 - §3 Data — MNIST loading and inspection.
 - §4 Model — `FeedFwdNN` composed from `LinearLayer`, `ReluLayer`, `SoftmaxCrossEntropyLayer`. Architecture and design rationale.
 - §5 Training — mini-batch SGD with hand-rolled backprop; per-iteration metrics tracked into `IterationDataPoint`.
-- §6 Evaluation & Results — validation loss/accuracy curves, comparisons across two network depths.
+- §6 Evaluation & Results — validation loss/accuracy curves, comparisons across two learning rates (`lr=0.1` vs `lr=0.01`); the architecture (single `784→10` linear layer + PReLU on logits) is held constant.
 
 Supporting modules in this folder:
 

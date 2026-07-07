@@ -114,6 +114,8 @@ linear classifier should separate the species iff the latent has disentangled th
 
 ## 8.20.4 Architecture
 
+![Autoencoder](../diagrams/img/autoencoder.png)
+
 Both autoencoders are constructed via the same `FeedFwdNN(input_dim=4, output_dim=4,
 hidden_dims=[\ldots])` trick. The middle of `hidden_dims` is the bottleneck — the only learned
 representation.

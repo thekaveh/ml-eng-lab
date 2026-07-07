@@ -43,8 +43,8 @@ Long training runs of the top picks from Phase 2 (Tier-C — preserved outputs, 
 
 - **phase3-main-model-training-and-eval-notebook.ipynb** — GraphAttention (4 heads, hidden `[128]`, 1200 epochs; test acc 0.7660).
 - **phase3-main-model-training-and-eval-notebook2.ipynb** — GraphSAGE depth-1 (hidden `[1024, 512, 256, 128]`, 2000 epochs).
-- **phase3-main-model-training-and-eval-notebook3.ipynb** — GraphSAGE depth-2 (hidden `[1024, 512, 256, 128, 64]`, 2000 epochs; best overall — val 0.1509, test acc 0.8598).
-- **phase3-main-model-training-and-eval-notebook4.ipynb** — GraphSAGE depth-3 (hidden `[768, 1024, 512, 256, 128, 64]`, 2000 epochs; comparable to depth-2 — diminishing returns from added depth).
+- **phase3-main-model-training-and-eval-notebook3.ipynb** — GraphSAGE depth-2 (hidden `[1024, 512, 256, 128, 64]`, 2000 epochs; recorded test acc 0.9094, val error 0.1024).
+- **phase3-main-model-training-and-eval-notebook4.ipynb** — GraphSAGE depth-3 (hidden `[768, 1024, 512, 256, 128, 64]`, 2000 epochs; **best overall on recorded Aug-2023 outputs** — test acc 0.9164, val error 0.0904; beats depth-2 on both test accuracy and validation error).
 
 ## 4. How to run
 

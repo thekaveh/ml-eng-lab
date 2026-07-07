@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ml-eng-lab — Decoder-Only Transformer Block</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #020617; color: #e2e8f0; font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1260px; margin: 0 auto; padding: 28px; }
+    header { margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 22px; }
+    .subtitle { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+    .panel { border: 1px solid rgba(34, 211, 238, 0.28); border-radius: 8px; background: #020617; overflow: hidden; }
+    svg { display: block; width: 100%; height: auto; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+    .card { border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 8px; padding: 14px; background: rgba(15, 23, 42, 0.75); }
+    .card h2 { margin: 0 0 10px; font-size: 12px; color: #67e8f9; }
+    .card ul { margin: 0; padding-left: 18px; color: #cbd5e1; font-size: 10px; line-height: 1.7; }
+    footer { color: #64748b; font-size: 9px; margin-top: 14px; }
+    @media (max-width: 760px) { .wrap { padding: 16px; } .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ml-eng-lab — Decoder-Only Transformer Block</h1>
+      <div class="subtitle">Forward pass of an autoregressive (decoder-only) transformer: token ids &rarr; embedding + RoPE &rarr; N&times; masked-attention/FFN blocks &rarr; LM head &rarr; next-token logits.</div>
+    </header>
+    <div class="panel">
+      <svg viewBox="0 0 1220 680" role="img" aria-labelledby="title desc">
+        <title id="title">ml-eng-lab decoder-only transformer block</title>
+        <desc id="desc">Forward data flow through a decoder-only transformer: token ids feed token embedding and rotary positional encoding into a stack of N identical blocks, each performing masked multi-head self-attention with a causal mask and scaled-dot-product attention, followed by add+norm, a feed-forward network, and a second add+norm with residual skip connections; the stack output passes through a final layer norm, a linear LM head, and a softmax to produce next-token logits.</desc>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+          <marker id="arrowamber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+          </marker>
+        </defs>
+        <rect width="1220" height="680" fill="#020617"/>
+        <rect width="1220" height="680" fill="url(#grid)"/>
+
+        <!-- ============ ARROWS (drawn first, behind boxes) ============ -->
+        <!-- main horizontal flow -->
+        <path d="M 180 330 H 215" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 380 330 H 450" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <!-- block internal flow -->
+        <path d="M 600 330 H 620" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 700 330 H 720" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 850 330 H 870" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 950 330 H 1000" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <!-- output column (down) -->
+        <path d="M 1085 362 V 385" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 1085 449 V 465" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 1085 529 V 545" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- residual skip connections (amber) -->
+        <path d="M 440 330 V 255 H 660 V 295" stroke="#fbbf24" stroke-width="1.8" fill="none" marker-end="url(#arrowamber)"/>
+        <path d="M 700 330 V 255 H 910 V 295" stroke="#fbbf24" stroke-width="1.8" fill="none" marker-end="url(#arrowamber)"/>
+        <text x="550" y="248" fill="#fbbf24" font-size="8" text-anchor="middle">residual</text>
+        <text x="805" y="248" fill="#fbbf24" font-size="8" text-anchor="middle">residual</text>
+
+        <!-- RoPE annotation arrow (dashed violet, into attention) -->
+        <path d="M 380 439 H 525 V 385" stroke="#a78bfa" stroke-width="1.4" fill="none" stroke-dasharray="5,4" marker-end="url(#arrowhead)"/>
+        <text x="455" y="432" fill="#a78bfa" font-size="8">rotates Q, K</text>
+
+        <!-- ============ N× stack indication (offset rect behind container) ============ -->
+        <rect x="440" y="210" width="545" height="230" rx="12" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4" opacity="0.4"/>
+        <!-- block container boundary -->
+        <rect x="430" y="200" width="545" height="230" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="702" y="222" fill="#fbbf24" font-size="11" font-weight="600" text-anchor="middle">Transformer Block  &times; N  (stacked)</text>
+
+        <!-- ============ LEFT: input ============ -->
+        <rect x="30" y="295" width="150" height="70" rx="6" fill="#0f172a"/>
+        <rect x="30" y="295" width="150" height="70" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="105" y="318" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Token IDs</text>
+        <text x="105" y="336" fill="#94a3b8" font-size="8" text-anchor="middle">input sequence</text>
+        <text x="105" y="350" fill="#94a3b8" font-size="8" text-anchor="middle">[B, T]  int64</text>
+
+        <!-- ============ embedding column ============ -->
+        <rect x="215" y="295" width="165" height="70" rx="6" fill="#0f172a"/>
+        <rect x="215" y="295" width="165" height="70" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="297" y="318" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Token Embedding</text>
+        <text x="297" y="336" fill="#94a3b8" font-size="8" text-anchor="middle">E &isin; &#8477;^{V&times;d_model}</text>
+        <text x="297" y="350" fill="#94a3b8" font-size="8" text-anchor="middle">lookup &rarr; [B, T, d]</text>
+
+        <rect x="215" y="410" width="165" height="58" rx="6" fill="#0f172a"/>
+        <rect x="215" y="410" width="165" height="58" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="297" y="431" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Positional Encoding</text>
+        <text x="297" y="448" fill="#94a3b8" font-size="8" text-anchor="middle">RoPE (rotary)</text>
+        <text x="297" y="462" fill="#94a3b8" font-size="8" text-anchor="middle">no learned params</text>
+
+        <!-- decoder-only annotation (lower-left) -->
+        <rect x="30" y="485" width="355" height="66" rx="6" fill="#0f172a"/>
+        <rect x="30" y="485" width="355" height="66" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="207" y="506" fill="#cbd5e1" font-size="9" font-weight="600" text-anchor="middle">Decoder-only / autoregressive</text>
+        <text x="207" y="522" fill="#94a3b8" font-size="8" text-anchor="middle">each position attends only to itself</text>
+        <text x="207" y="536" fill="#94a3b8" font-size="8" text-anchor="middle">and previous positions (causal mask)</text>
+
+        <!-- ============ BLOCK INTERNALS ============ -->
+        <!-- masked multi-head self-attention -->
+        <rect x="450" y="275" width="150" height="110" rx="6" fill="#0f172a"/>
+        <rect x="450" y="275" width="150" height="110" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="525" y="296" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Masked Multi-Head</text>
+        <text x="525" y="310" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Self-Attention</text>
+        <text x="525" y="330" fill="#67e8f9" font-size="8" text-anchor="middle">softmax(QK&#7488;/&#8730;d)&middot;V</text>
+        <text x="525" y="346" fill="#94a3b8" font-size="8" text-anchor="middle">causal mask &#10003;</text>
+        <text x="525" y="360" fill="#94a3b8" font-size="8" text-anchor="middle">h heads, d_head = d/h</text>
+        <text x="525" y="374" fill="#94a3b8" font-size="8" text-anchor="middle">Q, K, V &larr; x &middot; W</text>
+
+        <!-- add & norm 1 -->
+        <rect x="620" y="295" width="80" height="70" rx="6" fill="#0f172a"/>
+        <rect x="620" y="295" width="80" height="70" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="660" y="320" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">Add &amp; Norm</text>
+        <text x="660" y="338" fill="#94a3b8" font-size="8" text-anchor="middle">residual +</text>
+        <text x="660" y="352" fill="#94a3b8" font-size="8" text-anchor="middle">LayerNorm</text>
+
+        <!-- feed-forward -->
+        <rect x="720" y="275" width="130" height="110" rx="6" fill="#0f172a"/>
+        <rect x="720" y="275" width="130" height="110" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="785" y="298" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Feed-Forward</text>
+        <text x="785" y="314" fill="#94a3b8" font-size="8" text-anchor="middle">(FFN / MLP)</text>
+        <text x="785" y="335" fill="#94a3b8" font-size="8" text-anchor="middle">Linear &rarr; GELU</text>
+        <text x="785" y="351" fill="#94a3b8" font-size="8" text-anchor="middle">&rarr; Linear</text>
+        <text x="785" y="368" fill="#94a3b8" font-size="8" text-anchor="middle">d &rarr; 4d &rarr; d</text>
+
+        <!-- add & norm 2 -->
+        <rect x="870" y="295" width="80" height="70" rx="6" fill="#0f172a"/>
+        <rect x="870" y="295" width="80" height="70" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="910" y="320" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">Add &amp; Norm</text>
+        <text x="910" y="338" fill="#94a3b8" font-size="8" text-anchor="middle">residual +</text>
+        <text x="910" y="352" fill="#94a3b8" font-size="8" text-anchor="middle">LayerNorm</text>
+
+        <!-- residual junction dots (drawn on top) -->
+        <circle cx="440" cy="330" r="2.6" fill="#fbbf24"/>
+        <circle cx="700" cy="330" r="2.6" fill="#fbbf24"/>
+
+        <!-- ============ OUTPUT HEAD (right column) ============ -->
+        <rect x="1000" y="298" width="170" height="64" rx="6" fill="#0f172a"/>
+        <rect x="1000" y="298" width="170" height="64" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="1085" y="320" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Final LayerNorm</text>
+        <text x="1085" y="338" fill="#94a3b8" font-size="8" text-anchor="middle">[B, T, d_model]</text>
+        <text x="1085" y="352" fill="#94a3b8" font-size="8" text-anchor="middle">after N blocks</text>
+
+        <rect x="1000" y="385" width="170" height="64" rx="6" fill="#0f172a"/>
+        <rect x="1000" y="385" width="170" height="64" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="1085" y="407" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Linear Head (LM)</text>
+        <text x="1085" y="425" fill="#94a3b8" font-size="8" text-anchor="middle">W &isin; &#8477;^{d&times;V}</text>
+        <text x="1085" y="439" fill="#94a3b8" font-size="8" text-anchor="middle">&rarr; logits [B, T, V]</text>
+
+        <rect x="1000" y="465" width="170" height="64" rx="6" fill="#0f172a"/>
+        <rect x="1000" y="465" width="170" height="64" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1085" y="487" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Softmax</text>
+        <text x="1085" y="505" fill="#94a3b8" font-size="8" text-anchor="middle">over vocab V</text>
+        <text x="1085" y="519" fill="#94a3b8" font-size="8" text-anchor="middle">&rarr; probabilities</text>
+
+        <rect x="1000" y="545" width="170" height="64" rx="6" fill="#0f172a"/>
+        <rect x="1000" y="545" width="170" height="64" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1085" y="567" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Next-Token Sample</text>
+        <text x="1085" y="585" fill="#94a3b8" font-size="8" text-anchor="middle">argmax / temp / top-k</text>
+        <text x="1085" y="599" fill="#94a3b8" font-size="8" text-anchor="middle">&rarr; id_{t+1}</text>
+
+        <!-- ============ LEGEND ============ -->
+        <rect x="30" y="632" width="1160" height="36" rx="6" fill="#0f172a"/>
+        <rect x="30" y="632" width="1160" height="36" rx="6" fill="rgba(30, 41, 59, 0.35)" stroke="#334155" stroke-width="1"/>
+        <text x="58" y="654" fill="#22d3ee" font-size="9">Legend:</text>
+        <text x="118" y="654" fill="#22d3ee" font-size="9">input / output prediction</text>
+        <text x="305" y="654" fill="#a78bfa" font-size="9">embedding + RoPE</text>
+        <text x="452" y="654" fill="#34d399" font-size="9">transformer compute</text>
+        <text x="620" y="654" fill="#fbbf24" font-size="9">N&times; block &middot; residual skip</text>
+        <text x="822" y="654" fill="#94a3b8" font-size="9">annotation / note</text>
+      </svg>
+    </div>
+    <section class="cards" aria-label="Transformer block summary">
+      <div class="card">
+        <h2>Input pipeline</h2>
+        <ul>
+          <li>Token ids &rarr; learned embedding lookup &rarr; [B, T, d_model].</li>
+          <li>RoPE injects position by rotating Q, K inside attention (no learned params).</li>
+          <li>Stream enters the N&times; block stack autoregressively.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Transformer block &times;N</h2>
+        <ul>
+          <li>Masked MHSA: softmax(QK&#7488;/&#8730;d)&middot;V under a lower-triangular causal mask.</li>
+          <li>Residual + LayerNorm wraps both attention and the feed-forward network.</li>
+          <li>FFN: Linear(d, 4d) &rarr; GELU &rarr; Linear(4d, d); repeated N times.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Output head</h2>
+        <ul>
+          <li>Final LayerNorm &rarr; linear LM head projects hidden state to vocab logits.</li>
+          <li>Softmax yields the next-token distribution; sample id_{t+1}.</li>
+          <li>Sampled token appends to the sequence; repeat for generation.</li>
+        </ul>
+      </div>
+    </section>
+    <footer>Generated for ml-eng-lab architecture reference, 2026-07-07.</footer>
+  </div>
+</body>
+</html>

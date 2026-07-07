@@ -122,6 +122,8 @@ and on the raw 4-D features; ARI and NMI score the agreement with the true speci
 
 ## 8.21.4 Architecture
 
+![Autoencoder](../diagrams/img/autoencoder.png)
+
 The AE is identical to the shallow variant from §8.20 (`hidden_dims=[2]`, single-bottleneck
 encoder/decoder). The sibling discussion confirms that the deeper `[3, 2, 3]` variant
 overfits the reconstruction objective on iris and loses species-separation in the bottleneck —
