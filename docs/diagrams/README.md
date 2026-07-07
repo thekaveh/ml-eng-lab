@@ -25,13 +25,13 @@ and re-running the pipeline refreshes every surface.
 - `ml-eng-lab-system.html` — repository context and primary components (declared as
   `system` in the manifest; embedded by `docs/architecture.md`).
 - `ml-eng-lab-runtime-flow.html` — runtime entry paths and task-local notebook artifact
-  paths (added to the manifest with PR 2 content breadth).
+  paths (added to the manifest later).
 - `ml-eng-lab-notebook-sequence.html` — notebook execution from parameters through
-  training, ranking, visualization, persistence, and verification (PR 2).
+  training, ranking, visualization, persistence, and verification (planned).
 - `ml-eng-lab-docs-publishing.html` — README, docs, MkDocs, GitHub Pages, wiki, and
-  repository metadata surfaces (PR 2).
-- `ml-eng-lab-docs-sync.html` — the three-surface documentation sync pipeline (added in
-  Task 12 of the docs-overhaul foundation).
+  repository metadata surfaces (planned).
+- `ml-eng-lab-docs-sync.html` — the three-surface documentation sync pipeline (added with
+  the docs-overhaul foundation).
 
 ## 3. Generation Contract
 

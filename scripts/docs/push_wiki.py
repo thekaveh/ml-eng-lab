@@ -58,7 +58,9 @@ def push_wiki(src: Path, remote: str, key_path: Path | None, *, push: bool) -> i
             print(f"wiki check ok ({len(list(src.iterdir()))} entries)")
             return 0
         subprocess.run(["git", "-C", str(repo_dir), "add", "-A"], env=env, check=True)
-        subprocess.run(["git", "-C", str(repo_dir), "commit", "-m", "docs: sync wiki"], env=env, check=True)
+        staged = subprocess.run(["git", "-C", str(repo_dir), "diff", "--cached", "--quiet"], env=env)
+        if staged.returncode != 0:
+            subprocess.run(["git", "-C", str(repo_dir), "commit", "-m", "docs: sync wiki"], env=env, check=True)
         subprocess.run(["git", "-C", str(repo_dir), "push", remote, "main"], env=env, check=True)
         print("wiki pushed")
         return 0
