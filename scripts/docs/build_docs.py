@@ -54,6 +54,15 @@ def render_site(manifest: Manifest, repo_root: Path, out_dir: Path) -> list[Path
     if js_src.exists():
         (out_dir / "javascripts").mkdir(parents=True, exist_ok=True)
         (out_dir / "javascripts/mathjax.js").write_text(js_src.read_text(encoding="utf-8"), encoding="utf-8")
+    # place diagram SVGs (crisp, for the site) — extracted from committed HTML masters,
+    # so render_site owns the complete, deterministic site output.
+    from scripts.docs.render_diagrams import extract_svg
+
+    assets = out_dir / "assets/img"
+    for d in manifest.diagrams:
+        svg = extract_svg((repo_root / d.master).read_text(encoding="utf-8"))
+        assets.mkdir(parents=True, exist_ok=True)
+        (assets / f"{d.id}.svg").write_text(svg, encoding="utf-8")
     return written
 
 
