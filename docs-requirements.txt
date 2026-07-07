@@ -4,3 +4,7 @@
 mkdocs-material>=9.6,<10.0
 pyyaml>=6.0,<7.0
 cairosvg>=2.7,<3.0
+# The docs CI gate (.github/workflows/docs.yml) lints + unit-tests the scripts/docs/ modules,
+# so its isolated job needs ruff + pytest too (the docs job does not install the main env).
+ruff
+pytest
