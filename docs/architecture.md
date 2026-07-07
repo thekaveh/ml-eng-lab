@@ -1,60 +1,64 @@
-# 2. Architecture
+# 2.1 System & context view
 
 This page describes the repository as a notebook-driven ML lab rather than as a deployable
-service. The primary runtime objects are experiment directories, notebook execution tiers,
-validation scripts, and documentation surfaces.
+service. The primary runtime objects are experiment directories under `notebooks/`, the notebook
+execution tiers owned by the `Makefile`, the validation scripts under `scripts/`, and the three
+documentation surfaces derived from the canonical `docs/` tree.
 
-Diagram provenance and regeneration rules are tracked in
-[Diagram Provenance](diagrams/README.md).
+## 1. System architecture
 
-## 1. System Context
+The diagram below is rendered from the `system` diagram master declared in
+`docs/manifest.yaml` (`docs/diagrams/ml-eng-lab-system.html`). The build pipeline rasterizes the
+master to PNG for the repository and wiki surfaces and extracts the inline SVG for the site
+surface, so all three surfaces embed the same geometry.
 
-The diagram below is generated as a standalone HTML architecture artifact and embedded into
-the documentation site.
+![ml-eng-lab system architecture](diagrams/img/system.png)
 
-<iframe class="architecture-frame" src="../diagrams/ml-eng-lab-system.html" title="ml-eng-lab system architecture"></iframe>
+The diagram captures the repository context and primary components: the notebook task
+directories, the shared `nnx` library consumed from PyPI, the validation and documentation
+tooling, and the three documentation surfaces.
 
-[Open the diagram in a full page](diagrams/ml-eng-lab-system.html).
+## 2. Three-surface documentation pipeline
 
-## 2. Runtime Flow
+The documentation system is the cleanest worked example of the lab's "canonical source +
+derived surface" discipline. One source tree feeds three surfaces:
 
-The runtime flow diagram shows the supported entry paths and the invariant that notebook code
-resolves `./data` and `./runs` from the task directory.
+1. **Manifest.** `docs/manifest.yaml` declares the hierarchy, numbering, notebook specs, and
+   diagram masters. It is the single source of truth for the page set — if a page is not in the
+   manifest, it does not appear in the generated site or wiki.
+2. **Site generation.** `scripts/docs/build_docs.py --site` reads the manifest, applies the
+   per-surface transforms in `scripts/docs/transforms.py` (forbidden-link stripping,
+   path rewriting, image-asset rewriting), and writes `generated/site/` plus a generated
+   `mkdocs.yml`. MkDocs Material then builds the published site from `generated/site/`.
+3. **Wiki generation.** `scripts/docs/build_docs.py --wiki` applies the wiki surface transform
+   (slugified numbered filenames, `Home.md` / `_Sidebar.md` / `_Footer.md` convention) and writes
+   `generated/wiki/`. `scripts/docs/push_wiki.py` mirrors it to the GitHub wiki using a
+   dedicated deploy key.
+4. **Diagram rendering.** `scripts/docs/render_diagrams.py` rasterizes each manifest-declared
+   HTML master to SVG (for the site) and PNG (committed under `docs/diagrams/img/` for the
+   repository and wiki).
+5. **CI gate.** `scripts/docs/check_docs.py` enforces self-containment (no cross-surface HTTP
+   links), completeness (every manifest entry has a source file), placeholder-freeness, and
+   generation determinism. It exits non-zero on any error.
 
-<iframe class="architecture-frame" src="../diagrams/ml-eng-lab-runtime-flow.html" title="ml-eng-lab runtime flow"></iframe>
+The transforms guarantee that a link written once in a canonical source resolves correctly on
+every surface: relative canonical paths are rewritten to per-surface output paths, image
+references are rewritten to the surface-appropriate asset format, and any link that would cross
+a surface boundary (a site page linking to a GitHub source view, for example) is stripped to
+bare text.
 
-[Open the runtime flow diagram in a full page](diagrams/ml-eng-lab-runtime-flow.html).
+## 3. Runtime entry paths
 
-1. A contributor opens the repository through a local venv, Docker image, Codespaces, or the
-   vendored genai-vanilla JupyterHub stack.
-2. They run or edit an experiment under `notebooks/<task>/`.
-3. Notebook-local `./data/` and `./runs/` paths resolve inside that experiment directory.
-4. `Makefile` targets execute notebooks by changing into each notebook directory before
-   invoking papermill.
-5. `scripts/verify_repo.py`, pytest, ruff, and CI verify structure, documentation, and public
-   notebook surfaces before changes are merged.
-6. MkDocs builds this documentation site from checked-in Markdown and publishes it through
-   GitHub Pages.
+A contributor opens the repository through one of four supported entry paths — a local venv, the
+Docker image, GitHub Codespaces, or the vendored genai-vanilla JupyterHub stack — and runs or
+edits an experiment under `notebooks/<task>/`. Notebook-local `./data/` and `./runs/` paths
+resolve inside that experiment directory; `Makefile` targets execute notebooks by changing into
+each notebook directory before invoking papermill, so the task-local path invariant holds.
 
-## 3. Notebook Execution Sequence
+`scripts/verify_repo.py`, pytest, ruff, and the CI workflows verify structure, documentation,
+and public notebook surfaces before changes are merged.
 
-The execution sequence diagram traces a task notebook from papermill parameters through
-training, ranking, visualization, run persistence, and output-path verification.
-
-<iframe class="architecture-frame" src="../diagrams/ml-eng-lab-notebook-sequence.html" title="ml-eng-lab notebook execution sequence"></iframe>
-
-[Open the notebook execution sequence diagram in a full page](diagrams/ml-eng-lab-notebook-sequence.html).
-
-## 4. Documentation Publishing
-
-The publishing diagram describes the canonical documentation sources, generated site, wiki
-signpost, and repository metadata surfaces.
-
-<iframe class="architecture-frame" src="../diagrams/ml-eng-lab-docs-publishing.html" title="ml-eng-lab documentation publishing"></iframe>
-
-[Open the documentation publishing diagram in a full page](diagrams/ml-eng-lab-docs-publishing.html).
-
-## 5. Boundary Decisions
+## 4. Boundary decisions
 
 - `notebooks/archive/` is preserved as read-only historical material and excluded from active
   notebook validation.
@@ -62,3 +66,5 @@ signpost, and repository metadata surfaces.
   `thekaveh/NNx` before this repo bumps the pin.
 - The quantization notebook is active but manual-only until the pinned Torch stack can satisfy
   `torchao>=0.17`.
+- The canonical `docs/` tree is the only documentation source of truth; the generated site and
+  wiki are never edited by hand.
