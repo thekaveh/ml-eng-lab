@@ -1,0 +1,40 @@
+title: "Diffusion — DDPM on MNIST"
+family: generative
+tier: A
+dataset: MNIST
+model: "DDPM with DiffusionMLP denoiser (no U-Net)"
+framework: "PyTorch (via nnx)"
+concepts: [DDPM, forward noising process, linear beta-schedule, noise-prediction objective, sinusoidal time embedding, reverse-diffusion sampling, .net substitution]
+math:
+  - id: forward-process
+    label: "Forward (closed-form) sampling of x_t"
+    latex: "x_t = \\sqrt{\\bar{\\alpha}_t}\\, x_0 + \\sqrt{1 - \\bar{\\alpha}_t}\\, \\varepsilon"
+  - id: noise-pred-loss
+    label: "Simplified noise-prediction loss"
+    latex: "\\mathcal{L}(\\theta) = \\mathbb{E}_{t, x_0, \\varepsilon}\\,\\lVert \\varepsilon - \\varepsilon_\\theta(x_t, t) \\rVert_2^{2}"
+  - id: reverse-sample
+    label: "Ancestral reverse-diffusion update"
+    latex: "x_{t-1} = \\frac{1}{\\sqrt{\\alpha_t}}\\Big(x_t - \\frac{\\beta_t}{\\sqrt{1-\\bar{\\alpha}_t}}\\,\\varepsilon_\\theta(x_t,t)\\Big) + \\sigma_t z"
+code_walkthrough:
+  - { anchor: "NoiseSchedulers.LINEAR(T=100)", note: "builds the linear beta-schedule NoiseSchedule" }
+  - { anchor: "diffusion_train_step_factory(schedule)", note: "produces the noise-prediction MSE train_step_fn (samples t per image, builds x_t, predicts eps)" }
+  - { anchor: "model.net = DiffusionMLP(...)", note: ".net substitution; placeholder FeedFwdNN + CROSS_ENTROPY loss are unused" }
+  - { anchor: "sample(model, schedule, shape=(16, 784))", note: "runs the full reverse-diffusion loop and returns 16 generated samples" }
+results:
+  - { metric: denoiser_params, value: "477,488" }
+  - { metric: timesteps, value: "T=100" }
+  - { metric: iterations, value: "1266 (3 epochs x 422 batches)" }
+  - { metric: noise_prediction_loss, value: "1.0102 -> 0.9317" }
+  - { metric: samples_drawn, value: "16 (mode-mixed and blurry at this budget)" }
+pitfalls:
+  - "NNDataset default loader packs the whole 54k MNIST train set into one batch; rebuild at batch_size=128."
+  - "MLP on flattened pixels loses spatial structure; real DDPM quality needs a U-Net denoiser."
+  - "Normalize(mean=0.1307, std=0.3081) shifts pixel range; un-normalize samples via samples * DS_STD + DS_MEAN before clamp(0,1)."
+  - "T=100 is small; production DDPMs use T=1000 (or DDIM sampling for fewer steps)."
+  - "Three epochs is far below convergence; MLP-scale DDPMs typically need 50+ epochs for sharp digits."
+extensions:
+  - "Swap DiffusionMLP for a U-Net denoiser; schedule/train step/sampler unchanged."
+  - "Raise T to 1000 and lengthen training for production-quality samples."
+  - "Switch to DDIM sampling for fewer steps at the same quality."
+  - "Add class-conditional generation via classifier-free guidance."
+depth: full

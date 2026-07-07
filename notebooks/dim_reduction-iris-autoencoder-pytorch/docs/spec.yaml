@@ -1,0 +1,33 @@
+title: "Dimensionality reduction — Iris autoencoder"
+family: dim_reduction
+tier: A
+dataset: Iris
+model: Feed-forward autoencoder (input_dim == output_dim)
+framework: "PyTorch (via nnx)"
+concepts: [dimensionality reduction, PCA, autoencoder, reconstruction loss, train_step_fn, linear probe]
+math:
+  - id: pca
+    label: "PCA eigendecomposition"
+    latex: "\\Sigma v_k = \\lambda_k v_k"
+  - id: ae-recon
+    label: "AE reconstruction MSE"
+    latex: "\\mathcal{L} = \\frac{1}{N} \\sum_i \\|x_i - D(E(x_i))\\|^2"
+code_walkthrough:
+  - { anchor: "make_autoencoder(...)", note: "FeedFwdNN(input_dim==output_dim) trick — bottleneck = middle Linear" }
+  - { anchor: "autoencoder_step(ctx)", note: "train_step_fn hook: MSE(net(X), X), ignore Y; first in-repo demo outside LM task" }
+  - { anchor: "encode(model, X_np)", note: "walk net.layers[:bottleneck_idx+1] with F.relu to recover 2-D latent" }
+results:
+  - { metric: "linear-probe acc (PCA)", value: "0.8261 on held-out test (n=23)" }
+  - { metric: "linear-probe acc (AE shallow [2])", value: "1.0000" }
+  - { metric: "linear-probe acc (AE deeper [3,2,3])", value: "0.3478" }
+  - { metric: "PCA explained variance", value: "[0.833, 0.129]" }
+pitfalls:
+  - "Deeper AE overfits reconstruction on 150 samples and loses species separation in the bottleneck."
+  - "Linear-probe accuracy swings ~4.5pp per mis-prediction at n=23; read absolute numbers as on-this-split."
+  - "Loss field in NNModelParams is cosmetic when train_step_fn is used; CROSS_ENTROPY placeholder is never invoked."
+  - "Encoder extractor must mirror NNParams activation; update if you swap ReLU."
+extensions:
+  - "Add a denoising-autoencoder variant for robust representation learning."
+  - "Swap bottleneck for a 3-D latent or a VAE with KL regularization."
+  - "Scale the recipe to a 30-D dataset where the deeper AE's capacity pays off."
+depth: full

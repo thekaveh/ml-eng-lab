@@ -1,0 +1,43 @@
+title: "Self-supervised — I-JEPA on Fashion-MNIST"
+family: self_supervised
+tier: A
+dataset: Fashion-MNIST
+model: "I-JEPA: ViTNN context encoder + EMA target encoder + JEPAPredictor + linear probe"
+framework: "PyTorch (via nnx)"
+concepts: [self-supervised representation learning, I-JEPA, joint-embedding prediction, ViT, patchification, random block masking, EMA target encoder, stop-gradient, linear probe]
+math:
+  - id: jepa-prediction
+    label: "Predictor maps context to target embeddings"
+    latex: "\\hat{z}_j = g_\\psi\\!\\left(f_\\phi(x_{\\mathcal{C}}),\\, \\text{pos}_j\\right),\\ j \\in \\mathcal{T}"
+  - id: jepa-loss
+    label: "JEPA prediction loss (stop-grad on EMA target)"
+    latex: "\\mathcal{L}(\\phi,\\psi) = \\sum_{j \\in \\mathcal{T}}\\, \\lVert \\hat{z}_j - \\text{sg}(f_\\xi(x_{\\mathcal{T}})_j) \\rVert"
+  - id: ema-update
+    label: "EMA target update"
+    latex: "\\xi \\leftarrow \\tau\\,\\xi + (1-\\tau)\\,\\phi,\\ \\tau = 0.996"
+code_walkthrough:
+  - { anchor: "ViTNN(image_size=28, patch_size=4, ...)", note: "context encoder: 49 patches/image at d_model=64, 2 layers, 4 heads" }
+  - { anchor: "build_target_encoder(model.net)", note: "deep-copy + freeze; EMA-updated every step" }
+  - { anchor: "JEPAPredictor + model.net.add_module('_jepa_predictor', predictor)", note: "predictor registered under model.net so NNModel optimizer trains both jointly" }
+  - { anchor: "jepa_train_step_factory(target_encoder, predictor, mask_fn, ema_momentum=0.996)", note: "mask -> context forward -> frozen target forward -> predict -> stop-grad loss -> EMA update" }
+  - { anchor: "LinearProbe via mean-pooled patch embeddings", note: "freeze encoder, pre-compute embeddings, train Linear(d_model -> 10) for 5 epochs" }
+results:
+  - { metric: vit_encoder_params, value: "102,720" }
+  - { metric: jepa_predictor_params, value: "30,368" }
+  - { metric: patches_per_image, value: "49 (7x7 at patch_size=4)" }
+  - { metric: jepa_pretrain_iterations, value: "844 (2 epochs x 422 batches)" }
+  - { metric: jepa_loss, value: "1.0416 -> 0.3162" }
+  - { metric: linear_probe_val_acc, value: "74.43% (epoch 5); random baseline 10%" }
+pitfalls:
+  - "~90 s runtime is the heaviest Tier-A notebook; ViT forward is slow on CPU."
+  - "EMA momentum is stability-critical; 0.99 or below causes degenerate collapse."
+  - "Single target block per step; the paper uses four (aggregate prediction losses)."
+  - "NNDataset default loader packs the whole train set; rebuild at batch_size=128."
+  - "Two pretrain epochs is a smoke test; real I-JEPA needs 150+ epochs to approach supervised ceiling."
+  - "Activations.RELU on the placeholder FeedFwdNN is inert (never executed)."
+extensions:
+  - "Lengthen pretrain to 150+ epochs; probe gap to supervised ceiling narrows steadily."
+  - "Multi-block masking: sample 4 target blocks per image and aggregate losses."
+  - "Scale ViT + dataset (CIFAR-10 is the smallest intermediate step; ImageNet at 224x224 is the paper setting)."
+  - "Switch to V-JEPA: mask spatiotemporal patches for video."
+depth: full

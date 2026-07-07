@@ -1,0 +1,38 @@
+title: "Community detection — Karate Club Louvain vs GNN"
+family: graph
+tier: A
+dataset: Zachary's Karate Club
+model: Louvain modularity vs GraphSAGE encoder + KMeans
+framework: "PyTorch Geometric + python-louvain + sklearn (minimal nnx)"
+concepts: [community detection, modularity, Louvain, GraphSAGE, KMeans, ARI, NMI, unsupervised proxy task]
+math:
+  - id: modularity
+    label: "Louvain modularity"
+    latex: "Q = \\frac{1}{2m} \\sum_{i,j} \\left( A_{ij} - \\frac{k_i k_j}{2m} \\right) \\delta(c_i, c_j)"
+  - id: ari
+    label: "Adjusted Rand Index"
+    latex: "\\mathrm{ARI} = \\frac{ \\sum_{ij} \\binom{n_{ij}}{2} - [\\sum_i \\binom{a_i}{2} \\sum_j \\binom{b_j}{2}] / \\binom{n}{2} }{ \\frac{1}{2}[\\sum_i \\binom{a_i}{2} + \\sum_j \\binom{b_j}{2}] - [\\sum_i \\binom{a_i}{2} \\sum_j \\binom{b_j}{2}] / \\binom{n}{2} }"
+code_walkthrough:
+  - { anchor: "to_networkx(data, to_undirected=True)", note: "PyG -> NetworkX conversion for python-louvain" }
+  - { anchor: "community_louvain.best_partition(G_nx, random_state=0)", note: "single-call Louvain; number of communities discovered by the algorithm" }
+  - { anchor: "GraphSageNN(NNParams(...))", note: "same 2-layer encoder as the link-prediction sibling, trained on all edges" }
+  - { anchor: "negative_sampling(...)", note: "fresh negatives per epoch for the link-prediction proxy objective" }
+  - { anchor: "KMeans(n_clusters=4, n_init=10, random_state=0)", note: "cluster the 16-D embeddings; k=4 given to match ground truth" }
+results:
+  - { metric: "Louvain ARI", value: "1.000" }
+  - { metric: "Louvain NMI", value: "1.000" }
+  - { metric: "GraphSAGE + KMeans ARI", value: "0.155" }
+  - { metric: "GraphSAGE + KMeans NMI", value: "0.429" }
+  - { metric: "encoder train BCE (epoch 1 -> 100)", value: "0.7064 -> 0.3625" }
+pitfalls:
+  - "Karate is the poster-child modularity benchmark; Louvain's perfect score is expected, not surprising."
+  - "Link prediction is the wrong proxy for community detection on Karate: it places connected nodes together, not within-community nodes."
+  - "KMeans needs k pre-specified; pre-setting n_clusters=4 is the most charitable setup for the GNN."
+  - "Identity one-hot features cap the GNN; richer node features are where the GNN recipe starts to win."
+  - "Read ARI and NMI together; ARI is stricter, NMI can be inflated by many small clusters."
+extensions:
+  - "Swap in a contrastive proxy (GRACE, BGRL, DiffPool) that separates between-community pairs."
+  - "Move to a bigger, less-modular graph (Cora, PPI, social graphs) where modularity is too coarse."
+  - "Reuse the encoder from link_prediction-karate-graphsage-pyg.md; the encode-then-score contract is shared."
+  - "Discover k via silhouette instead of pre-specifying n_clusters."
+depth: full

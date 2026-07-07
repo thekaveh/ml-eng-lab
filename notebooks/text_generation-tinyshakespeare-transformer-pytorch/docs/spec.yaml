@@ -1,0 +1,35 @@
+title: "Text generation — TinyShakespeare decoder-only transformer"
+family: language
+tier: A
+dataset: TinyShakespeare (embedded slice, 8x tiled)
+model: Decoder-only transformer (TransformerNN)
+framework: "PyTorch (via nnx [lm])"
+concepts: [autoregressive language modeling, decoder-only transformer, scaled-dot-product attention, RoPE, BPE tokenizer, softmax + cross-entropy, temperature + top-k sampling]
+math:
+  - id: softmax-ce
+    label: "Softmax + cross-entropy (next-token)"
+    latex: "\\mathcal{L} = -\\sum_{t=1}^{T} \\log P(x_{t+1} \\mid x_{\\le t})"
+  - id: attention
+    label: "Scaled-dot-product attention (causal)"
+    latex: "\\mathrm{softmax}\\!\\left(\\frac{QK^{\\top}}{\\sqrt{d_k}} + M\\right) V"
+  - id: sampling
+    label: "Temperature + top-k sampling"
+    latex: "P(v) = \\mathrm{softmax}(z/\\tau)\\ \\text{restricted to top-}k"
+code_walkthrough:
+  - { anchor: "train_bpe(...)", note: "256-vocab BPE tokenizer with special tokens via nnx [lm]" }
+  - { anchor: "GenerativeNNModel(net_params, params, tokenizer)", note: "decoder-only transformer + bound tokenizer + generate()" }
+  - { anchor: "lm_train_step(ctx)", note: "custom step flattens (B,T,V) -> (B*T,V) for cross_entropy via train_step_fn=" }
+results:
+  - { metric: "train loss (first iter)", value: "63.6201" }
+  - { metric: "train loss (final iter, 215 iters)", value: "7.5602" }
+  - { metric: "parameters", value: "114,752" }
+pitfalls:
+  - "Reported loss is a per-batch sum over B*T tokens, not a per-token mean; not comparable to published perplexity."
+  - "No validation loader; train loss is the only signal (overfitting invisible)."
+  - "CORPUS_REPEAT=8 is load-bearing — without tiling, drop_last=True + tiny corpus yields 0 batches."
+  - "tokenizers (Rust BPE) comes via nnx [lm] extra; bare pip install thekaveh-nnx fails at train_bpe."
+extensions:
+  - "Scale corpus to real TinyShakespeare (~1 MB) or HuggingFace TinyStories; quality is a scale lever."
+  - "Swap TopKFilter for nucleus (top_p) + repetition_penalty in generate() to break the repetitive attractor."
+  - "Slice a held-out val chunk for a perplexity curve; report per-token-mean loss (divide by B*T)."
+depth: full

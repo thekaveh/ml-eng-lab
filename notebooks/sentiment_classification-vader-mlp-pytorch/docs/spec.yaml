@@ -1,0 +1,32 @@
+title: "Sentiment classification — VADER vs MLP"
+family: language
+tier: A
+dataset: Embedded sentiment corpus (60 unique reviews, 4x tiled)
+model: VADER lexicon + spaCy BoW MLP (head-to-head)
+framework: "PyTorch (via nnx) + NLTK + spaCy + sklearn"
+concepts: [3-class sentiment classification, VADER lexicon, compound-score thresholds, rule-based vs learned, spaCy BoW, MLP, softmax + cross-entropy]
+math:
+  - id: vader-compound
+    label: "VADER compound score + thresholds"
+    latex: "\\mathrm{compound}(x) \\in [-1,+1];\\ >\\!0.05 \\Rightarrow \\text{pos},\\ <\\!-0.05 \\Rightarrow \\text{neg}"
+  - id: softmax-ce
+    label: "Softmax + cross-entropy (MLP)"
+    latex: "\\mathcal{L} = -\\log \\hat{y}_c,\\ \\hat{y}_i = \\frac{e^{z_i}}{\\sum_j e^{z_j}}"
+code_walkthrough:
+  - { anchor: "SentimentIntensityAnalyzer()", note: "lazy vader_lexicon download on LookupError" }
+  - { anchor: "vader_predict(text)", note: "compound > +0.05 -> pos, < -0.05 -> neg, else neu (paper defaults)" }
+  - { anchor: "NNModel + NNParams(hidden_dims=[32])", note: "100 -> 32 -> 3 MLP (same recipe as 8.17)" }
+results:
+  - { metric: "VADER accuracy", value: "81.25% (39/48, zero training)" }
+  - { metric: "neural MLP accuracy", value: "79.17% (38/48)" }
+  - { metric: "neural final train loss", value: "0.1313 (60 epochs)" }
+pitfalls:
+  - "vader_lexicon is a separate nltk download (CI pre-fetches; lazy try/except fallback)."
+  - "Neutral is the weak spot for both: factual text has no polarity words."
+  - "BoW destroys negation scope (VADER's grammar rules capture minimal syntax BoW flattens)."
+  - "+/-0.05 thresholds are paper defaults, not domain-optimal; sweep them on a val split."
+extensions:
+  - "Add DistilBERT transformer baseline; show where learned finally beats lexicon."
+  - "Grid-search compound thresholds on held-out val; ensemble VADER + neural probabilities."
+  - "Scale to IMDB 50k via HuggingFace; lexicon stays within ~15 pts at zero training cost."
+depth: full

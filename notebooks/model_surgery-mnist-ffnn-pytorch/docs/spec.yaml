@@ -1,0 +1,45 @@
+title: "Model surgery — MNIST FFN (Net2Net)"
+family: mlp-compression
+tier: A
+dataset: MNIST
+model: Feed-forward NN (surgery substrate: [64,64] -> [128,64])
+framework: "PyTorch (via nnx)"
+concepts:
+  - function-preserving transform
+  - Net2WiderNet
+  - Net2DeeperNet
+  - identity initialization
+  - warm-start vs cold-start
+math:
+  - id: net2widernet
+    label: "Net2WiderNet weight copy + row scaling"
+    latex: "W'_{:,j}=W_{:,r_j},\\;\\; U'_{j,:}=\\tfrac{1}{|\\{j':r_{j'}=r_j\\}|}\\,U_{r_j,:}"
+  - id: net2deepernet
+    label: "Net2DeeperNet identity-init (ReLU-only)"
+    latex: "W_{\\text{new}}=I,\\; b_{\\text{new}}=0\\;\\Rightarrow\\;\\mathrm{ReLU}(Ih+0)=\\mathrm{ReLU}(h)"
+  - id: ce-loss
+    label: "Softmax cross-entropy"
+    latex: "\\mathcal{L}(z,y)=-\\log\\frac{e^{z_c}}{\\sum_j e^{z_j}}"
+code_walkthrough:
+  - { anchor: "nnx.widen(...)", note: "Net2WiderNet: widen layers.0 64->128; drift ~1.9e-6 (not bit-exact)" }
+  - { anchor: "nnx.deepen(...)", note: "Net2DeeperNet: insert identity Linear after layers.0; drift 0.0 (bit-exact, ReLU-only)" }
+  - { anchor: "assert widen_drift < 1e-5", note: "empirical function-preservation check on a probe batch" }
+  - { anchor: "make_model_from_net(net, ...)", note: "wrap an operated net for resumed training (net_params stays stale)" }
+results:
+  - { metric: "widen drift on probe batch", value: "1.91e-06" }
+  - { metric: "deepen drift on probe batch", value: "0.00e+00" }
+  - { metric: "final val loss continue [64,64]", value: "0.9260" }
+  - { metric: "final val loss warm-widen [128,64]", value: "1.1409" }
+  - { metric: "final val loss cold-widen [128,64]", value: "0.8612" }
+  - { metric: "note", value: "at this short budget cold-widen wins; warm-start advantage emerges at longer schedules" }
+pitfalls:
+  - "nnx.deepen is function-preserving only for ReLU (identity-init does not compose through sigmoid/tanh/GELU)."
+  - "nnx.widen drift is ~1e-6, NOT bit-exact; keep the assertion tolerance at 1e-5 (not 0)."
+  - "Warm-vs-cold comparison is budget-dependent; at Tier-A's 3+5 epochs cold-widen can match/beat warm-widen."
+  - "Injecting an operated net leaves model.net_params stale at the constructor dims; read shapes off model.net."
+  - "Keep dropout=0 during surgery verification or the forward-equality assertion breaks stochastically."
+extensions:
+  - "Lengthen the budget (well-converged baseline + longer resume) to expose the Net2Net time-to-target gap."
+  - "Exercise nnx.drop_layer and nnx.low_rank_factorize to complete the surgery-namespace story."
+  - "Combine widen + born-again distillation (8.6) for a surgery-and-distill compression pipeline."
+depth: full

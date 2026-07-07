@@ -62,3 +62,10 @@ def test_rewrite_rewrites_md_links_via_source_map():
 def test_rewrite_drops_ipynb_links_to_bare_text():
     md = "open [the notebook](notebook.ipynb)."
     assert rewrite_for_surface(md, "site", {}) == "open the notebook."
+
+
+def test_rewrite_strips_non_manifest_md_links_to_bare_text():
+    # Relative .md link to a doc NOT in the surface's source_map (e.g. env-setup, a README) is
+    # valid in-repo but absent from the generated site/wiki → bare text (self-contained surfaces).
+    md = "see [env setup](../env-setup.md) and [the README](../../notebooks/t/README.md)."
+    assert rewrite_for_surface(md, "site", {}) == "see env setup and the README."
