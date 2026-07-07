@@ -1,0 +1,21 @@
+title: "Tabular classification — Iris MLP"
+family: tabular
+tier: A
+dataset: Iris
+model: Feed-forward NN
+framework: "PyTorch (via nnx)"
+concepts: [multiclass classification, softmax, cross-entropy, MLP]
+math:
+  - id: softmax-ce
+    label: "Softmax + cross-entropy"
+    latex: "\\hat{y}_i = \\frac{e^{z_i}}{\\sum_j e^{z_j}}"
+code_walkthrough:
+  - { anchor: "NNParams(...)", note: "hidden dims, learning rate, epochs" }
+  - { anchor: "NNRun.load('best')", note: "best-checkpoint restore via nnx" }
+results:
+  - { metric: accuracy, value: "~0.98 on held-out Iris" }
+pitfalls:
+  - "Iris is tiny — a single hold-out split varies; prefer the seeded split used by nnx."
+extensions:
+  - "Swap softmax head for a 2-layer MLP with dropout; compare against sklearn LogisticRegression."
+depth: full

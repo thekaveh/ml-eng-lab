@@ -1,35 +1,58 @@
+/* Obsidian Terminal theme — dark default + light toggle.
+   Overrides Material CSS variables; exact hexes per spec §9 / decision D6. */
+
 :root {
-  --md-primary-fg-color: #020617;
-  --md-accent-fg-color: #22d3ee;
+  --md-default-fg-color: #c9d1d9;
+  --md-default-bg-color: #0a0e14;
+  --md-primary-fg-color: #e6edf3;
+  --md-primary-fg-color--light: #c9d1d9;
+  --md-primary-fg-color--dark: #00e5ff;
+  --md-primary-bg-color: #0f141d;
+  --md-primary-bg-color--light: #0f141d;
+  --md-accent-fg-color: #00e5ff;
+  --md-accent-fg-color--transparent: rgba(0, 229, 255, 0.12);
+  --md-code-fg-color: #7ee787;
+  --md-code-bg-color: #0b1018;
+  --md-code-hl-color: rgba(0, 229, 255, 0.18);
+  --md-typeset-a-color: #00e5ff;
+  --md-nav-bg: #0a0e14;
+  --obsidian-hair: #1b2230;
 }
 
-[data-md-color-scheme="slate"] {
-  --md-default-bg-color: #020617;
-  --md-default-fg-color: #e5e7eb;
-  --md-typeset-a-color: #67e8f9;
-  --md-code-bg-color: #0f172a;
-  --md-code-fg-color: #e2e8f0;
+[data-md-color-scheme="default"] {
+  --md-default-fg-color: #1f2328;
+  --md-default-bg-color: #fafbfc;
+  --md-primary-fg-color: #ffffff;
+  --md-primary-bg-color: #0969da;
+  --md-accent-fg-color: #0969da;
+  --md-code-fg-color: #1a7f37;
+  --md-code-bg-color: #f6f8fa;
+  --md-typeset-a-color: #0969da;
+  --obsidian-hair: #d0d7de;
 }
 
-.md-header,
+/* Neon glow on the active nav link, focus rings, and code blocks */
+.md-nav__link--active,
+.md-nav__link:focus {
+  color: var(--md-accent-fg-color);
+  text-shadow: 0 0 8px var(--md-accent-fg-color--transparent);
+}
+.md-nav__item {
+  border-left: 1px solid var(--obsidian-hair);
+}
+.md-search__input {
+  background-color: var(--md-code-bg-color);
+  box-shadow: 0 0 0 1px var(--obsidian-hair);
+}
+.md-typeset code {
+  border: 1px solid var(--obsidian-hair);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.06);
+}
+.md-header {
+  background: var(--md-default-bg-color);
+  border-bottom: 1px solid var(--obsidian-hair);
+}
 .md-tabs {
-  background: #020617;
-}
-
-.md-main__inner {
-  max-width: 72rem;
-}
-
-.md-typeset h1,
-.md-typeset h2,
-.md-typeset h3 {
-  letter-spacing: 0;
-}
-
-.architecture-frame {
-  width: 100%;
-  min-height: 760px;
-  border: 1px solid rgba(34, 211, 238, 0.28);
-  border-radius: 8px;
-  background: #020617;
+  background: var(--md-primary-bg-color);
+  border-bottom: 1px solid var(--obsidian-hair);
 }

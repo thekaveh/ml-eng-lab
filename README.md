@@ -239,3 +239,7 @@ The README is the entry point; the items below are the hub's index of secondary 
 ### 10.4. Archive
 
 - [notebooks/archive/README.md](notebooks/archive/README.md) — preserved Aug-2023 codexglue summarization experiments (22 runs); read-only.
+
+### 10.5. Documentation surfaces
+
+The canonical documentation source under `docs/` (driven by `docs/manifest.yaml`) is projected into two additional, self-contained surfaces by the pipeline in `scripts/docs/`: a generated MkDocs site (built locally by `make docs-build`, published by the Pages workflow) and a native GitHub wiki (pushed by `scripts/docs/push_wiki.py`). The generated trees — `generated/`, the root `mkdocs.yml`, `site/` — are gitignored and rebuilt on every change; never edit them by hand. The three surfaces are deliberately independent: this README links only to in-repo files. See [docs/architecture.md](docs/architecture.md) §2 for the full pipeline and [docs/diagrams/README.md](docs/diagrams/README.md) for the diagram provenance contract.

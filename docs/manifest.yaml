@@ -1,0 +1,28 @@
+surfaces: [repo, site, wiki]
+numbering: baked
+sections:
+  - id: overview
+    number: "1"
+    title: Overview
+    source: docs/index.md
+  - id: architecture
+    number: "2"
+    title: Architecture
+    children:
+      - id: system
+        number: "2.1"
+        title: "System & context view"
+        source: docs/architecture.md
+        diagrams: [system, docs-sync]
+notebooks:
+  - task: tabular_classification-iris-mlp-pytorch
+    number: "8.1"
+    family: tabular
+    depth: full
+    doc: docs/notebooks/tabular_classification-iris-mlp-pytorch.md
+    spec: notebooks/tabular_classification-iris-mlp-pytorch/docs/spec.yaml
+diagrams:
+  - id: system
+    master: docs/diagrams/ml-eng-lab-system.html
+  - id: docs-sync
+    master: docs/diagrams/ml-eng-lab-docs-sync.html

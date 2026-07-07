@@ -24,6 +24,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install system dependencies for cairosvg
+        run: sudo apt-get update && sudo apt-get install -y libcairo2
+
       - name: Set up Python 3.11
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -34,8 +37,14 @@ jobs:
       - name: Install documentation dependencies
         run: pip install -r docs-requirements.txt
 
+      - name: Render diagrams
+        run: python -m scripts.docs.render_diagrams
+
+      - name: Generate site input
+        run: python -m scripts.docs.build_docs --site
+
       - name: Build documentation site
-        run: make docs-build
+        run: mkdocs build --strict
 
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
@@ -56,3 +65,40 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
+
+  wiki:
+    runs-on: ubuntu-24.04
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install system dependencies for cairosvg
+        run: sudo apt-get update && sudo apt-get install -y libcairo2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: docs-requirements.txt
+
+      - name: Install documentation dependencies
+        run: pip install -r docs-requirements.txt
+
+      - name: Write deploy key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.WIKI_DEPLOY_KEY }}" > ~/.ssh/wiki_key
+          chmod 600 ~/.ssh/wiki_key
+
+      - name: Generate + push wiki
+        env:
+          WIKI_DEPLOY_KEY: /home/runner/.ssh/wiki_key
+        run: |
+          python -m scripts.docs.build_docs --wiki
+          python -m scripts.docs.push_wiki --push
