@@ -1,0 +1,40 @@
+title: "Mixture-of-Experts — Fashion-MNIST MoE classifier"
+family: image
+tier: A
+dataset: Fashion-MNIST
+model: MoE classifier (FeedFwdNN subclass with MoELinear first hidden)
+framework: "PyTorch (via nnx)"
+concepts: [sparse MoE, top-k routing, load-balancing aux loss, router collapse, .net substitution]
+math:
+  - id: topk-routing
+    label: "Top-k routing weights"
+    latex: "p_i(x) = \\frac{e^{g_i}}{\\sum_{j \\in \\mathcal{T}(x)} e^{g_j}} \\text{ for } i \\in \\mathcal{T}(x)"
+  - id: moe-output
+    label: "MoE layer output"
+    latex: "y(x) = \\sum_{i \\in \\mathcal{T}(x)} p_i(x)\\, E_i(x)"
+  - id: switch-aux
+    label: "Switch-Transformer aux loss (floor 1.0 at uniform)"
+    latex: "\\mathcal{L}_{\\text{aux}} = E \\sum_{i=1}^{E} f_i\\, P_i"
+code_walkthrough:
+  - { anchor: "MoEClassifier(FeedFwdNN)", note: "subclass swaps first hidden Linear for MoELinear; inherits unpack_batch contract" }
+  - { anchor: "moe_train_step_factory(aux_loss_weight=0.05)", note: "supervised CE + aux loss summed across every MoELinear" }
+  - { anchor: "moe_layer.last_aux_loss", note: "per-forward aux-loss attribute, probed on a 640-sample batch before vs after training" }
+  - { anchor: "model.net = MoEClassifier(...)", note: ".net substitution pattern shared with diffusion/JEPA tasks" }
+results:
+  - { metric: total_params, value: "406,346 (router 3,136 + experts x4 401,920 + head 1,290)" }
+  - { metric: iterations, value: "844 (2 epochs x 422 batches)" }
+  - { metric: train_cross_entropy, value: "2.4078 -> 0.3979" }
+  - { metric: aux_loss_at_init, value: "1.2794 (random router)" }
+  - { metric: aux_loss_after_training, value: "1.2218 (toward 1.0 floor)" }
+pitfalls:
+  - "NNDataset default loader packs the whole 54k Fashion-MNIST train set into one batch; rebuild at batch_size=128."
+  - "Aux loss is one-sided: it penalizes collapse but cannot drop below the 1.0 uniform floor."
+  - "Perfect uniform routing is not the goal; 30/30/20/20 with semantic specialization beats enforced 25/25/25/25."
+  - "Single MoE layer under-illustrates the recipe; real MoE transformers stack MoE layers."
+  - "No dense baseline comparison; at this scale MoE usually does not beat a comparably-sized dense MLP on Fashion-MNIST."
+extensions:
+  - "Stack a second MoELinear; the factory sums aux loss across both, amplifying the signal."
+  - "Sweep aux_loss_weight in {0.01, 0.05, 0.1, 0.2} to map the load-balancing vs supervised trade-off."
+  - "Swap top_k=2 for top_k=1 (Switch routing) and increase aux_loss_weight."
+  - "Group top-1 assignments by ground-truth class into a class x expert heatmap to test semantic specialization."
+depth: full

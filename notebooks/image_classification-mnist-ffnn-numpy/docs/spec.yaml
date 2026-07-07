@@ -1,0 +1,57 @@
+title: "Image classification — MNIST FFNN (NumPy)"
+family: image
+tier: A
+dataset: MNIST
+model: Feed-forward NN (single linear layer + PReLU, from scratch)
+framework: "NumPy (torchvision for dataset loading only)"
+concepts:
+  - multiclass classification
+  - softmax
+  - cross-entropy
+  - fused softmax + cross-entropy gradient
+  - parametric ReLU (PReLU)
+  - hand-coded backpropagation
+  - full-batch / mini-batch SGD
+  - one-hot encoding
+  - numerical stability (max-subtraction, epsilon-in-log)
+math:
+  - id: linear-forward
+    label: "Linear layer forward"
+    latex: "z = x W^{\\top} + b"
+  - id: prelu
+    label: "Parametric ReLU (α=0.01)"
+    latex: "\\operatorname{PReLU}_\\alpha(z_i) = \\max(z_i,\\,0) + \\alpha\\,\\min(z_i,\\,0)"
+  - id: softmax
+    label: "Softmax (max-subtracted)"
+    latex: "\\hat{y}_i = \\frac{e^{a_i}}{\\sum_j e^{a_j}}"
+  - id: smce-prime
+    label: "Fused softmax + cross-entropy gradient"
+    latex: "\\frac{\\partial \\mathcal{L}}{\\partial a} = \\hat{y} - y"
+  - id: linear-backward
+    label: "Linear layer backward"
+    latex: "\\frac{\\partial \\mathcal{L}}{\\partial W} = \\tfrac{1}{n} \\frac{\\partial \\mathcal{L}}{\\partial z}^{\\!\\top} X"
+code_walkthrough:
+  - { anchor: "LinearLayer.backward", note: "hand-derived dW = (1/n) * dL_dZ.T @ X; cache-on-forward pattern" }
+  - { anchor: "SoftmaxCrossEntropyLayer.backward", note: "fused gradient collapses to (Y_hat - Y), avoiding the softmax Jacobian" }
+  - { anchor: "FeedFwdNN.train_and_validate", note: "explicit forward chain + reverse-order backward + literal W -= lr * dW" }
+  - { anchor: "Consts.MINI_BATCH_SIZE = 60000", note: "equals full train set → one gradient step per epoch (full-batch GD)" }
+  - { anchor: "_validate", note: "reuses self.L1/L2/L3 — safe because backward already consumed cached activations" }
+results:
+  - { metric: "net1 (lr=0.1) best validation loss, 10-epoch smoke", value: "~47.13" }
+  - { metric: "net2 (lr=0.01) best validation loss, 10-epoch smoke", value: "~35.17" }
+  - { metric: "accuracy", value: "not tracked (IterationDataPoint records losses only)" }
+pitfalls:
+  - "Inputs are raw uint8 [0,255] — torchvision transform is constructed but bypassed; large initial logits cause saturating softmax and large early losses."
+  - "No seeds are set (np.random.standard_normal init + unseeded index sampling); runs are not reproducible across invocations."
+  - "MINI_BATCH_SIZE=60000 makes this full-batch gradient descent, not stochastic SGD, despite the parameter name."
+  - "README's 'two network depths' framing is inaccurate — the notebook varies learning rate only; both networks share the same 784→10+PReLU architecture."
+  - "Weight init L2-normalizes the whole matrix (||W||_F=1), not Xavier/He — does not control per-unit fan-in variance."
+  - "Validation reuses the training layer objects; safe only under the current loop ordering — refactoring validate-before-backward will silently corrupt training."
+extensions:
+  - "Compare against the PyTorch sibling (image_classification-mnist-ffnn-pytorch.md): normalized inputs, Adam + ReduceLROnPlateau, 18-run sweep reaches ~1.6% validation error."
+  - "Normalize inputs to [0,1] or MNIST-standardize (mean=0.1307, std=0.3081) to fix the conditioning artifacts."
+  - "Add a hidden layer (784 → H → 10) by inserting a second LinearLayer + ReluLayer pair — smallest step to a 'real' MLP."
+  - "Implement momentum or Adam by hand in the same explicit W -= ... style; demystifies what optimizers do."
+  - "Track accuracy/per-class metrics in IterationDataPoint (np.argmax vs one_hot_decode) for parity with the sibling's evaluation surface."
+  - "Add a hand-coded ConvLayer as the README's stated future work; natural lead-in to a LeNet-style MNIST variant."
+depth: full

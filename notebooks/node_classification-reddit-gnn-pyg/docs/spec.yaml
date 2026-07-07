@@ -1,0 +1,41 @@
+title: "Node classification — Reddit GNN"
+family: graph
+tier: B/C
+dataset: Reddit2
+model: "GraphSAGE / GAT / GraphConv (vs FFN baseline)"
+framework: "PyTorch + PyTorch Geometric (via nnx)"
+concepts:
+  - node classification
+  - message passing
+  - GraphConv
+  - GraphSAGE
+  - GAT attention
+  - NeighborLoader sampling
+math:
+  - id: message-passing
+    label: "Generic message passing"
+    latex: "h_v^{(k)} = \\phi\\!\\left(W^{(k)} h_v^{(k-1)} \\oplus \\bigoplus_{u \\in \\mathcal{N}(v)} \\psi^{(k)}(h_u^{(k-1)})\\right)"
+  - id: gat-attention
+    label: "GAT attention coefficient"
+    latex: "\\alpha_{vu} = \\mathrm{softmax}_{u \\in \\mathcal{N}(v)}\\!\\left(\\mathrm{LeakyReLU}(\\mathbf{a}^\\top [\\mathbf{W}h_v \\| \\mathbf{W}h_u])\\right)"
+code_walkthrough:
+  - { anchor: "NNGraphDataset(ds_class=pyg.datasets.Reddit2, n_neighbors=[20,15,10])", note: "NeighborLoader-backed graph dataset; one loader per split mask" }
+  - { anchor: "NNModel(NNModelParams(net=Nets.GRAPH_SAGE, ...), NNParams(hidden_dims=..., n_heads=...))", note: "graph-net construction; only GAT consumes n_heads" }
+  - { anchor: "model.train(NNTrainParams(...).with_train_loader(...).with_val_loader(...))", note: "returns NNRun whose .idps carry per-iter train/val metrics" }
+  - { anchor: "model.evaluate(test_loader)", note: "seed-node-only test metric (avoids sampled-neighbor cross-split leakage)" }
+results:
+  - { metric: "test accuracy (GraphSAGE depth-3)", value: "0.9164 — best of the four Phase-3 runs" }
+  - { metric: "test accuracy (GAT [128], heads=4)", value: "0.7666" }
+  - { metric: "validation error (Phase-2 GAT winner, 500ep)", value: "0.2521" }
+pitfalls:
+  - "GAT hits a memory ceiling at hidden width >= 256 (excluded from Phase-2 nb3; Phase-3 GAT held at [128])."
+  - "macOS cannot run this task — torch_sparse is Linux-only; GNN forward passes skip under test-nnx-surface on macOS."
+  - "Do not re-execute Phase-3 notebooks in place; preserved Aug-2023 outputs are Tier-C artifacts."
+  - "Score seed nodes only via GraphNNBase.seed_count(batch); scoring sampled neighbors leaks cross-split labels."
+  - "GraphSAGE diverges at lr=1e-2; use 1e-4 for the deeper stacks (GAT tolerates 1e-2)."
+extensions:
+  - "Sparsified attention (sparsemax / FastGAT) to escape the GAT memory ceiling at width >= 256."
+  - "Link-prediction variant for the planned link_prediction-citation-graphsage-pyg task."
+  - "Phase-4 ensembling of GraphSAGE and GAT test-set predictions."
+  - "Reconcile README prose (depth-2 best) with preserved cell outputs (depth-3 best)."
+depth: full

@@ -1,0 +1,32 @@
+title: "Text classification — AG-News spaCy + MLP"
+family: language
+tier: A
+dataset: AG-News-style embedded headlines (80 unique, 4x tiled)
+model: spaCy BoW + Feed-forward MLP
+framework: "PyTorch (via nnx) + spaCy + sklearn"
+concepts: [multi-class text classification, spaCy lemmatization, bag-of-words, L2-normalized features, train-only vocabulary, MLP, softmax + cross-entropy]
+math:
+  - id: bow
+    label: "L2-normalized bag-of-words"
+    latex: "x = \\tilde{x} / \\|\\tilde{x}\\|_2,\\ \\tilde{x}_v = \\mathrm{count}(v)"
+  - id: softmax-ce
+    label: "Softmax + cross-entropy"
+    latex: "\\mathcal{L} = -\\log \\hat{y}_c,\\ \\hat{y}_i = \\frac{e^{z_i}}{\\sum_j e^{z_j}}"
+code_walkthrough:
+  - { anchor: "for i in train_idx", note: "train-only vocab build — the leakage footgun" }
+  - { anchor: "featurize(toks)", note: "L2-normalized BoW; OOV tokens dropped by `if tok in vocab`" }
+  - { anchor: "NNModel + NNParams(hidden_dims=[64])", note: "200 -> 64 -> 4 MLP head" }
+results:
+  - { metric: "test accuracy", value: "85.94% (55/64)" }
+  - { metric: "macro F1", value: "0.86" }
+  - { metric: "train loss", value: "1.3738 -> 0.1120 (80 epochs)" }
+pitfalls:
+  - "Vocab MUST be built from train split only; leaking test tokens inflates accuracy (silent)."
+  - "en_core_web_sm is a separate install (python -m spacy download); no in-notebook fallback."
+  - "val_loader=test_loader is visibility, not model selection (tiny corpus)."
+  - "No baseline; MLP doesn't necessarily beat MultinomialNB/LogReg at this scale."
+extensions:
+  - "Add sklearn MultinomialNB + LogisticRegression baselines on the same BoW features."
+  - "Upgrade featurizer to TF-IDF + bigrams (ngram_range=(1,2)); typically +2-5 pts."
+  - "Swap BoW for averaged GloVe/fastText embeddings; scale to real AG-News via torchtext."
+depth: full

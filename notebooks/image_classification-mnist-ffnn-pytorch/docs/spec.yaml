@@ -1,0 +1,61 @@
+title: "Image classification — MNIST FFNN (PyTorch via nnx)"
+family: image
+tier: B
+dataset: MNIST
+model: Feed-forward NN (nnx.FeedFwdNN, LeakyReLU + dropout, swept over 9 topologies)
+framework: "PyTorch (via nnx / thekaveh-nnx)"
+concepts:
+  - multiclass classification
+  - softmax
+  - cross-entropy
+  - MLP / feed-forward NN
+  - LeakyReLU activation
+  - dropout regularization
+  - Adam optimizer
+  - ReduceLROnPlateau scheduler
+  - model selection (best validation error ranking)
+  - input normalization
+  - checkpoint serialization + reload
+  - t-SNE logit projection
+math:
+  - id: hidden-forward
+    label: "Hidden-layer forward (LeakyReLU + dropout)"
+    latex: "a^{(\\ell)} = \\operatorname{Dropout}_p\\!\\bigl(\\operatorname{LeakyReLU}_\\beta(z^{(\\ell)}\\bigr)"
+  - id: softmax-ce
+    label: "Softmax + cross-entropy"
+    latex: "\\hat{y}_i = \\frac{e^{o_i}}{\\sum_j e^{o_j}}, \\quad \\mathcal{L} = -\\log \\hat{y}_c"
+  - id: adam
+    label: "Adam update"
+    latex: "\\theta_t \\leftarrow \\theta_{t-1} - \\eta\\, \\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t} + \\epsilon}"
+  - id: selection-metric
+    label: "Best-iteration validation error (ranking key)"
+    latex: "\\mathrm{valerr}_{\\text{best}}(r) = \\min_{t \\in r.\\mathrm{idps}} \\mathrm{val\\_edp}.\\mathrm{error}"
+code_walkthrough:
+  - { anchor: "NNDataset(ds_class=thv.datasets.MNIST, transform=Normalize(0.1307, 0.3081))", note: "wraps torchvision MNIST with standard normalization; exposes 784/10 dims + 3 loaders" }
+  - { anchor: "NNModel(NNModelParams(net=Nets.FEED_FWD, loss=Losses.CROSS_ENTROPY), NNParams(hidden_dims, dropout_prob))", note: "sweep = 9 hidden_dimss x 2 dropout_probs list comprehension" }
+  - { anchor: "NNTrainParams(n_epochs).with_train_loader().with_val_loader()", note: "fluent builder; Adam + ReduceLROnPlateau are framework defaults (max_lr=0.01, factor=0.95, patience=8)" }
+  - { anchor: "sorted(runs, key=lambda r: min(idp.val_edp.error))[:5]", note: "model selection by best-iteration validation error; top-5 plotted" }
+  - { anchor: "VisUtils.multi_line_plot (idp.lr)", note: "overlays ReduceLROnPlateau LR traces across top runs" }
+  - { anchor: "NNModel.from_checkpoint", note: "best-run reload for t-SNE + sample-grid cells; serialization contract" }
+  - { anchor: "tests/nnx_surface/test_image_classification_mnist_ffnn_pytorch.py", note: "every-PR call-shape gate; builds 784->[16]->10, 1-batch train, predict-shape assertions" }
+results:
+  - { metric: "best-run validation error (full 500-epoch sweep, committed cell-8 output)", value: "0.0160 (1.6%)" }
+  - { metric: "dataset split sizes (train/val/test)", value: "60,000 / 1,000 / 9,000" }
+  - { metric: "sweep size (full / smoke)", value: "18 runs (9 hidden x 2 dropout) / 1 run (logistic-regression)" }
+pitfalls:
+  - "Tier-B runtime: ~17 min macOS, >90 min Linux GH runner (issue #7); weekly CI smoke schedule, not per-PR."
+  - "make smoke-tier-b writes to /tmp/ to PRESERVE committed full-sweep outputs — does not refresh them."
+  - "SMOKE_TEST=1 collapses the sweep to [[]] x [0.25] (one logistic-regression run); not a model-selection result."
+  - "Papermill re-execution dirties .ipynb metadata between automation runs; safe wrapper is `git checkout -- '*.ipynb'`."
+  - "Framework defaults (Adam, ReduceLROnPlateau, max_lr=0.01) are load-bearing and not surfaced in code; a nnx default change silently alters results."
+  - "Devices.get() is env-dependent (CUDA vs CPU); reproducibility across machines requires pinning Devices.CPU."
+  - "Ranking uses best-iteration validation error, which is robust to late overfitting but optimistic vs final-epoch numbers."
+  - "Not numerically comparable to the NumPy sibling — differs in init, optimizer, scheduler, normalization, activation, and sweep coverage."
+extensions:
+  - "Compare against the NumPy sibling (image_classification-mnist-ffnn-numpy.md): no framework, no autograd, raw [0,255] inputs, vanilla SGD."
+  - "Add an early-stopping callback once the primitive lands upstream in nnx (README future work)."
+  - "Add a CNN variant (LeNet-style) on the same NNDataset + NNModel plumbing for direct FFN-vs-CNN comparison."
+  - "Add k-fold cross-validation over the top-N architectures to support significance claims at 10k test samples."
+  - "Persist every run to ./runs/ and reload downstream to exercise the serialization contract end-to-end."
+  - "Tighten the surface test to pin optimizer name + scheduler presence, not just call shape."
+depth: full

@@ -1,0 +1,36 @@
+title: "Link prediction — Karate Club GraphSAGE"
+family: graph
+tier: A
+dataset: Zachary's Karate Club
+model: GraphSAGE encoder + dot-product edge scorer
+framework: "PyTorch + PyTorch Geometric (minimal nnx)"
+concepts: [link prediction, GraphSAGE, neighborhood aggregation, negative sampling, dot-product decoder, BCE, AUC, average precision]
+math:
+  - id: graphsage-aggregation
+    label: "GraphSAGE neighborhood aggregation"
+    latex: "h_v^{(k)} = \\mathrm{ReLU}\\!\\left( W_{\\mathrm{self}}^{(k)} h_v^{(k-1)} + W_{\\mathrm{neigh}}^{(k)} \\cdot \\frac{1}{|\\mathcal{N}(v)|} \\sum_{u \\in \\mathcal{N}(v)} h_u^{(k-1)} \\right)"
+  - id: dot-product-bce
+    label: "Dot-product decoder + BCE"
+    latex: "\\mathrm{score}(u, v) = z_u^{\\top} z_v, \\quad \\mathcal{L} = \\mathrm{BCE}(\\mathrm{score}, y)"
+code_walkthrough:
+  - { anchor: "RandomLinkSplit(...)", note: "num_val=0.1, num_test=0.2, is_undirected=True, add_negative_train_samples=False" }
+  - { anchor: "GraphSageNN(NNParams(...))", note: "2-layer SAGEConv encoder 34->32->16 via nnx" }
+  - { anchor: "decode(z, edge_index)", note: "dot-product edge scorer returning raw logits" }
+  - { anchor: "negative_sampling(...)", note: "fresh negatives re-sampled each epoch inside the loop" }
+  - { anchor: "F.binary_cross_entropy_with_logits", note: "loss on positive vs sampled-negative edges" }
+results:
+  - { metric: "val AUC (epoch 1 -> 200)", value: "0.673 -> 0.735" }
+  - { metric: "train BCE (epoch 1 -> 200)", value: "0.7101 -> 0.3060" }
+  - { metric: "test AUC (30 edges)", value: "0.431 (high variance, see pitfalls)" }
+  - { metric: "test Average Precision", value: "0.579" }
+pitfalls:
+  - "Test set is only 30 edges (15 pos / 15 neg); one structural-bridge edge swings AUC by ~10 pp, so the recorded 0.431 is honest variance, not a defect."
+  - "Identity one-hot features cap the achievable score; on feature-rich graphs the same recipe performs much better."
+  - "Re-sample fresh negatives each epoch (add_negative_train_samples=False) to avoid memorizing one fixed negative set."
+  - "Use is_undirected=True on undirected graphs or both directions of an edge leak across splits and inflate test AUC."
+  - "edge_index (message-passing) vs edge_label_index (supervised positives) must not be swapped."
+extensions:
+  - "Move to a bigger graph (Reddit2, Cora, OGBL) where test AUC stabilizes into a reliable point estimate."
+  - "Swap dot-product decoder for a learned bilinear or DistMult scorer."
+  - "Add a contrastive objective (GRACE, BGRL, DiffPool) that separates between-community pairs; see community_detection-karate-louvain-vs-gnn-pyg.md."
+depth: full

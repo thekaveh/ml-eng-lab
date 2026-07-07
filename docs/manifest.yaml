@@ -21,6 +21,126 @@ notebooks:
     depth: full
     doc: docs/notebooks/tabular_classification-iris-mlp-pytorch.md
     spec: notebooks/tabular_classification-iris-mlp-pytorch/docs/spec.yaml
+  - task: tabular_regression-diabetes-mlp-pytorch
+    number: "8.2"
+    family: tabular
+    depth: full
+    doc: docs/notebooks/tabular_regression-diabetes-mlp-pytorch.md
+    spec: notebooks/tabular_regression-diabetes-mlp-pytorch/docs/spec.yaml
+  - task: image_classification-mnist-ffnn-numpy
+    number: "8.3"
+    family: vision
+    depth: full
+    doc: docs/notebooks/image_classification-mnist-ffnn-numpy.md
+    spec: notebooks/image_classification-mnist-ffnn-numpy/docs/spec.yaml
+  - task: image_classification-mnist-ffnn-pytorch
+    number: "8.4"
+    family: vision
+    depth: full
+    doc: docs/notebooks/image_classification-mnist-ffnn-pytorch.md
+    spec: notebooks/image_classification-mnist-ffnn-pytorch/docs/spec.yaml
+  - task: model_surgery-mnist-ffnn-pytorch
+    number: "8.5"
+    family: vision
+    depth: full
+    doc: docs/notebooks/model_surgery-mnist-ffnn-pytorch.md
+    spec: notebooks/model_surgery-mnist-ffnn-pytorch/docs/spec.yaml
+  - task: knowledge_distillation-mnist-ffnn-pytorch
+    number: "8.6"
+    family: vision
+    depth: full
+    doc: docs/notebooks/knowledge_distillation-mnist-ffnn-pytorch.md
+    spec: notebooks/knowledge_distillation-mnist-ffnn-pytorch/docs/spec.yaml
+  - task: pruning-mnist-ffnn-pytorch
+    number: "8.7"
+    family: vision
+    depth: full
+    doc: docs/notebooks/pruning-mnist-ffnn-pytorch.md
+    spec: notebooks/pruning-mnist-ffnn-pytorch/docs/spec.yaml
+  - task: quantization-mnist-ffnn-pytorch
+    number: "8.8"
+    family: vision
+    depth: full
+    doc: docs/notebooks/quantization-mnist-ffnn-pytorch.md
+    spec: notebooks/quantization-mnist-ffnn-pytorch/docs/spec.yaml
+  - task: moe-fmnist-mixture-of-experts-pytorch
+    number: "8.9"
+    family: vision
+    depth: full
+    doc: docs/notebooks/moe-fmnist-mixture-of-experts-pytorch.md
+    spec: notebooks/moe-fmnist-mixture-of-experts-pytorch/docs/spec.yaml
+  - task: diffusion-mnist-ddpm-pytorch
+    number: "8.10"
+    family: vision
+    depth: full
+    doc: docs/notebooks/diffusion-mnist-ddpm-pytorch.md
+    spec: notebooks/diffusion-mnist-ddpm-pytorch/docs/spec.yaml
+  - task: self_supervised-fmnist-jepa-pytorch
+    number: "8.11"
+    family: vision
+    depth: full
+    doc: docs/notebooks/self_supervised-fmnist-jepa-pytorch.md
+    spec: notebooks/self_supervised-fmnist-jepa-pytorch/docs/spec.yaml
+  - task: peft-mnist-to-fmnist-dora-vs-lora-pytorch
+    number: "8.12"
+    family: vision
+    depth: full
+    doc: docs/notebooks/peft-mnist-to-fmnist-dora-vs-lora-pytorch.md
+    spec: notebooks/peft-mnist-to-fmnist-dora-vs-lora-pytorch/docs/spec.yaml
+  - task: node_classification-reddit-gnn-pyg
+    number: "8.13"
+    family: graph
+    depth: full
+    doc: docs/notebooks/node_classification-reddit-gnn-pyg.md
+    spec: notebooks/node_classification-reddit-gnn-pyg/docs/spec.yaml
+  - task: link_prediction-karate-graphsage-pyg
+    number: "8.14"
+    family: graph
+    depth: full
+    doc: docs/notebooks/link_prediction-karate-graphsage-pyg.md
+    spec: notebooks/link_prediction-karate-graphsage-pyg/docs/spec.yaml
+  - task: community_detection-karate-louvain-vs-gnn-pyg
+    number: "8.15"
+    family: graph
+    depth: full
+    doc: docs/notebooks/community_detection-karate-louvain-vs-gnn-pyg.md
+    spec: notebooks/community_detection-karate-louvain-vs-gnn-pyg/docs/spec.yaml
+  - task: text_generation-tinyshakespeare-transformer-pytorch
+    number: "8.16"
+    family: language
+    depth: full
+    doc: docs/notebooks/text_generation-tinyshakespeare-transformer-pytorch.md
+    spec: notebooks/text_generation-tinyshakespeare-transformer-pytorch/docs/spec.yaml
+  - task: text_classification-agnews-spacy-mlp-pytorch
+    number: "8.17"
+    family: language
+    depth: full
+    doc: docs/notebooks/text_classification-agnews-spacy-mlp-pytorch.md
+    spec: notebooks/text_classification-agnews-spacy-mlp-pytorch/docs/spec.yaml
+  - task: sentiment_classification-vader-mlp-pytorch
+    number: "8.18"
+    family: language
+    depth: full
+    doc: docs/notebooks/sentiment_classification-vader-mlp-pytorch.md
+    spec: notebooks/sentiment_classification-vader-mlp-pytorch/docs/spec.yaml
+  - task: preference_alignment-toy-dpo-pytorch
+    number: "8.19"
+    family: language
+    depth: full
+    doc: docs/notebooks/preference_alignment-toy-dpo-pytorch.md
+    spec: notebooks/preference_alignment-toy-dpo-pytorch/docs/spec.yaml
+  - task: dim_reduction-iris-autoencoder-pytorch
+    number: "8.20"
+    family: unsupervised
+    depth: full
+    doc: docs/notebooks/dim_reduction-iris-autoencoder-pytorch.md
+    spec: notebooks/dim_reduction-iris-autoencoder-pytorch/docs/spec.yaml
+  - task: clustering-iris-kmeans-vs-ae-pytorch
+    number: "8.21"
+    family: unsupervised
+    depth: full
+    doc: docs/notebooks/clustering-iris-kmeans-vs-ae-pytorch.md
+    spec: notebooks/clustering-iris-kmeans-vs-ae-pytorch/docs/spec.yaml
 diagrams:
   - id: system
     master: docs/diagrams/ml-eng-lab-system.html

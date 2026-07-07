@@ -1,0 +1,49 @@
+title: "Quantization — MNIST FFN (PTQ + QAT via torchao)"
+family: mlp-compression
+tier: manual
+dataset: MNIST
+model: Feed-forward NN ([128,64]); PTQ int8 + QAT 8da4w
+framework: "PyTorch (via nnx) + torchao"
+concepts:
+  - post-training quantization (PTQ)
+  - quantization-aware training (QAT)
+  - int8 weight-only
+  - 8da4w (8-bit dynamic act, 4-bit weight)
+  - fake-quant / straight-through estimator
+  - per-channel scales
+  - int4 groupsize
+  - QATLifecycleCallback
+math:
+  - id: affine-quant
+    label: "Uniform affine quantization"
+    latex: "\\bar{w}=\\mathrm{clamp}(\\mathrm{round}(w/s)+z;\\,0,\\,2^b{-}1),\\;\\widehat{w}=s(\\bar{w}-z)\\approx w"
+  - id: ste
+    label: "Straight-through estimator (fake-quant backward)"
+    latex: "\\partial\\widehat{w}/\\partial w = 1 \\text{ within clamp range, else } 0"
+  - id: ce-loss
+    label: "Softmax cross-entropy"
+    latex: "\\mathcal{L}(z,y)=-\\log\\frac{e^{z_c}}{\\sum_j e^{z_j}}"
+code_walkthrough:
+  - { anchor: "nnx.quantize_int8(fp32_model)", note: "one-shot int8 weight-only PTQ; returns new NNModel, no training" }
+  - { anchor: "nnx.qat_train_step_factory(qat_config='8da4w')", note: "custom train step for fake-quant params" }
+  - { anchor: "nnx.QATLifecycleCallback(qat_config='8da4w')", note: "on_train_begin=insert fake-quant; on_train_end=convert to truly-quantized" }
+  - { anchor: "state_size_bytes / avg_latency_us", note: "pickle-dump size + timed CPU forward passes" }
+results:
+  - { metric: "FP32 val acc", value: "53.48% (429.3 KB, 1382 us/batch)" }
+  - { metric: "PTQ int8 val acc", value: "53.38% (112.6 KB, 1721 us/batch) - ~4x smaller, ~0.1pp cost" }
+  - { metric: "QAT 8da4w val acc", value: "44.53% (406.7 KB, 3512 us/batch) - aggressive 4-bit, partial recovery at 3 epochs" }
+  - { metric: "QAT callback", value: "is_prepared=True, is_converted=True; Int8DynActInt4WeightLinear present" }
+  - { metric: "note", value: "CPU latency dispatch-bound; quantization slower than FP32 at this scale" }
+pitfalls:
+  - "MANUAL-ONLY: torchao needs torch>=2.5 (torch.int1); repo pins torch==2.4.1. Not in CI. Issue #10. Side env: torch>=2.5 + torchao>=0.17."
+  - "8da4w is aggressive (4-bit); QAT recovery partial at 3 epochs (44.53% vs FP32 53.48%)."
+  - "CPU latency misleading at MNIST scale: torchao dispatch overhead makes int8/8da4w SLOWER than FP32 (win is on GPU/mobile NPU)."
+  - "Hidden widths must divide int4 groupsize 32; [128,64] chosen to dodge padding_allowed."
+  - "QAT val_loss during training is FP-shadow; post-conversion accuracy comes from evaluate() after on_train_end."
+  - "FP32 baseline trained from scratch (3 epochs); absolute numbers are a budget artifact, shape generalizes."
+extensions:
+  - "Lengthen budget: well-converged FP32 -> PTQ + same-budget QAT to show full recovery."
+  - "Add int4 PTQ point for a fourth bitwidth on the Pareto curve."
+  - "Measure latency on a GPU / mobile NPU to expose the real quantization speedup."
+  - "Pair with pruning (8.7) for a joint sparse + int8/int4 edge-deployment study."
+depth: full
