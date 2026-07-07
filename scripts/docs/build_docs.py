@@ -149,17 +149,18 @@ def build(manifest_path: Path, repo_root: Path, *, site: bool = False, wiki: boo
         out_dir = repo_root / "generated/site"
         render_site(manifest, repo_root, out_dir)
         (repo_root / "mkdocs.yml").write_text(render_mkdocs_yml(manifest, repo_root, out_dir), encoding="utf-8")
-    if wiki:
-        from scripts.docs.wiki import render_wiki  # lazy; wiki.py lands in Task 7
+    if wiki or check:
+        from scripts.docs.wiki import render_wiki  # lazy; keeps `mkdocs`-less checks lightweight
 
         render_wiki(manifest, repo_root, repo_root / "generated/wiki")
     if check:
-        # site determinism only at this point; Task 7 extends `check` to also cover wiki
         import tempfile
 
         with tempfile.TemporaryDirectory() as td:
             render_site(manifest, repo_root, Path(td) / "site")
             _assert_dirs_equal(Path(td) / "site", repo_root / "generated/site")
+            render_wiki(manifest, repo_root, Path(td) / "wiki")
+            _assert_dirs_equal(Path(td) / "wiki", repo_root / "generated/wiki")
     return 0
 
 
