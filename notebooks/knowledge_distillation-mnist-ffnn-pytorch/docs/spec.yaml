@@ -1,0 +1,48 @@
+title: "Knowledge distillation — MNIST FFN (born-again)"
+family: mlp-compression
+tier: A
+dataset: MNIST
+model: Feed-forward NN ([128,64]); same-arch student/teacher
+framework: "PyTorch (via nnx)"
+concepts:
+  - knowledge distillation
+  - born-again self-distillation
+  - soft labels / dark knowledge
+  - temperature softmax
+  - frozen teacher
+  - per-generation trajectory
+math:
+  - id: temp-softmax
+    label: "Temperature softmax (teacher)"
+    latex: "p_i^T=\\frac{\\exp(z_i/T)}{\\sum_j \\exp(z_j/T)}"
+  - id: kd-loss
+    label: "Distillation loss (hard + soft CE)"
+    latex: "\\mathcal{L}_{KD}=(1-\\lambda)\\,CE(p^S_1,y)+\\lambda\\,T^2\\,CE(p^S_T,p^T_T)"
+  - id: born-again-recursion
+    label: "Born-again generation recursion"
+    latex: "M_k=\\mathrm{train}(\\text{init}=M_{k-1},\\,\\text{teacher}=\\mathrm{freeze}(M_{k-1}))"
+code_walkthrough:
+  - { anchor: "nnx.born_again_train(model, generations=N, train_params=...)", note: "wires the iterated self-distillation loop; returns list[NNRun]" }
+  - { anchor: "ba_model reused in place", note: "live weights carry over across generations; only teacher is a frozen deepcopy" }
+  - { anchor: "nnx.set_seed(0) before both runs", note: "makes gen 0 == single-gen reference (controlled comparison)" }
+  - { anchor: "model.evaluate(ds.val_loader).accuracy", note: "single-gen vs born-again last-gen verdict" }
+results:
+  - { metric: "single-gen final val loss", value: "2.1403" }
+  - { metric: "single-gen val accuracy", value: "40.73%" }
+  - { metric: "born-again gen 0 val loss", value: "2.1403 (= single-gen)" }
+  - { metric: "born-again gen 1 val loss", value: "1.9074" }
+  - { metric: "born-again gen 2 val loss", value: "1.6501" }
+  - { metric: "born-again gen 2 val accuracy", value: "62.07%" }
+  - { metric: "delta vs single-gen", value: "+21.34 pp val accuracy (budget-confounded)" }
+pitfalls:
+  - "Short 2-epoch/gen budget inflates the born-again gap; part of the gain is extra total optimization, not pure distillation."
+  - "Diminishing returns past ~BA-4; the 3-gen Tier-A run does not reach the plateau."
+  - "Born-again is same-arch only; classical compression needs different NNParams for student vs teacher."
+  - "ba_model after the call holds gen N-1's weights; deepcopy earlier generations to keep them."
+  - "Teacher must be frozen (.eval()+requires_grad=False) or the distillation signal collapses to self-training."
+extensions:
+  - "Control for the budget confound: compare BA-gen-2 vs single-gen trained for the chain's total epoch budget."
+  - "Swap student to a smaller NNParams for classical Hinton-style compression via kd_train_step_factory."
+  - "Sweep temperature T and distillation weight lambda; plot val-accuracy surface."
+  - "Run N_GENERATIONS=6 (Tier-B) to see the BA-4 plateau on MNIST."
+depth: full

@@ -1,0 +1,37 @@
+title: "Clustering — Iris KMeans vs autoencoder"
+family: clustering
+tier: A
+dataset: Iris
+model: KMeans on raw features vs KMeans on AE latent
+framework: "PyTorch (via nnx) + sklearn"
+concepts: [unsupervised clustering, KMeans, ARI, NMI, autoencoder, train_step_fn, reconstruction loss]
+math:
+  - id: kmeans
+    label: "KMeans objective"
+    latex: "\\mathcal{J} = \\sum_i \\min_k \\|x_i - \\mu_k\\|^2"
+  - id: ari
+    label: "Adjusted Rand Index"
+    latex: "\\mathrm{ARI} = \\frac{\\mathrm{RI} - \\mathbb{E}[\\mathrm{RI}]}{\\max(\\mathrm{RI}) - \\mathbb{E}[\\mathrm{RI}]}"
+  - id: nmi
+    label: "Normalized Mutual Information"
+    latex: "\\mathrm{NMI}(U,V) = \\frac{2\\, I(U;V)}{H(U) + H(V)}"
+code_walkthrough:
+  - { anchor: "cluster_and_score(X_in, y_true)", note: "KMeans(n_clusters=3, n_init=10, random_state=0) + ARI/NMI vs true labels" }
+  - { anchor: "autoencoder_step(ctx)", note: "train_step_fn hook: MSE(net(X), X), ignore Y; AE retrained inline (sibling runs/ is gitignored)" }
+  - { anchor: "encode(model, X_np)", note: "walk net.layers[:bottleneck_idx+1] with F.relu to recover 2-D latent" }
+results:
+  - { metric: "ARI (raw 4-D features)", value: "0.716 on full iris (n=150)" }
+  - { metric: "ARI (AE shallow [2] latent)", value: "0.835" }
+  - { metric: "NMI (raw 4-D features)", value: "0.742" }
+  - { metric: "NMI (AE shallow [2] latent)", value: "0.833" }
+pitfalls:
+  - "AE is retrained inline because sibling runs/ is gitignored — no cross-notebook checkpoint dependency at runtime."
+  - "Pin n_init=10 on KMeans; without random restarts the latent win looks smaller/noisier."
+  - "KMeans win shrinks at SMOKE_TEST=1 (5 epochs); the recorded 0.835 needs the full 300-epoch budget."
+  - "MinMax-scale before KMeans — petal-length range would otherwise dominate petal-width."
+  - "Labels are evaluation-only; clustering itself is fully unsupervised."
+extensions:
+  - "Try GaussianMixture or DBSCAN to test whether the AE-latent win carries beyond KMeans."
+  - "Swap AE for a contrastive (SimCLR) or VAE latent."
+  - "Scale to a harder clustering dataset where raw-feature ARI is near zero."
+depth: full

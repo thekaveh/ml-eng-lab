@@ -57,6 +57,10 @@ def rewrite_for_surface(md: str, surface: str, source_map: dict[str, str]) -> st
             return text  # notebooks have no page in the surface; drop to bare text
         if target in source_map:
             return f"[{text}]({source_map[target]})"
+        # Relative .md link to a doc NOT in the manifest (e.g. docs/env-setup.md, a notebook
+        # README): valid in the in-repo surface but absent from the generated site/wiki → bare text.
+        if target.endswith(".md") and not target.startswith(("#", "mailto:", "http://", "https://")):
+            return text
         return m.group(0)
 
     return _LINK_RE.sub(repl, md)

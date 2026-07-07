@@ -1,0 +1,33 @@
+title: "Tabular regression — Diabetes MLP"
+family: tabular
+tier: A
+dataset: Diabetes (sklearn)
+model: Feed-forward NN regressor
+framework: "PyTorch (via nnx)"
+concepts: [regression, MSE loss, R-squared, MLP, manual DataLoader]
+math:
+  - id: mse
+    label: "Mean-squared error"
+    latex: "\\mathcal{L} = \\frac{1}{N} \\sum_i (y_i - \\hat{y}_i)^2"
+  - id: r2
+    label: "Coefficient of determination"
+    latex: "R^2 = 1 - \\frac{\\sum_i (y_i - \\hat{y}_i)^2}{\\sum_i (y_i - \\bar{y})^2}"
+code_walkthrough:
+  - { anchor: "make_loader(...)", note: "manual float32 DataLoader; NNTabularDataset is classification-only" }
+  - { anchor: "Losses.MEAN_SQUARED_ERROR", note: "recipe-defining loss choice with output_dim=1" }
+  - { anchor: "model.predict(X).logits.squeeze(-1)", note: "collapses (N,1) network output to (N,)" }
+results:
+  - { metric: "R2 (LinearRegression)", value: "0.225 on held-out test (n=67)" }
+  - { metric: "R2 (MLP small [8])", value: "0.159" }
+  - { metric: "R2 (MLP deep [32,16])", value: "0.130" }
+  - { metric: "R2 (KNN k=5)", value: "0.028" }
+pitfalls:
+  - "NNTabularDataset coerces targets to torch.long — classification only; build DataLoaders manually for regression."
+  - "Targets must be unsqueezed to (N,1) to match output_dim=1 against MSE."
+  - "EarlyStopping default monitor val_edp.error is wrong for regression; use val_edp.loss."
+  - "Deeper MLP overfits the 308-sample train split before extracting any non-linear signal."
+extensions:
+  - "Add k-fold cross-validation for a mean-plus-spread R²."
+  - "Swap MSE for Huber loss to test robustness to heavy-tailed residuals."
+  - "Scale the recipe to a bigger-than-diabetes regression task where MLP capacity pays off."
+depth: full

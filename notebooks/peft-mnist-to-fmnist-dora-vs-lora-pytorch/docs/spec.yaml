@@ -1,0 +1,42 @@
+title: "PEFT — LoRA vs DoRA cross-task adaptation (MNIST -> Fashion-MNIST)"
+family: peft
+tier: A
+dataset: "MNIST (pretrain) -> Fashion-MNIST (adapt)"
+model: "FeedFwdNN [128, 64] with LoRA / DoRA adapters at r=8, alpha=16"
+framework: "PyTorch (via nnx)"
+concepts: [parameter-efficient fine-tuning, LoRA, DoRA, magnitude/direction decomposition, rank-r update, zero-init preservation, cross-task transfer, adapter persistence]
+math:
+  - id: lora-update
+    label: "LoRA rank-r update"
+    latex: "W_{\\text{LoRA}} = W_0 + \\frac{\\alpha}{r}\\, B A,\\quad B \\in \\mathbb{R}^{d \\times r},\\ A \\in \\mathbb{R}^{r \\times k}"
+  - id: dora-update
+    label: "DoRA magnitude/direction decomposition"
+    latex: "W_{\\text{DoRA}} = m \\odot \\frac{V}{\\lVert V \\rVert_c},\\quad V = W_0 + \\frac{\\alpha}{r}\\, B A"
+  - id: param-count
+    label: "Per-layer trainable param count"
+    latex: "\\text{LoRA}: r(d+k);\\ \\text{DoRA}: r(d+k) + d"
+code_walkthrough:
+  - { anchor: "apply_lora_to(net, 'layers.*', r=8, alpha=16)", note: "wraps every matched Linear in LoRALinear, freezes base, returns wrap count" }
+  - { anchor: "apply_dora_to(net, 'layers.*', r=8, alpha=16)", note: "DoRA counterpart; trainable set is {A, B, magnitude} per layer" }
+  - { anchor: "build_from_pretrained() via deepcopy(state_dict)", note: "each adapter path starts from the same pretrained init for controlled comparison" }
+  - { anchor: "save_lora_weights / load_lora_weights", note: "persist only adapter tensors (6 tensors, 39.2 KB) — base stays in place" }
+results:
+  - { metric: pretrained_total_params, value: "109,386" }
+  - { metric: pretrain_final_val_loss, value: "2.1403 (2 epochs MNIST)" }
+  - { metric: full_finetune_trainable, value: "109,386 (100% of base); val acc 46.33%" }
+  - { metric: lora_trainable, value: "9,424 (8.6% of base); val acc 13.28%; val_loss 2.3353" }
+  - { metric: dora_trainable, value: "9,626 (8.8% of base); val acc 13.40%; val_loss 2.3326" }
+  - { metric: lora_roundtrip_acc, value: "13.28% (exact match); 39.2 KB / 6 tensors" }
+pitfalls:
+  - "Short budget hides the PEFT win; full fine-tune dominates at PRETRAIN_EPOCHS=2, ADAPT_EPOCHS=1."
+  - "DoRA vs LoRA indistinguishable at 1 adapt epoch; DoRA's ~0.5-2pp win lands at long horizons."
+  - "Same normalization reused across MNIST/Fashion-MNIST for controlled comparison; use per-dataset stats in production."
+  - "apply_*_to with no name-pattern raises ValueError; pattern 'layers.*' matches every FeedFwdNN Linear."
+  - "Each adapter must start from the same pretrained init via deepcopy(state_dict); re-initializing per path breaks the controlled comparison."
+  - "Effective adapter scale is alpha/r (=2.0 here), not alpha; doubling alpha doubles effective adapter LR."
+extensions:
+  - "Extend budget: PRETRAIN_EPOCHS=10, ADAPT_EPOCHS=5 closes most of the adapter vs full-finetune gap."
+  - "Sweep rank r in {2, 4, 8, 16, 32}; DoRA's advantage typically widens at lower rank."
+  - "Apply to a Transformer (point pattern at attention/project Linears); real PEFT wins land at billion-param scale."
+  - "Compare against prefix-tuning and classic bottleneck-MLP adapter modules."
+depth: full

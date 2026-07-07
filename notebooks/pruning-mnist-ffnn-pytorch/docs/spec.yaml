@@ -1,0 +1,46 @@
+title: "Pruning — MNIST FFN (magnitude sparsity sweep)"
+family: mlp-compression
+tier: A
+dataset: MNIST
+model: Feed-forward NN ([256,128]); magnitude-pruned at s in {0.1..0.9}
+framework: "PyTorch (via nnx)"
+concepts:
+  - magnitude (L1-unstructured) pruning
+  - sparsity sweep / Pareto curve
+  - bake=True deployable form
+  - gradient-masking form (bake=False)
+  - actual zero fraction
+  - 2:4 semi-structured sparsity (CUDA-only)
+math:
+  - id: magnitude-prune
+    label: "Magnitude (L1-unstructured) thresholding"
+    latex: "\\widetilde{W}_{ij}=W_{ij}\\,\\mathbb{1}[|W_{ij}|>\\tau],\\;\\tau=(s\\text{-quantile of }|W|)"
+  - id: ce-loss
+    label: "Softmax cross-entropy"
+    latex: "\\mathcal{L}(z,y)=-\\log\\frac{e^{z_c}}{\\sum_j e^{z_j}}"
+code_walkthrough:
+  - { anchor: "nnx.prune.magnitude_prune(net, sparsity=s)", note: "L1-unstructured per-Linear; bake=True default writes zeros + drops weight_orig/weight_mask" }
+  - { anchor: "actual_zero_fraction(net)", note: "counts zeros over 2-D Linear weights only (skips biases via ndim<2 guard)" }
+  - { anchor: "copy.deepcopy(model) per s", note: "fresh FP32 start each iteration so the sweep is comparable" }
+  - { anchor: "ax.plot(...) + ax2 = ax.twinx()", note: "Pareto curve: val acc (left) + actual zero fraction (right) vs target s" }
+results:
+  - { metric: "baseline (s=0.0) val acc", value: "51.87%" }
+  - { metric: "s=0.1 val acc", value: "52.27% (zero_frac 10.00%)" }
+  - { metric: "s=0.3 val acc", value: "54.72% (zero_frac 30.00%)" }
+  - { metric: "s=0.5 val acc", value: "50.72% (zero_frac 50.00%)" }
+  - { metric: "s=0.7 val acc", value: "46.15% (zero_frac 70.00%)" }
+  - { metric: "s=0.9 val acc", value: "22.88% (zero_frac 90.00%)" }
+  - { metric: "note", value: "baseline undertrained (3 epochs); curve noisy through mid-s but cliff clear past s~0.8" }
+pitfalls:
+  - "2:4 semi-structured sparsity (nnx.prune.semi_structured_24) is CUDA + Ampere-only; raises RuntimeError on CPU."
+  - "bake=True is one-way for training: pruned weights fill back in on resume. Use bake=False to keep the mask."
+  - "3-epoch baseline is undertrained (~52%); read the curve shape, not absolute numbers (non-monotonic at s=0.3)."
+  - "Skip biases when measuring zero fraction (ndim<2 guard) or the target-sparsity check looks diluted."
+  - "deepcopy the baseline per s, else escalating s compounds on an already-pruned tensor."
+  - "Knee location (~0.7 here) is architecture/dataset-dependent; re-sweep before deploying the heuristic."
+extensions:
+  - "Iterative train-prune-retrain (bake=False) reaches higher sparsity at same accuracy."
+  - "Exercise 2:4 semi-structured sparsity on an Ampere+ GPU for real wall-clock speedup."
+  - "Pair with quantization (8.8) for a joint sparse+int8 edge-deployment Pareto study."
+  - "Add structured (channel) pruning to complete the pruning surface."
+depth: full
