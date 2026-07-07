@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 from scripts.docs.build_docs import build, render_mkdocs_yml, render_site
@@ -96,3 +97,17 @@ def test_rewrite_images_site_preserves_subdir_prefix():
     assert _rewrite_images_site("![MLP](../diagrams/img/mlp.png)") == "![MLP](../assets/img/mlp.svg)"
     # root doc (no prefix) still resolves at the site root
     assert _rewrite_images_site("![x](diagrams/img/system.png)") == "![x](assets/img/system.svg)"
+
+
+def test_assert_dirs_equal_catches_content_drift(tmp_path):
+    from scripts.docs.build_docs import _assert_dirs_equal
+
+    a, b = tmp_path / "a", tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    (a / "x.md").write_text("one")
+    (b / "x.md").write_text("two")  # same path, different content
+    with pytest.raises(AssertionError, match="content-diff"):
+        _assert_dirs_equal(a, b)
+    (b / "x.md").write_text("one")  # now byte-identical
+    _assert_dirs_equal(a, b)  # no raise

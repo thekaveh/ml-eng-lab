@@ -60,33 +60,39 @@ def _section(data: dict) -> Section:
 
 
 def parse_manifest(text: str) -> Manifest:
-    data = yaml.safe_load(text)
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        raise ManifestError(f"manifest is not valid YAML: {e}") from e
     if not isinstance(data, dict):
         raise ManifestError("manifest must be a YAML mapping")
-    numbering = data.get("numbering")
-    if numbering != "baked":
-        raise ManifestError(f"numbering must be 'baked' (got {numbering!r})")
-    surfaces = tuple(data.get("surfaces", []))
-    if surfaces != ("repo", "site", "wiki"):
-        raise ManifestError(f"surfaces must be [repo, site, wiki] (got {list(surfaces)})")
-    return Manifest(
-        surfaces=surfaces,
-        numbering=str(numbering),
-        sections=[_section(s) for s in data.get("sections", [])],
-        notebooks=[
-            NotebookEntry(
-                task=str(n["task"]),
-                number=str(n["number"]),
-                family=str(n["family"]),
-                depth=str(n["depth"]),
-                doc=str(n["doc"]),
-                spec=str(n["spec"]),
-                diagrams=list(n.get("diagrams", [])),
-            )
-            for n in data.get("notebooks", [])
-        ],
-        diagrams=[DiagramEntry(id=str(d["id"]), master=str(d["master"])) for d in data.get("diagrams", [])],
-    )
+    try:
+        numbering = data.get("numbering")
+        if numbering != "baked":
+            raise ManifestError(f"numbering must be 'baked' (got {numbering!r})")
+        surfaces = tuple(data.get("surfaces", []))
+        if surfaces != ("repo", "site", "wiki"):
+            raise ManifestError(f"surfaces must be [repo, site, wiki] (got {list(surfaces)})")
+        return Manifest(
+            surfaces=surfaces,
+            numbering=str(numbering),
+            sections=[_section(s) for s in data.get("sections", [])],
+            notebooks=[
+                NotebookEntry(
+                    task=str(n["task"]),
+                    number=str(n["number"]),
+                    family=str(n["family"]),
+                    depth=str(n["depth"]),
+                    doc=str(n["doc"]),
+                    spec=str(n["spec"]),
+                    diagrams=list(n.get("diagrams", [])),
+                )
+                for n in data.get("notebooks", [])
+            ],
+            diagrams=[DiagramEntry(id=str(d["id"]), master=str(d["master"])) for d in data.get("diagrams", [])],
+        )
+    except KeyError as e:
+        raise ManifestError(f"manifest entry missing required key: {e}") from e
 
 
 def _check_exists(repo_root: Path, rel: str, kind: str) -> None:

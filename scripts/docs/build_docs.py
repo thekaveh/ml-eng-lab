@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -175,10 +176,18 @@ def build(manifest_path: Path, repo_root: Path, *, site: bool = False, wiki: boo
 
 
 def _assert_dirs_equal(a: Path, b: Path) -> None:
-    a_files = {p.relative_to(a).as_posix() for p in a.rglob("*") if p.is_file()}
-    b_files = {p.relative_to(b).as_posix() for p in b.rglob("*") if p.is_file()}
-    if a_files != b_files:
-        raise AssertionError(f"site generation not deterministic: {a_files ^ b_files}")
+    def snapshot(d: Path) -> dict[str, str]:
+        return {p.relative_to(d).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in d.rglob("*") if p.is_file()}
+
+    a_snap, b_snap = snapshot(a), snapshot(b)
+    if a_snap == b_snap:
+        return
+    only_a = sorted(set(a_snap) - set(b_snap))
+    only_b = sorted(set(b_snap) - set(a_snap))
+    content_diff = sorted(p for p in a_snap if p in b_snap and a_snap[p] != b_snap[p])
+    raise AssertionError(
+        f"generation not deterministic: only-in-temp={only_a}, only-in-generated={only_b}, content-diff={content_diff}"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

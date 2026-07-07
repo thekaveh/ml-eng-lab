@@ -83,3 +83,14 @@ def test_load_manifest_passes_when_files_exist(tmp_path):
     (tmp_path / "manifest.yaml").write_text(VALID, encoding="utf-8")
     m = load_manifest(tmp_path / "manifest.yaml", tmp_path)
     assert m.sections[0].source == "docs/index.md"
+
+
+def test_parse_manifest_wraps_malformed_yaml():
+    with pytest.raises(ManifestError, match="not valid YAML"):
+        parse_manifest("surfaces: [repo, site, wiki\n  : : bad")
+
+
+def test_parse_manifest_wraps_missing_required_key():
+    bad = VALID.replace("    depth: full\n", "")  # notebook entry missing `depth`
+    with pytest.raises(ManifestError, match="missing required key"):
+        parse_manifest(bad)
