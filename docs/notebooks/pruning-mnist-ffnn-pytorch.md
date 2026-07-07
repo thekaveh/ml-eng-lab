@@ -97,6 +97,8 @@ and the baseline optimizer is Adam with \(\eta = 10^{-3}\),
 
 ## 8.7.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 The architecture is `Nets.FEED_FWD` (`nnx.FeedFwdNN`): a 784-unit input layer (flattened MNIST),
 two hidden layers `[256, 128]` with ReLU, and a 10-unit output layer consumed by softmax +
 cross-entropy. The widths are deliberately generous for MNIST so the network has redundant capacity

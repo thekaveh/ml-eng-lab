@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ml-eng-lab — Mixture-of-Experts (MoE) Routing</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #020617; color: #e2e8f0; font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px; }
+    header { margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 22px; }
+    .subtitle { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+    .panel { border: 1px solid rgba(34, 211, 238, 0.28); border-radius: 8px; background: #020617; overflow: hidden; }
+    svg { display: block; width: 100%; height: auto; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+    .card { border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 8px; padding: 14px; background: rgba(15, 23, 42, 0.75); }
+    .card h2 { margin: 0 0 10px; font-size: 12px; color: #67e8f9; }
+    .card ul { margin: 0; padding-left: 18px; color: #cbd5e1; font-size: 10px; line-height: 1.7; }
+    footer { color: #64748b; font-size: 9px; margin-top: 14px; }
+    @media (max-width: 760px) { .wrap { padding: 16px; } .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ml-eng-lab — Mixture-of-Experts (MoE) Routing</h1>
+      <div class="subtitle">Top-k=2 routing across 4 expert FFNs with Switch-Transformer auxiliary load-balancing loss. Constructed via <code>nnx.MoELinear(in, out, num_experts=4, top_k=2)</code>.</div>
+    </header>
+    <div class="panel">
+      <svg viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+        <title id="title">ml-eng-lab Mixture-of-Experts routing</title>
+        <desc id="desc">Diagram of MoE routing: input is broadcast to 4 expert FFNs and to a gating network; top-k=2 selection picks 2 experts; weighted combine sums their outputs; auxiliary load-balancing loss keeps routing balanced.</desc>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+          <marker id="arrowcyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+          </marker>
+          <marker id="arrowemerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+          </marker>
+          <marker id="arrowamber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+          </marker>
+        </defs>
+        <rect width="1280" height="720" fill="#020617"/>
+        <rect width="1280" height="720" fill="url(#grid)"/>
+
+        <!-- ============ ARROWS (drawn first, behind boxes) ============ -->
+        <!-- main flow: Input -> Router -> Top-k -->
+        <path d="M 150 350 H 188" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 350 350 H 378" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- broadcast: Input -> vertical bus -> 4 expert taps -->
+        <path d="M 95 310 V 160 H 600 V 215" stroke="#22d3ee" stroke-width="1.5" fill="none"/>
+        <path d="M 600 215 V 485" stroke="#22d3ee" stroke-width="1.5"/>
+        <path d="M 600 215 H 638" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowcyan)"/>
+        <path d="M 600 305 H 638" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowcyan)"/>
+        <path d="M 600 395 H 638" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowcyan)"/>
+        <path d="M 600 485 H 638" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowcyan)"/>
+        <text x="330" y="152" fill="#22d3ee" font-size="9">x → broadcast to all 4 experts</text>
+
+        <!-- selected experts -> Combine (emerald) -->
+        <path d="M 840 305 L 888 335" stroke="#34d399" stroke-width="1.8" marker-end="url(#arrowemerald)"/>
+        <path d="M 840 485 L 888 365" stroke="#34d399" stroke-width="1.8" marker-end="url(#arrowemerald)"/>
+
+        <!-- Top-k -> Combine (weight flow, dashed amber, routed below experts) -->
+        <path d="M 480 405 V 548 H 970 V 392" stroke="#fbbf24" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#arrowamber)"/>
+        <text x="650" y="542" fill="#fbbf24" font-size="9">top-k weights wᵢ + mask → combine</text>
+
+        <!-- Combine -> Output -->
+        <path d="M 1050 350 H 1088" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- ============ L_aux annotation (top, standalone) ============ -->
+        <rect x="370" y="24" width="540" height="98" rx="8" fill="#0f172a"/>
+        <rect x="370" y="24" width="540" height="98" rx="8" fill="rgba(120, 53, 15, 0.28)" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,4"/>
+        <text x="640" y="48" fill="#fbbf24" font-size="11" font-weight="600" text-anchor="middle">Auxiliary load-balancing loss (Switch Transformer)</text>
+        <text x="640" y="76" fill="#fff" font-size="13" font-weight="600" text-anchor="middle">L_aux = N · Σᵢ fᵢ · Pᵢ</text>
+        <text x="640" y="96" fill="#94a3b8" font-size="9" text-anchor="middle">fᵢ = fraction of tokens routed to expert i  ·  Pᵢ = Σ gate-prob for expert i</text>
+        <text x="640" y="112" fill="#94a3b8" font-size="9" text-anchor="middle">added to training loss → prevents expert collapse / routing imbalance</text>
+
+        <!-- ============ Input ============ -->
+        <rect x="40" y="310" width="110" height="80" rx="6" fill="#0f172a"/>
+        <rect x="40" y="310" width="110" height="80" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="95" y="338" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">Input</text>
+        <text x="95" y="358" fill="#22d3ee" font-size="10" text-anchor="middle">x ∈ ℝᵈ</text>
+        <text x="95" y="376" fill="#94a3b8" font-size="8" text-anchor="middle">token embedding</text>
+
+        <!-- ============ Router / Gating ============ -->
+        <rect x="190" y="295" width="160" height="110" rx="6" fill="#0f172a"/>
+        <rect x="190" y="295" width="160" height="110" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="270" y="318" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">Gating / Router</text>
+        <text x="270" y="346" fill="#34d399" font-size="10" text-anchor="middle">g(x) = softmax(W_g · x)</text>
+        <text x="270" y="366" fill="#94a3b8" font-size="8" text-anchor="middle">W_g ∈ ℝ^{N×d}</text>
+        <text x="270" y="380" fill="#94a3b8" font-size="8" text-anchor="middle">N = num_experts = 4</text>
+        <text x="270" y="396" fill="#94a3b8" font-size="8" text-anchor="middle">small linear layer over token</text>
+
+        <!-- ============ Top-k Selection ============ -->
+        <rect x="380" y="295" width="200" height="110" rx="6" fill="#0f172a"/>
+        <rect x="380" y="295" width="200" height="110" rx="6" fill="rgba(120, 53, 15, 0.32)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="480" y="316" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">Top-k Selection (k=2)</text>
+        <text x="480" y="332" fill="#94a3b8" font-size="8" text-anchor="middle">pick 2 highest gate scores; mask rest → 0</text>
+
+        <!-- 4 score chips: E0 dim, E1 active, E2 dim, E3 active -->
+        <rect x="395" y="344" width="40" height="22" rx="3" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+        <text x="415" y="359" fill="#64748b" font-size="9" text-anchor="middle">0.08</text>
+        <rect x="439" y="344" width="40" height="22" rx="3" fill="rgba(6, 78, 59, 0.55)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="459" y="359" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">0.41</text>
+        <rect x="483" y="344" width="40" height="22" rx="3" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+        <text x="503" y="359" fill="#64748b" font-size="9" text-anchor="middle">0.04</text>
+        <rect x="527" y="344" width="40" height="22" rx="3" fill="rgba(6, 78, 59, 0.55)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="547" y="359" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">0.47</text>
+
+        <text x="415" y="382" fill="#64748b" font-size="7" text-anchor="middle">E₀</text>
+        <text x="459" y="382" fill="#34d399" font-size="7" font-weight="600" text-anchor="middle">E₁ ✓</text>
+        <text x="503" y="382" fill="#64748b" font-size="7" text-anchor="middle">E₂</text>
+        <text x="547" y="382" fill="#34d399" font-size="7" font-weight="600" text-anchor="middle">E₃ ✓</text>
+
+        <text x="480" y="398" fill="#fbbf24" font-size="8" text-anchor="middle">selected weights flow to combine</text>
+
+        <!-- ============ Experts column header ============ -->
+        <text x="740" y="172" fill="#a78bfa" font-size="10" font-weight="600" text-anchor="middle">4 parallel Expert FFNs  (num_experts=4, top_k=2)</text>
+
+        <!-- Expert 0: INACTIVE -->
+        <rect x="640" y="180" width="200" height="70" rx="6" fill="#0f172a"/>
+        <rect x="640" y="180" width="200" height="70" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#475569" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="740" y="204" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">Expert 0 — FFN</text>
+        <text x="740" y="222" fill="#64748b" font-size="8" text-anchor="middle">inactive · w₀ = 0 (masked by top-k)</text>
+        <text x="740" y="236" fill="#475569" font-size="8" text-anchor="middle">E₀(x) not contributed</text>
+
+        <!-- Expert 1: ACTIVE -->
+        <rect x="640" y="270" width="200" height="70" rx="6" fill="#0f172a"/>
+        <rect x="640" y="270" width="200" height="70" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <rect x="640" y="270" width="200" height="3" rx="1.5" fill="#34d399"/>
+        <text x="740" y="296" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Expert 1 — FFN</text>
+        <text x="740" y="314" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">● ACTIVE · w₁ = 0.41</text>
+        <text x="740" y="328" fill="#cbd5e1" font-size="8" text-anchor="middle">E₁(x) → combine</text>
+
+        <!-- Expert 2: INACTIVE -->
+        <rect x="640" y="360" width="200" height="70" rx="6" fill="#0f172a"/>
+        <rect x="640" y="360" width="200" height="70" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#475569" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="740" y="384" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">Expert 2 — FFN</text>
+        <text x="740" y="402" fill="#64748b" font-size="8" text-anchor="middle">inactive · w₂ = 0 (masked by top-k)</text>
+        <text x="740" y="416" fill="#475569" font-size="8" text-anchor="middle">E₂(x) not contributed</text>
+
+        <!-- Expert 3: ACTIVE -->
+        <rect x="640" y="450" width="200" height="70" rx="6" fill="#0f172a"/>
+        <rect x="640" y="450" width="200" height="70" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <rect x="640" y="450" width="200" height="3" rx="1.5" fill="#34d399"/>
+        <text x="740" y="476" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Expert 3 — FFN</text>
+        <text x="740" y="494" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">● ACTIVE · w₃ = 0.47</text>
+        <text x="740" y="508" fill="#cbd5e1" font-size="8" text-anchor="middle">E₃(x) → combine</text>
+
+        <!-- ============ Combine ============ -->
+        <rect x="890" y="310" width="160" height="80" rx="6" fill="#0f172a"/>
+        <rect x="890" y="310" width="160" height="80" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="970" y="334" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Weighted Combine</text>
+        <text x="970" y="354" fill="#34d399" font-size="10" text-anchor="middle">y = Σᵢ wᵢ · Eᵢ(x)</text>
+        <text x="970" y="372" fill="#94a3b8" font-size="8" text-anchor="middle">only top-k=2 contribute</text>
+
+        <!-- ============ Output ============ -->
+        <rect x="1090" y="310" width="110" height="80" rx="6" fill="#0f172a"/>
+        <rect x="1090" y="310" width="110" height="80" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1145" y="338" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">Output</text>
+        <text x="1145" y="358" fill="#22d3ee" font-size="10" text-anchor="middle">y ∈ ℝᵈ</text>
+        <text x="1145" y="376" fill="#94a3b8" font-size="8" text-anchor="middle">routed token</text>
+
+        <!-- ============ nnx construction note ============ -->
+        <rect x="40" y="586" width="290" height="60" rx="6" fill="#0f172a"/>
+        <rect x="40" y="586" width="290" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="55" y="606" fill="#cbd5e1" font-size="9" font-weight="600">Construction (this collection)</text>
+        <text x="55" y="622" fill="#94a3b8" font-size="9">nnx.MoELinear(in, out,</text>
+        <text x="55" y="636" fill="#94a3b8" font-size="9">  num_experts=4, top_k=2)</text>
+
+        <!-- ============ Legend ============ -->
+        <rect x="350" y="586" width="890" height="60" rx="6" fill="#0f172a"/>
+        <rect x="350" y="586" width="890" height="60" rx="6" fill="rgba(30, 41, 59, 0.35)" stroke="#334155" stroke-width="1"/>
+        <text x="370" y="610" fill="#22d3ee" font-size="9" font-weight="600">Legend</text>
+        <text x="370" y="630" fill="#22d3ee" font-size="9">input / output tensor</text>
+        <text x="540" y="630" fill="#34d399" font-size="9">compute · active expert · routing</text>
+        <text x="790" y="630" fill="#a78bfa" font-size="9">expert parameters (FFN)</text>
+        <text x="980" y="630" fill="#fbbf24" font-size="9">gate · top-k · aux loss</text>
+        <text x="370" y="644" fill="#94a3b8" font-size="8">inactive / masked expert (output discarded, w=0)</text>
+      </svg>
+    </div>
+    <section class="cards" aria-label="MoE routing summary">
+      <div class="card">
+        <h2>Routing path</h2>
+        <ul>
+          <li>Input x → gating MLP → softmax → top-k mask → weighted combine → y.</li>
+          <li>Only 2 of 4 experts active per token (conditional computation).</li>
+          <li>Each token can take a different path through the expert pool.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Sparsity &amp; combine</h2>
+        <ul>
+          <li>num_experts=4, top_k=2 ⇒ 50% of experts active per forward pass.</li>
+          <li>Inactive experts' outputs masked to 0 — no contribution to Σ wᵢ·Eᵢ(x).</li>
+          <li>Combine y = Σᵢ wᵢ · Eᵢ(x) sums only the selected top-k outputs.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Load balancing</h2>
+        <ul>
+          <li>L_aux = N · Σᵢ fᵢ·Pᵢ (Switch Transformer) added to training loss.</li>
+          <li>fᵢ = token fraction, Pᵢ = gate-prob mass for expert i.</li>
+          <li>Prevents expert collapse where one expert dominates routing.</li>
+        </ul>
+      </div>
+    </section>
+    <footer>Generated for ml-eng-lab MoE routing reference, 2026-07-07.</footer>
+  </div>
+</body>
+</html>

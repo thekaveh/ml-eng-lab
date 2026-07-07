@@ -98,6 +98,8 @@ and the optimizer is Adam with \(\eta = 10^{-2}\), \(\beta = (0.9, 0.999)\), wei
 
 ## 8.5.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 The substrate is `Nets.FEED_FWD` (`nnx.FeedFwdNN`): a 784-unit input layer (flattened MNIST), two
 hidden layers with ReLU, and a 10-unit output layer consumed by softmax + cross-entropy. Surgery is
 demonstrated on a deliberately small baseline so the post-surgery model is *meaningfully* larger.

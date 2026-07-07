@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ml-eng-lab — Autoencoder</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #020617; color: #e2e8f0; font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px; }
+    header { margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 22px; }
+    .subtitle { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+    .panel { border: 1px solid rgba(34, 211, 238, 0.28); border-radius: 8px; background: #020617; overflow: hidden; }
+    svg { display: block; width: 100%; height: auto; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+    .card { border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 8px; padding: 14px; background: rgba(15, 23, 42, 0.75); }
+    .card h2 { margin: 0 0 10px; font-size: 12px; color: #67e8f9; }
+    .card ul { margin: 0; padding-left: 18px; color: #cbd5e1; font-size: 10px; line-height: 1.7; }
+    footer { color: #64748b; font-size: 9px; margin-top: 14px; }
+    @media (max-width: 760px) { .wrap { padding: 16px; } .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ml-eng-lab — Autoencoder</h1>
+      <div class="subtitle">Hourglass feed-forward network: input → encoder → 2-D bottleneck latent → decoder → reconstruction, trained by reconstruction loss.</div>
+    </header>
+    <div class="panel">
+      <svg viewBox="0 0 1240 700" role="img" aria-labelledby="title desc">
+        <title id="title">ml-eng-lab autoencoder</title>
+        <desc id="desc">Encoder-bottleneck-decoder hourglass. A 4-D Iris input is narrowed through encoder layers to a highlighted 2-D latent, then widened through decoder layers back to a 4-D reconstruction. A feedback arrow shows reconstruction loss. Side notes cover the FeedFwdNN(input_dim == output_dim) convention, downstream uses of the latent (linear probe, KMeans), and a PCA-vs-AE contrast.</desc>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+          <marker id="arrowamber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+          </marker>
+          <marker id="arrowviolet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/>
+          </marker>
+        </defs>
+        <rect width="1240" height="700" fill="#020617"/>
+        <rect width="1240" height="700" fill="url(#grid)"/>
+
+        <!-- ============ ARROWS (drawn first, behind boxes) ============ -->
+        <!-- forward pass banner arrow -->
+        <path d="M 108 112 H 712" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="410" y="104" fill="#94a3b8" font-size="9" text-anchor="middle">forward pass</text>
+
+        <!-- feedback / reconstruction-loss arrow (amber) -->
+        <path d="M 690 392 Q 690 482 600 482 H 220 Q 130 482 130 392" stroke="#fbbf24" stroke-width="1.8" fill="none" marker-end="url(#arrowamber)"/>
+        <text x="410" y="474" fill="#fbbf24" font-size="9" text-anchor="middle">reconstruction loss  ‖x − x̂‖²</text>
+
+        <!-- ============ NN CONNECTION LINES (behind nodes) ============ -->
+        <!-- input(4) -> encoder(3) -->
+        <g stroke="#334155" stroke-width="0.8" opacity="0.55">
+          <line x1="130" y1="212" x2="270" y2="230"/><line x1="130" y1="212" x2="270" y2="290"/><line x1="130" y1="212" x2="270" y2="350"/>
+          <line x1="130" y1="264" x2="270" y2="230"/><line x1="130" y1="264" x2="270" y2="290"/><line x1="130" y1="264" x2="270" y2="350"/>
+          <line x1="130" y1="316" x2="270" y2="230"/><line x1="130" y1="316" x2="270" y2="290"/><line x1="130" y1="316" x2="270" y2="350"/>
+          <line x1="130" y1="368" x2="270" y2="230"/><line x1="130" y1="368" x2="270" y2="290"/><line x1="130" y1="368" x2="270" y2="350"/>
+          <!-- encoder(3) -> bottleneck(2) -->
+          <line x1="270" y1="230" x2="410" y2="255"/><line x1="270" y1="230" x2="410" y2="325"/>
+          <line x1="270" y1="290" x2="410" y2="255"/><line x1="270" y1="290" x2="410" y2="325"/>
+          <line x1="270" y1="350" x2="410" y2="255"/><line x1="270" y1="350" x2="410" y2="325"/>
+          <!-- bottleneck(2) -> decoder(3) -->
+          <line x1="410" y1="255" x2="550" y2="230"/><line x1="410" y1="255" x2="550" y2="290"/><line x1="410" y1="255" x2="550" y2="350"/>
+          <line x1="410" y1="325" x2="550" y2="230"/><line x1="410" y1="325" x2="550" y2="290"/><line x1="410" y1="325" x2="550" y2="350"/>
+          <!-- decoder(3) -> recon(4) -->
+          <line x1="550" y1="230" x2="690" y2="212"/><line x1="550" y1="230" x2="690" y2="264"/><line x1="550" y1="230" x2="690" y2="316"/><line x1="550" y1="230" x2="690" y2="368"/>
+          <line x1="550" y1="290" x2="690" y2="212"/><line x1="550" y1="290" x2="690" y2="264"/><line x1="550" y1="290" x2="690" y2="316"/><line x1="550" y1="290" x2="690" y2="368"/>
+          <line x1="550" y1="350" x2="690" y2="212"/><line x1="550" y1="350" x2="690" y2="264"/><line x1="550" y1="350" x2="690" y2="316"/><line x1="550" y1="350" x2="690" y2="368"/>
+        </g>
+
+        <!-- ============ dimension + layer labels ============ -->
+        <text x="130" y="172" fill="#22d3ee" font-size="9" font-weight="600" text-anchor="middle">input  x ∈ ℝ⁴</text>
+        <text x="270" y="172" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">encoder</text>
+        <text x="410" y="172" fill="#fbbf24" font-size="9" font-weight="700" text-anchor="middle">latent  z ∈ ℝ²</text>
+        <text x="550" y="172" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">decoder</text>
+        <text x="690" y="172" fill="#22d3ee" font-size="9" font-weight="600" text-anchor="middle">recon  x̂ ∈ ℝ⁴</text>
+
+        <text x="130" y="402" fill="#94a3b8" font-size="8" text-anchor="middle">Iris features</text>
+        <text x="270" y="402" fill="#94a3b8" font-size="8" text-anchor="middle">W_e , b_e</text>
+        <text x="410" y="402" fill="#fbbf24" font-size="8" font-weight="600" text-anchor="middle">bottleneck</text>
+        <text x="550" y="402" fill="#94a3b8" font-size="8" text-anchor="middle">W_d , b_d</text>
+        <text x="690" y="402" fill="#94a3b8" font-size="8" text-anchor="middle">reconstruction</text>
+
+        <!-- iris feature labels (left of input) -->
+        <text x="108" y="215" fill="#64748b" font-size="8" text-anchor="end">sepal L</text>
+        <text x="108" y="267" fill="#64748b" font-size="8" text-anchor="end">sepal W</text>
+        <text x="108" y="319" fill="#64748b" font-size="8" text-anchor="end">petal L</text>
+        <text x="108" y="371" fill="#64748b" font-size="8" text-anchor="end">petal W</text>
+
+        <!-- ============ NN NODES ============ -->
+        <!-- input nodes (cyan) -->
+        <circle cx="130" cy="212" r="15" fill="#0f172a"/>
+        <circle cx="130" cy="212" r="15" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="2"/>
+        <circle cx="130" cy="264" r="15" fill="#0f172a"/>
+        <circle cx="130" cy="264" r="15" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="2"/>
+        <circle cx="130" cy="316" r="15" fill="#0f172a"/>
+        <circle cx="130" cy="316" r="15" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="2"/>
+        <circle cx="130" cy="368" r="15" fill="#0f172a"/>
+        <circle cx="130" cy="368" r="15" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="2"/>
+
+        <!-- encoder nodes (emerald) -->
+        <circle cx="270" cy="230" r="15" fill="#0f172a"/>
+        <circle cx="270" cy="230" r="15" fill="rgba(6, 78, 59, 0.55)" stroke="#34d399" stroke-width="2"/>
+        <circle cx="270" cy="290" r="15" fill="#0f172a"/>
+        <circle cx="270" cy="290" r="15" fill="rgba(6, 78, 59, 0.55)" stroke="#34d399" stroke-width="2"/>
+        <circle cx="270" cy="350" r="15" fill="#0f172a"/>
+        <circle cx="270" cy="350" r="15" fill="rgba(6, 78, 59, 0.55)" stroke="#34d399" stroke-width="2"/>
+
+        <!-- bottleneck nodes (amber, HIGHLIGHTED: halo + dashed ring + larger) -->
+        <circle cx="410" cy="255" r="26" fill="rgba(251, 191, 36, 0.07)"/>
+        <circle cx="410" cy="255" r="21" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
+        <circle cx="410" cy="255" r="17" fill="#0f172a"/>
+        <circle cx="410" cy="255" r="17" fill="rgba(120, 53, 15, 0.6)" stroke="#fbbf24" stroke-width="2"/>
+        <circle cx="410" cy="325" r="26" fill="rgba(251, 191, 36, 0.07)"/>
+        <circle cx="410" cy="325" r="21" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
+        <circle cx="410" cy="325" r="17" fill="#0f172a"/>
+        <circle cx="410" cy="325" r="17" fill="rgba(120, 53, 15, 0.6)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="410" y="259" fill="#fde68a" font-size="9" font-weight="700" text-anchor="middle">z₁</text>
+        <text x="410" y="329" fill="#fde68a" font-size="9" font-weight="700" text-anchor="middle">z₂</text>
+
+        <!-- decoder nodes (emerald) -->
+        <circle cx="550" cy="230" r="15" fill="#0f172a"/>
+        <circle cx="550" cy="230" r="15" fill="rgba(6, 78, 59, 0.55)" stroke="#34d399" stroke-width="2"/>
+        <circle cx="550" cy="290" r="15" fill="#0f172a"/>
+        <circle cx="550" cy="290" r="15" fill="rgba(6, 78, 59, 0.55)" stroke="#34d399" stroke-width="2"/>
+        <circle cx="550" cy="350" r="15" fill="#0f172a"/>
+        <circle cx="550" cy="350" r="15" fill="rgba(6, 78, 59, 0.55)" stroke="#34d399" stroke-width="2"/>
+
+        <!-- reconstruction nodes (cyan) -->
+        <circle cx="690" cy="212" r="15" fill="#0f172a"/>
+        <circle cx="690" cy="212" r="15" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="2"/>
+        <circle cx="690" cy="264" r="15" fill="#0f172a"/>
+        <circle cx="690" cy="264" r="15" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="2"/>
+        <circle cx="690" cy="316" r="15" fill="#0f172a"/>
+        <circle cx="690" cy="316" r="15" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="2"/>
+        <circle cx="690" cy="368" r="15" fill="#0f172a"/>
+        <circle cx="690" cy="368" r="15" fill="rgba(8, 51, 68, 0.55)" stroke="#22d3ee" stroke-width="2"/>
+
+        <!-- ============ SIDE BOUNDARY ============ -->
+        <rect x="760" y="108" width="450" height="440" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="985" y="100" fill="#fbbf24" font-size="10" font-weight="600" text-anchor="middle">Conventions, downstream uses, contrast</text>
+
+        <!-- Box A: collection convention (violet) -->
+        <rect x="776" y="130" width="418" height="64" rx="6" fill="#0f172a"/>
+        <rect x="776" y="130" width="418" height="64" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="985" y="152" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Collection convention</text>
+        <text x="985" y="170" fill="#cbd5e1" font-size="9" text-anchor="middle">FeedFwdNN(input_dim == output_dim)</text>
+        <text x="985" y="184" fill="#94a3b8" font-size="8" text-anchor="middle">one backbone trains the whole hourglass</text>
+
+        <!-- Box B: latent downstream uses (violet) -->
+        <rect x="776" y="214" width="418" height="120" rx="6" fill="#0f172a"/>
+        <rect x="776" y="214" width="418" height="120" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="985" y="236" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Latent z ∈ ℝ² — downstream uses</text>
+        <text x="792" y="260" fill="#a78bfa" font-size="9">▸ linear probe → dim-reduction</text>
+        <text x="792" y="276" fill="#94a3b8" font-size="8">     2-D scatter for visualisation</text>
+        <text x="792" y="298" fill="#a78bfa" font-size="9">▸ feature space → KMeans clustering</text>
+        <text x="792" y="314" fill="#94a3b8" font-size="8">     cluster on z, not on raw x</text>
+        <!-- dashed violet link from bottleneck idea to this box -->
+        <path d="M 436 268 C 600 268, 660 250, 776 250" stroke="#a78bfa" stroke-width="1.3" fill="none" stroke-dasharray="5,4" marker-end="url(#arrowviolet)"/>
+        <text x="600" y="244" fill="#a78bfa" font-size="8" text-anchor="middle">z</text>
+
+        <!-- Box C: PCA vs AE contrast (amber) -->
+        <rect x="776" y="354" width="418" height="110" rx="6" fill="#0f172a"/>
+        <rect x="776" y="354" width="418" height="110" rx="6" fill="rgba(120, 53, 15, 0.32)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="985" y="376" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Dimensionality reduction — linear vs nonlinear</text>
+        <text x="792" y="400" fill="#fbbf24" font-size="9">▸ PCA</text>
+        <text x="824" y="400" fill="#94a3b8" font-size="8">linear projection — captures global structure only</text>
+        <text x="792" y="424" fill="#fbbf24" font-size="9">▸ AE</text>
+        <text x="824" y="424" fill="#94a3b8" font-size="8">nonlinear map — captures local + manifold structure</text>
+        <text x="985" y="448" fill="#64748b" font-size="8" text-anchor="middle">both yield a 2-D embedding; AE is data-specific (retrained per dataset)</text>
+
+        <!-- Box D: training note (slate) -->
+        <rect x="776" y="482" width="418" height="50" rx="6" fill="#0f172a"/>
+        <rect x="776" y="482" width="418" height="50" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="985" y="503" fill="#cbd5e1" font-size="9" text-anchor="middle">unsupervised — no labels needed</text>
+        <text x="985" y="519" fill="#94a3b8" font-size="8" text-anchor="middle">trained to minimise reconstruction error alone</text>
+
+        <!-- ============ LEGEND ============ -->
+        <rect x="30" y="608" width="1180" height="36" rx="6" fill="#0f172a"/>
+        <rect x="30" y="608" width="1180" height="36" rx="6" fill="rgba(30, 41, 59, 0.35)" stroke="#334155" stroke-width="1"/>
+        <text x="58" y="630" fill="#22d3ee" font-size="9">Legend:</text>
+        <text x="116" y="630" fill="#22d3ee" font-size="9">input / reconstruction (data)</text>
+        <text x="312" y="630" fill="#34d399" font-size="9">encoder / decoder (transform)</text>
+        <text x="510" y="630" fill="#fbbf24" font-size="9">bottleneck latent (highlighted) / loss</text>
+        <text x="760" y="630" fill="#a78bfa" font-size="9">convention + downstream uses</text>
+        <text x="980" y="630" fill="#94a3b8" font-size="9">note</text>
+      </svg>
+    </div>
+    <section class="cards" aria-label="Autoencoder summary">
+      <div class="card">
+        <h2>Hourglass</h2>
+        <ul>
+          <li>4-D Iris input narrowed to a 2-D latent, then widened back to 4-D.</li>
+          <li>Bottleneck is the only information channel — it forces compression.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>How it is built here</h2>
+        <ul>
+          <li>One <code>FeedFwdNN(input_dim == output_dim)</code> instance trains the whole map.</li>
+          <li>Unsupervised: the only signal is reconstruction loss ‖x − x̂‖².</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>What the latent buys you</h2>
+        <ul>
+          <li>2-D embedding for linear-probe visualisation.</li>
+          <li>Feature space for KMeans clustering; nonlinear where PCA is linear.</li>
+        </ul>
+      </div>
+    </section>
+    <footer>Generated for ml-eng-lab, 2026-07-07.</footer>
+  </div>
+</body>
+</html>

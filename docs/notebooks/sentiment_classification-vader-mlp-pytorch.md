@@ -112,6 +112,8 @@ train distribution — which is exactly the lesson.
 
 ## 8.18.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 Two independent pipelines, evaluated on the same test split.
 
 **VADER pipeline (frozen):** `SentimentIntensityAnalyzer` → `compound` score → `±0.05` threshold

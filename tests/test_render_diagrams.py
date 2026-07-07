@@ -16,6 +16,13 @@ def test_extract_svg_pulls_inline_svg():
     assert extract_svg(HTML) == SVG
 
 
+def test_extract_svg_sanitizes_non_xml_entities():
+    src = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text>a &middot; b &amp; c</text></svg>'
+    out = extract_svg(f"<html>{src}</html>")
+    assert "·" in out and "&middot;" not in out  # named entity → unicode (cairosvg/browser-safe)
+    assert "&amp;" in out  # XML-predefined entity preserved
+
+
 def test_svg_to_png_writes_png(tmp_path):
     out = tmp_path / "d.png"
     svg_to_png(SVG, out, width=200)

@@ -58,7 +58,7 @@ All in the root `requirements.txt` + `torch-requirements.txt`. The `tokenizers` 
 
 ## 6. Known issues
 
-- **Recorded gap is large because the train set is tiny.** With only 16 triplets and 12 epochs, the policy overfits — chosen tokens get very high log-prob, rejected get very low. The recorded "gap" of +59.65 is impressive-looking but reflects overfitting more than generalization. The DPO *contract* (gap must increase) still holds, which is the pedagogical point.
+- **Recorded gap is large because the train set is tiny.** With only 16 triplets and 12 epochs, the policy overfits — chosen tokens get very high log-prob, rejected get very low. The post-training chosen−rejected gap of **+59.65** (absolute; rising from **+2.1434** pre-training, a delta of **+57.51**) is impressive-looking but reflects overfitting more than generalization. The DPO *contract* (gap must strictly increase) still holds — the recorded delta is +57.51 > 0 — which is the pedagogical point.
 - **No held-out evaluation.** Real DPO runs measure win-rate of the trained policy vs the reference on a held-out preference set. With 16 train triplets we don't bother carving off a val/test split.
 - **`β=0.1` is the recipe-paper default.** Production DPO sweeps `β ∈ {0.01, 0.1, 0.5}` and picks by held-out win-rate.
 - **Tokenizer corpus is tiny** (10 lines, vocab 80). The BPE learns only ~20-30 useful merges; real LM tokenizers have vocab 30k–100k.

@@ -113,6 +113,8 @@ weight decay \(10^{-3}\), and momentum \((0.9, 0.999)\).
 
 ## 8.17.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 The pipeline has two stages — a frozen hand-written featurizer and a learned MLP head.
 
 **Featurizer (frozen):** spaCy lemmatizer + 200-dim train-only BoW + L2 normalization. No learned

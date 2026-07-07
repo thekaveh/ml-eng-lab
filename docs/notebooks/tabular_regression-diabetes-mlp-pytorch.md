@@ -107,6 +107,8 @@ mean-squared error \(\mathrm{RMSE} = \sqrt{\mathcal{L}}\) returns the error to t
 
 ## 8.2.4 Architecture
 
+![Feed-forward MLP](../diagrams/img/mlp.png)
+
 The network family is `Nets.FEED_FWD` (`nnx.FeedFwdNN`): an input layer of ten units (one per
 feature), zero or more hidden layers with ReLU activation, and a *one-unit* output layer consumed
 directly by MSE — there is no softmax and no activation on the output head. The notebook trains

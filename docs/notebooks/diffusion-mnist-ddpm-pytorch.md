@@ -119,6 +119,8 @@ this loop. After \(T\) steps the output is a sample from the learned distributio
 
 ## 8.10.4 Architecture
 
+![DDPM diffusion](../diagrams/img/ddpm.png)
+
 `DiffusionMLP(input_dim=784, hidden_dims=[256, 256], time_embed_dim=32)` is a three-layer MLP
 denoiser. The contract is `(x_t, t) → ε̂`:
 

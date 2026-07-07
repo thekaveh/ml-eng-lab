@@ -103,6 +103,8 @@ attention stabilizes the softmax-over-neighborhood by averaging over independent
 
 ## 8.13.4 Architecture
 
+![GNN message-passing](../diagrams/img/gnn.png)
+
 Because this is a multi-phase investigation, the "architecture" story is the *phase flow* itself:
 Phase 1 understands the graph, Phase 2 narrows the model space, Phase 3 trains the survivors to
 convergence. The candidate architectures compared across phases:

@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ml-eng-lab — DDPM Diffusion (Forward + Reverse)</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #020617; color: #e2e8f0; font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px; }
+    header { margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 22px; }
+    .subtitle { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+    .panel { border: 1px solid rgba(34, 211, 238, 0.28); border-radius: 8px; background: #020617; overflow: hidden; }
+    svg { display: block; width: 100%; height: auto; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+    .card { border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 8px; padding: 14px; background: rgba(15, 23, 42, 0.75); }
+    .card h2 { margin: 0 0 10px; font-size: 12px; color: #67e8f9; }
+    .card ul { margin: 0; padding-left: 18px; color: #cbd5e1; font-size: 10px; line-height: 1.7; }
+    footer { color: #64748b; font-size: 9px; margin-top: 14px; }
+    @media (max-width: 760px) { .wrap { padding: 16px; } .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ml-eng-lab — DDPM Diffusion (Forward + Reverse)</h1>
+      <div class="subtitle">Forward q(x_t|x_0) corrupts a clean image into pure noise; a trained DiffusionMLP denoiser ε_θ inverts the trajectory via p_θ(x_{t-1}|x_t).</div>
+    </header>
+    <div class="panel">
+      <svg viewBox="0 0 1240 740" role="img" aria-labelledby="title desc">
+        <title id="title">ml-eng-lab DDPM diffusion forward and reverse process</title>
+        <desc id="desc">Two-row diagram. Top row: the forward diffusion process q(x_t|x_0) progressively adds Gaussian noise to a clean image x_0 until it becomes pure noise x_T. Bottom row: the learned reverse process p_θ(x_{t-1}|x_t) uses a DiffusionMLP denoiser ε_θ to iteratively remove noise from x_T back to a clean sample x_0. Training objective L = E[‖ε − ε_θ(x_t, t)‖²].</desc>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrowfwd" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+          </marker>
+          <marker id="arrowrev" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+          </marker>
+          <marker id="arrowgray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+        </defs>
+        <rect width="1240" height="740" fill="#020617"/>
+        <rect width="1240" height="740" fill="url(#grid)"/>
+
+        <!-- ============================================================ -->
+        <!-- TOP ROW — FORWARD PROCESS  q(x_t | x_0)                     -->
+        <!-- ============================================================ -->
+        <rect x="30" y="60" width="1180" height="180" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="50" y="84" fill="#fbbf24" font-size="11" font-weight="600">FORWARD  q(x_t | x_0)  ·  add noise  ·  t = 1 → T</text>
+        <text x="1190" y="84" fill="#fbbf24" font-size="9" text-anchor="end">closed-form, no training</text>
+
+        <!-- forward arrows (amber, left → right) -->
+        <path d="M 232 184 H 308" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#arrowfwd)"/>
+        <path d="M 472 184 H 548" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#arrowfwd)"/>
+        <path d="M 712 184 H 788" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#arrowfwd)"/>
+        <path d="M 952 184 H 1028" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#arrowfwd)"/>
+        <!-- forward transition kernel label spanning the chain -->
+        <text x="620" y="170" fill="#fbbf24" font-size="10" text-anchor="middle">x_t = √(1−β_t)·x_{t-1} + √β_t·ε</text>
+        <text x="620" y="206" fill="#94a3b8" font-size="8" text-anchor="middle">ε ~ N(0, I)   ·   β_1…β_T  variance schedule</text>
+
+        <!-- forward node x_0 -->
+        <rect x="92" y="144" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="92" y="144" width="140" height="80" rx="6" fill="rgba(120, 53, 15, 0.30)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="162" y="174" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">x_0</text>
+        <text x="162" y="194" fill="#94a3b8" font-size="9" text-anchor="middle">clean image</text>
+        <text x="162" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">MNIST / FMNIST</text>
+
+        <!-- forward node x_1 -->
+        <rect x="332" y="144" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="332" y="144" width="140" height="80" rx="6" fill="rgba(120, 53, 15, 0.22)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="402" y="174" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">x_1</text>
+        <text x="402" y="194" fill="#94a3b8" font-size="9" text-anchor="middle">slight noise</text>
+        <text x="402" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">q(x_1|x_0)</text>
+
+        <!-- forward node ... -->
+        <rect x="572" y="144" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="572" y="144" width="140" height="80" rx="6" fill="rgba(120, 53, 15, 0.15)" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <text x="642" y="174" fill="#fbbf24" font-size="14" font-weight="600" text-anchor="middle">x_t</text>
+        <text x="642" y="194" fill="#94a3b8" font-size="9" text-anchor="middle">···</text>
+        <text x="642" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">intermediate</text>
+
+        <!-- forward node x_{T-1} -->
+        <rect x="812" y="144" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="812" y="144" width="140" height="80" rx="6" fill="rgba(120, 53, 15, 0.22)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="882" y="174" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">x_{T-1}</text>
+        <text x="882" y="194" fill="#94a3b8" font-size="9" text-anchor="middle">heavy noise</text>
+        <text x="882" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">q(x_{T-1}|x_0)</text>
+
+        <!-- forward node x_T -->
+        <rect x="1052" y="144" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="1052" y="144" width="140" height="80" rx="6" fill="rgba(120, 53, 15, 0.40)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="1122" y="174" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">x_T</text>
+        <text x="1122" y="194" fill="#fbbf24" font-size="9" text-anchor="middle">pure noise</text>
+        <text x="1122" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">≈ N(0, I)</text>
+
+        <!-- ============================================================ -->
+        <!-- MIDDLE BAND — denoiser network ε_θ  +  training objective     -->
+        <!-- ============================================================ -->
+
+        <!-- training-time sampling arrow from forward chain down into ε_θ -->
+        <path d="M 642 224 V 270 H 372 V 318" stroke="#64748b" stroke-width="1.4" fill="none" stroke-dasharray="4,3" marker-end="url(#arrowgray)"/>
+        <text x="416" y="262" fill="#94a3b8" font-size="8">sample (x_t, t, ε)</text>
+
+        <!-- denoiser network ε_θ (DiffusionMLP) -->
+        <rect x="156" y="318" width="280" height="120" rx="6" fill="#0f172a"/>
+        <rect x="156" y="318" width="280" height="120" rx="6" fill="rgba(76, 29, 149, 0.40)" stroke="#a78bfa" stroke-width="1.6"/>
+        <text x="296" y="344" fill="#fff" font-size="13" font-weight="600" text-anchor="middle">ε_θ(x_t, t)  —  denoiser</text>
+        <text x="296" y="364" fill="#a78bfa" font-size="10" text-anchor="middle">DiffusionMLP  (no U-Net)</text>
+        <text x="296" y="384" fill="#94a3b8" font-size="9" text-anchor="middle">input:  x_t  +  sinusoidal t</text>
+        <text x="296" y="400" fill="#94a3b8" font-size="9" text-anchor="middle">output: predicted noise ε̂</text>
+        <text x="296" y="418" fill="#94a3b8" font-size="8" text-anchor="middle">notebooks/diffusion-mnist-ddpm-pytorch</text>
+
+        <!-- training objective callout -->
+        <rect x="528" y="318" width="296" height="120" rx="6" fill="#0f172a"/>
+        <rect x="528" y="318" width="296" height="120" rx="6" fill="rgba(6, 78, 59, 0.32)" stroke="#34d399" stroke-width="1.6"/>
+        <text x="676" y="344" fill="#34d399" font-size="11" font-weight="600" text-anchor="middle">TRAINING OBJECTIVE</text>
+        <text x="676" y="376" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">L = E_{t,x_0,ε} [ ‖ε − ε_θ(x_t, t)‖² ]</text>
+        <text x="676" y="398" fill="#94a3b8" font-size="9" text-anchor="middle">predict the same noise ε that was</text>
+        <text x="676" y="412" fill="#94a3b8" font-size="9" text-anchor="middle">injected by the forward kernel</text>
+        <text x="676" y="428" fill="#34d399" font-size="8" text-anchor="middle">simple squared error · no KL term</text>
+
+        <!-- ε_θ feeds prediction back into every reverse step -->
+        <path d="M 296 438 V 480" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#arrowgray)"/>
+        <text x="304" y="466" fill="#a78bfa" font-size="8">predict ε̂ per step</text>
+
+        <!-- ============================================================ -->
+        <!-- BOTTOM ROW — REVERSE PROCESS  p_θ(x_{t-1} | x_t)             -->
+        <!-- ============================================================ -->
+        <rect x="30" y="496" width="1180" height="180" rx="12" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="50" y="520" fill="#22d3ee" font-size="11" font-weight="600">REVERSE  p_θ(x_{t-1} | x_t)  ·  denoise via ε_θ  ·  t = T → 1</text>
+        <text x="1190" y="520" fill="#22d3ee" font-size="9" text-anchor="end">learned, iterative</text>
+
+        <!-- reverse arrows (cyan, right → left) -->
+        <path d="M 1052 624 H 968" stroke="#22d3ee" stroke-width="1.6" marker-end="url(#arrowrev)"/>
+        <path d="M 812 624 H 728" stroke="#22d3ee" stroke-width="1.6" marker-end="url(#arrowrev)"/>
+        <path d="M 572 624 H 488" stroke="#22d3ee" stroke-width="1.6" marker-end="url(#arrowrev)"/>
+        <path d="M 332 624 H 248" stroke="#22d3ee" stroke-width="1.6" marker-end="url(#arrowrev)"/>
+        <!-- reverse kernel annotation -->
+        <text x="620" y="608" fill="#22d3ee" font-size="10" text-anchor="middle">x_{t-1} = μ_θ(x_t, t) + σ_t·z</text>
+        <text x="620" y="648" fill="#94a3b8" font-size="8" text-anchor="middle">μ_θ derived from ε_θ(x_t, t)   ·   z ~ N(0, I)</text>
+
+        <!-- reverse node x_T (start, right) -->
+        <rect x="1052" y="580" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="1052" y="580" width="140" height="80" rx="6" fill="rgba(8, 51, 68, 0.40)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1122" y="610" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">x_T</text>
+        <text x="1122" y="630" fill="#22d3ee" font-size="9" text-anchor="middle">pure noise</text>
+        <text x="1122" y="646" fill="#94a3b8" font-size="8" text-anchor="middle">sample from N(0, I)</text>
+
+        <!-- reverse node x_{T-1} -->
+        <rect x="812" y="580" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="812" y="580" width="140" height="80" rx="6" fill="rgba(8, 51, 68, 0.24)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="882" y="610" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">x_{T-1}</text>
+        <text x="882" y="630" fill="#94a3b8" font-size="9" text-anchor="middle">less noise</text>
+        <text x="882" y="646" fill="#94a3b8" font-size="8" text-anchor="middle">p_θ(x_{T-1}|x_T)</text>
+
+        <!-- reverse node ... -->
+        <rect x="572" y="580" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="572" y="580" width="140" height="80" rx="6" fill="rgba(8, 51, 68, 0.16)" stroke="#22d3ee" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <text x="642" y="610" fill="#22d3ee" font-size="14" font-weight="600" text-anchor="middle">x_t</text>
+        <text x="642" y="630" fill="#94a3b8" font-size="9" text-anchor="middle">···</text>
+        <text x="642" y="646" fill="#94a3b8" font-size="8" text-anchor="middle">iterative denoise</text>
+
+        <!-- reverse node x_1 -->
+        <rect x="332" y="580" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="332" y="580" width="140" height="80" rx="6" fill="rgba(8, 51, 68, 0.24)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="402" y="610" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">x_1</text>
+        <text x="402" y="630" fill="#94a3b8" font-size="9" text-anchor="middle">near-clean</text>
+        <text x="402" y="646" fill="#94a3b8" font-size="8" text-anchor="middle">p_θ(x_1|x_2)</text>
+
+        <!-- reverse node x_0 (clean sample) -->
+        <rect x="92" y="580" width="140" height="80" rx="6" fill="#0f172a"/>
+        <rect x="92" y="580" width="140" height="80" rx="6" fill="rgba(6, 78, 59, 0.40)" stroke="#34d399" stroke-width="1.8"/>
+        <text x="162" y="610" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">x_0</text>
+        <text x="162" y="630" fill="#34d399" font-size="9" text-anchor="middle">generated sample</text>
+        <text x="162" y="646" fill="#94a3b8" font-size="8" text-anchor="middle">new digit / garment</text>
+
+        <!-- ============================================================ -->
+        <!-- LEGEND                                                       -->
+        <!-- ============================================================ -->
+        <rect x="30" y="690" width="1180" height="36" rx="6" fill="#0f172a"/>
+        <rect x="30" y="690" width="1180" height="36" rx="6" fill="rgba(30, 41, 59, 0.35)" stroke="#334155" stroke-width="1"/>
+        <text x="58" y="712" fill="#22d3ee" font-size="9">Legend:</text>
+        <text x="116" y="712" fill="#fbbf24" font-size="9">forward (add noise)</text>
+        <text x="280" y="712" fill="#22d3ee" font-size="9">reverse (denoise)</text>
+        <text x="430" y="712" fill="#a78bfa" font-size="9">denoiser network ε_θ</text>
+        <text x="610" y="712" fill="#34d399" font-size="9">training objective</text>
+        <text x="760" y="712" fill="#94a3b8" font-size="9">sampling / continuation</text>
+        <text x="940" y="712" fill="#64748b" font-size="9">≡ deterministic step</text>
+      </svg>
+    </div>
+    <section class="cards" aria-label="DDPM summary">
+      <div class="card">
+        <h2>Forward (analytic)</h2>
+        <ul>
+          <li>q(x_t|x_0) adds Gaussian noise on a fixed β schedule.</li>
+          <li>Closed-form — x_t sampled without ever running a model.</li>
+          <li>x_T ≈ N(0, I) destroys all structure by step T.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Denoiser ε_θ</h2>
+        <ul>
+          <li>Collection uses `DiffusionMLP`, not a U-Net.</li>
+          <li>Takes (x_t, sinusoidal-t), predicts the noise ε̂.</li>
+          <li>Trained by simple MSE: ‖ε − ε_θ(x_t, t)‖².</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Reverse (learned)</h2>
+        <ul>
+          <li>Sample x_T ~ N(0, I), iterate t = T → 1.</li>
+          <li>Each step uses ε_θ to compute μ_θ, then adds σ_t·z.</li>
+          <li>End state x_0 is a freshly generated digit/garment.</li>
+        </ul>
+      </div>
+    </section>
+    <footer>Generated for the ml-eng-lab DDPM notebook, 2026-07-07.</footer>
+  </div>
+</body>
+</html>
