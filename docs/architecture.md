@@ -20,6 +20,8 @@ tooling, and the three documentation surfaces.
 
 ## 2. Three-surface documentation pipeline
 
+![Three-surface documentation sync](diagrams/img/docs-sync.png)
+
 The documentation system is the cleanest worked example of the lab's "canonical source +
 derived surface" discipline. One source tree feeds three surfaces:
 

@@ -13,7 +13,7 @@ sections:
         number: "2.1"
         title: "System & context view"
         source: docs/architecture.md
-        diagrams: [system]
+        diagrams: [system, docs-sync]
 notebooks:
   - task: tabular_classification-iris-mlp-pytorch
     number: "8.1"
@@ -24,3 +24,5 @@ notebooks:
 diagrams:
   - id: system
     master: docs/diagrams/ml-eng-lab-system.html
+  - id: docs-sync
+    master: docs/diagrams/ml-eng-lab-docs-sync.html

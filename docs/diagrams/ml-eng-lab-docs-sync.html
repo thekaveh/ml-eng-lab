@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ml-eng-lab Documentation — Three-Surface Sync</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #020617; color: #e2e8f0; font-family: "JetBrains Mono", monospace; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px; }
+    header { margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 22px; }
+    .subtitle { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+    .panel { border: 1px solid rgba(34, 211, 238, 0.28); border-radius: 8px; background: #020617; overflow: hidden; }
+    svg { display: block; width: 100%; height: auto; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+    .card { border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 8px; padding: 14px; background: rgba(15, 23, 42, 0.75); }
+    .card h2 { margin: 0 0 10px; font-size: 12px; color: #67e8f9; }
+    .card ul { margin: 0; padding-left: 18px; color: #cbd5e1; font-size: 10px; line-height: 1.7; }
+    footer { color: #64748b; font-size: 9px; margin-top: 14px; }
+    @media (max-width: 760px) { .wrap { padding: 16px; } .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ml-eng-lab Documentation — Three-Surface Sync</h1>
+      <div class="subtitle">One canonical source tree feeds three self-contained surfaces; generated output is never edited by hand.</div>
+    </header>
+    <div class="panel">
+      <svg viewBox="0 0 1240 700" role="img" aria-labelledby="title desc">
+        <title id="title">ml-eng-lab documentation three-surface sync</title>
+        <desc id="desc">Canonical docs and notebooks flow through the scripts/docs pipeline (render_diagrams, build_docs, check_docs gate, push_wiki, mkdocs build) into three self-contained surfaces: GitHub Pages, the native wiki, and repository markdown.</desc>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+          <marker id="arrowpass" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+          </marker>
+          <marker id="arrowfail" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/>
+          </marker>
+        </defs>
+        <rect width="1240" height="700" fill="#020617"/>
+        <rect width="1240" height="700" fill="url(#grid)"/>
+
+        <!-- ============ ARROWS (drawn first, behind boxes) ============ -->
+        <!-- canonical -> pipeline -->
+        <path d="M 250 136 H 324" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 250 208 H 324" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 250 280 H 324" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 250 352 H 324" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <!-- pipeline internal chain -->
+        <path d="M 450 164 V 200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 450 240 V 276" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <!-- gate pass -> split to push_wiki + mkdocs -->
+        <path d="M 450 352 V 392" stroke="#34d399" stroke-width="1.8" marker-end="url(#arrowpass)"/>
+        <text x="458" y="376" fill="#34d399" font-size="9">✓ pass</text>
+        <!-- gate fail -> block PR -->
+        <path d="M 588 312 H 640 V 264 H 700" stroke="#fb7185" stroke-width="1.8" fill="none" marker-end="url(#arrowfail)"/>
+        <text x="612" y="304" fill="#fb7185" font-size="9">✗ fail</text>
+        <!-- push_wiki -> mkdocs is not a flow; both run after gate. Link gate to mkdocs too via the pass line already drawn to push_wiki; add mkdocs feed -->
+        <path d="M 576 420 H 600 V 504 H 576" stroke="#34d399" stroke-width="1.8" fill="none" marker-end="url(#arrowpass)"/>
+        <!-- pipeline -> surfaces -->
+        <path d="M 576 532 H 608 V 148 H 656" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+        <text x="612" y="346" fill="#94a3b8" font-size="8">site/</text>
+        <path d="M 576 448 H 624 V 252 H 656" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrowhead)"/>
+        <text x="628" y="350" fill="#94a3b8" font-size="8">wiki</text>
+        <!-- repo surface = canonical docs/ directly (dashed, over the top) -->
+        <path d="M 146 92 V 40 H 890 V 316 H 980" stroke="#a78bfa" stroke-width="1.4" fill="none" stroke-dasharray="5,4" marker-end="url(#arrowhead)"/>
+        <text x="500" y="34" fill="#a78bfa" font-size="8">canonical docs/ rendered directly by GitHub (no generation)</text>
+
+        <!-- ============ LEFT: canonical source ============ -->
+        <rect x="30" y="68" width="220" height="500" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="140" y="90" fill="#fbbf24" font-size="10" font-weight="600" text-anchor="middle">Canonical source — write once</text>
+
+        <rect x="46" y="110" width="204" height="52" rx="6" fill="#0f172a"/>
+        <rect x="46" y="110" width="204" height="52" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="148" y="131" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">docs/</text>
+        <text x="148" y="148" fill="#94a3b8" font-size="8" text-anchor="middle">canonical markdown (index, architecture, …)</text>
+
+        <rect x="46" y="182" width="204" height="52" rx="6" fill="#0f172a"/>
+        <rect x="46" y="182" width="204" height="52" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="148" y="203" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">notebooks/&lt;task&gt;/</text>
+        <text x="148" y="220" fill="#94a3b8" font-size="8" text-anchor="middle">README.md + docs/spec.yaml</text>
+
+        <rect x="46" y="254" width="204" height="52" rx="6" fill="#0f172a"/>
+        <rect x="46" y="254" width="204" height="52" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="148" y="275" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">docs/manifest.yaml</text>
+        <text x="148" y="292" fill="#94a3b8" font-size="8" text-anchor="middle">hierarchy + numbering + page set</text>
+
+        <rect x="46" y="326" width="204" height="52" rx="6" fill="#0f172a"/>
+        <rect x="46" y="326" width="204" height="52" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="148" y="347" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">docs/diagrams/*.html</text>
+        <text x="148" y="364" fill="#94a3b8" font-size="8" text-anchor="middle">diagram masters</text>
+
+        <rect x="46" y="486" width="204" height="60" rx="6" fill="#0f172a"/>
+        <rect x="46" y="486" width="204" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="148" y="510" fill="#cbd5e1" font-size="9" text-anchor="middle">single source of truth</text>
+        <text x="148" y="526" fill="#94a3b8" font-size="8" text-anchor="middle">edited by humans; everything else is derived</text>
+
+        <!-- ============ MIDDLE: pipeline ============ -->
+        <rect x="324" y="68" width="252" height="500" rx="12" fill="none" stroke="#34d399" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="450" y="90" fill="#34d399" font-size="10" font-weight="600" text-anchor="middle">Pipeline — scripts/docs/</text>
+
+        <rect x="336" y="110" width="228" height="54" rx="6" fill="#0f172a"/>
+        <rect x="336" y="110" width="228" height="54" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="450" y="131" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">render_diagrams.py</text>
+        <text x="450" y="149" fill="#94a3b8" font-size="8" text-anchor="middle">master → SVG (site) + PNG (repo, wiki)</text>
+
+        <rect x="336" y="186" width="228" height="54" rx="6" fill="#0f172a"/>
+        <rect x="336" y="186" width="228" height="54" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="450" y="207" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">build_docs.py --site --wiki</text>
+        <text x="450" y="225" fill="#94a3b8" font-size="8" text-anchor="middle">→ generated/site, generated/wiki</text>
+
+        <rect x="336" y="276" width="228" height="76" rx="6" fill="#0f172a"/>
+        <rect x="336" y="276" width="228" height="76" rx="6" fill="rgba(120, 53, 15, 0.32)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="450" y="297" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">check_docs.py  ◇ GATE</text>
+        <text x="450" y="315" fill="#94a3b8" font-size="8" text-anchor="middle">self-containment · completeness</text>
+        <text x="450" y="329" fill="#94a3b8" font-size="8" text-anchor="middle">placeholders · determinism</text>
+        <text x="450" y="345" fill="#fbbf24" font-size="8" text-anchor="middle">CI fails the PR on any error</text>
+
+        <rect x="336" y="392" width="228" height="56" rx="6" fill="#0f172a"/>
+        <rect x="336" y="392" width="228" height="56" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="450" y="413" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">push_wiki.py --push</text>
+        <text x="450" y="431" fill="#94a3b8" font-size="8" text-anchor="middle">Deploy Key → wiki.git</text>
+
+        <rect x="336" y="476" width="228" height="56" rx="6" fill="#0f172a"/>
+        <rect x="336" y="476" width="228" height="56" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="450" y="497" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">mkdocs build --strict</text>
+        <text x="450" y="515" fill="#94a3b8" font-size="8" text-anchor="middle">generated/site → site/</text>
+
+        <!-- block PR (rose) -->
+        <rect x="700" y="248" width="104" height="34" rx="6" fill="#0f172a"/>
+        <rect x="700" y="248" width="104" height="34" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="752" y="269" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">✗ block PR</text>
+
+        <!-- ============ RIGHT: three surfaces ============ -->
+        <rect x="656" y="68" width="556" height="500" rx="12" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="8,4"/>
+        <text x="934" y="90" fill="#22d3ee" font-size="10" font-weight="600" text-anchor="middle">Three self-contained surfaces</text>
+
+        <rect x="980" y="316" width="218" height="76" rx="6" fill="#0f172a"/>
+        <rect x="980" y="316" width="218" height="76" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="1089" y="338" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Repository markdown</text>
+        <text x="1089" y="356" fill="#94a3b8" font-size="8" text-anchor="middle">docs/ — GitHub-rendered</text>
+        <text x="1089" y="370" fill="#94a3b8" font-size="8" text-anchor="middle">embeds PNG (committed)</text>
+        <text x="1089" y="384" fill="#22d3ee" font-size="8" text-anchor="middle">= canonical, no generation</text>
+
+        <rect x="672" y="112" width="240" height="76" rx="6" fill="#0f172a"/>
+        <rect x="672" y="112" width="240" height="76" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="792" y="134" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">GitHub Pages (.io)</text>
+        <text x="792" y="152" fill="#94a3b8" font-size="8" text-anchor="middle">site/ ← mkdocs build</text>
+        <text x="792" y="166" fill="#94a3b8" font-size="8" text-anchor="middle">thekaveh.github.io/ml-eng-lab</text>
+        <text x="792" y="180" fill="#22d3ee" font-size="8" text-anchor="middle">embeds SVG (crisp)</text>
+
+        <rect x="672" y="216" width="240" height="76" rx="6" fill="#0f172a"/>
+        <rect x="672" y="216" width="240" height="76" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="792" y="238" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">ml-eng-lab.wiki.git</text>
+        <text x="792" y="256" fill="#94a3b8" font-size="8" text-anchor="middle">generated/wiki ← push_wiki</text>
+        <text x="792" y="270" fill="#94a3b8" font-size="8" text-anchor="middle">native GitHub wiki</text>
+        <text x="792" y="284" fill="#22d3ee" font-size="8" text-anchor="middle">embeds PNG</text>
+
+        <rect x="672" y="320" width="240" height="60" rx="6" fill="#0f172a"/>
+        <rect x="672" y="320" width="240" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="792" y="342" fill="#cbd5e1" font-size="9" text-anchor="middle">published surfaces are derived</text>
+        <text x="792" y="358" fill="#94a3b8" font-size="8" text-anchor="middle">gitignored: generated/, mkdocs.yml, site/</text>
+        <text x="792" y="372" fill="#94a3b8" font-size="8" text-anchor="middle">never hand-edited; rebuilt every CI run</text>
+
+        <!-- ============ LEGEND ============ -->
+        <rect x="30" y="600" width="1180" height="36" rx="6" fill="#0f172a"/>
+        <rect x="30" y="600" width="1180" height="36" rx="6" fill="rgba(30, 41, 59, 0.35)" stroke="#334155" stroke-width="1"/>
+        <text x="58" y="622" fill="#22d3ee" font-size="9">Legend:</text>
+        <text x="116" y="622" fill="#a78bfa" font-size="9">canonical (write once)</text>
+        <text x="288" y="622" fill="#34d399" font-size="9">pipeline (scripts/docs)</text>
+        <text x="452" y="622" fill="#fbbf24" font-size="9">gate / CI</text>
+        <text x="528" y="622" fill="#22d3ee" font-size="9">published surface (derived)</text>
+        <text x="710" y="622" fill="#fb7185" font-size="9">failure path</text>
+        <text x="810" y="622" fill="#94a3b8" font-size="9">note / gitignored artifact</text>
+      </svg>
+    </div>
+    <section class="cards" aria-label="Sync summary">
+      <div class="card">
+        <h2>One canonical source</h2>
+        <ul>
+          <li>`docs/`, `notebooks/&lt;task&gt;/`, `manifest.yaml`, diagram masters.</li>
+          <li>Humans edit only these; everything else is derived.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Derived, never hand-edited</h2>
+        <ul>
+          <li>`generated/site`, `generated/wiki`, root `mkdocs.yml`, `site/` are gitignored.</li>
+          <li>`check_docs.py` gates every PR: self-containment, completeness, determinism.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Three self-contained surfaces</h2>
+        <ul>
+          <li>.io site (SVG), native wiki (PNG), repository markdown (PNG).</li>
+          <li>No surface links to another; each stands alone.</li>
+        </ul>
+      </div>
+    </section>
+    <footer>Generated for the ml-eng-lab docs-overhaul foundation, 2026-07-07.</footer>
+  </div>
+</body>
+</html>
