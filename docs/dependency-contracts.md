@@ -134,12 +134,14 @@ make verify-dependency-locks  # offline structure, hashes, sources, consumers, a
 make audit-advisories         # networked feed comparison over exact lock-derived projections
 ```
 
-Result: 3 known vulnerabilities across 212 resolved packages.
+Result: 5 known vulnerabilities across 212 resolved packages.
 
 | Package | Manifest Constraint | Audited Resolved Version | Finding Count | Current Disposition |
 | --- | --- | ---: | ---: | --- |
 | `setuptools` | `resolver-selected transitive dependency` | `81.0.0` | 2 | Temporarily accepted for the qualified resolver observation. The feed lists `83.0.0` as the fix. Revisit when the resolver selects that floor or the dependency contract can be advanced without breaking the qualified stack. |
 | `torch` | `torch==2.11.0` | `2.11.0` | 1 | Temporarily accepted for the qualified Torch 2.11 matrix. The feed lists `2.13.0` as the fix, but Torch 2.13 lacks the complete approved PyG compiled-extension wheel surface. Never load untrusted pickle-backed checkpoints. |
+| `nltk` | `nltk==3.10.3` | `3.10.3` | 1 | Temporarily accepted: no newer nltk release exists (the feed inconsistently lists `3.10.3` itself as the fix). Revisit when a release above `3.10.3` appears. |
+| `pytorch-lightning` | `resolver-selected via torch-ecosystem pin` | `2.6.1` | 1 | Temporarily accepted: the feed's fix `2.6.6` postdates the lock policy's `exclude_newer` cutoff, so the deterministic resolver cannot reach it. Bump with the next cutoff advance. |
 
 Each row below is one raw feed record. The duplicate setuptools primary ID is preserved because
 the resolver feed emitted it twice; policy comparison remains alias-aware and identity-based.
@@ -149,6 +151,8 @@ the resolver feed emitted it twice; policy comparison remains alias-aware and id
 | `setuptools` | `PYSEC-2026-3447` | 1 | `83.0.0` | `81.0.0` | `BIT-setuptools-2026-59890`, `CVE-2026-59890`, `GHSA-h35f-9h28-mq5c` | Combined runtime; Torch; Documentation; Atlas contract |
 | `setuptools` | `PYSEC-2026-3447` | 1 | `83.0.0` | `81.0.0` | `BIT-setuptools-2026-59890`, `CVE-2026-59890`, `GHSA-h35f-9h28-mq5c` | Combined runtime; Torch; Documentation; Atlas contract |
 | `torch` | `PYSEC-2025-194` | 1 | `2.13.0` | `2.11.0` | `BIT-pytorch-2025-3000`, `CVE-2025-3000`, `GHSA-rrmf-rvhw-rf47` | Combined runtime; Torch |
+| `nltk` | `PYSEC-2026-3740` | 1 | `3.10.3` | `3.10.3` | `CVE-2026-81726`, `GHSA-8mgp-746c-j5xp` | Combined runtime; Atlas contract |
+| `pytorch-lightning` | `PYSEC-2026-3967` | 1 | `2.6.6` | `2.6.1` | `CVE-2026-58659`, `GHSA-qqmf-gpg7-g8gw`, `PYSEC-2026-3624` | Combined runtime; Torch |
 
 The input hashes enforced by D10 are:
 
@@ -163,7 +167,7 @@ The input hashes enforced by D10 are:
 | `pyg-extension-audit-requirements.txt` | `3bdf07aaf4dc3a02524d7f7e11f6127c68203403201dc32d36b356670bfff498` |
 | `docs-requirements.txt` | `783e5266987bca682d92cb99348cbd6e5e24ea9b56db1241d320dac779752d34` |
 | `atlas-contract-requirements.txt` | `48591ac7488d50ef8e27ca57614f977f83cc7f6231afda63de2451c5d71d8148` |
-| `security/accepted-advisories.json` | `452ac2a787c5c13814bab63f54a97c742dd22fa8da6a6a550b8f4a416df18dbb` |
+| `security/accepted-advisories.json` | `3863b5bfa7a4d0678635f686811f9c5be0c9dc0d076aa38ed81e6444bc3daa92` |
 
 The complete generated-lock inventory is the 14 outputs listed by
 `requirements/lock-policy.toml`: bootstrap, compiler, audit, Atlas contract, documentation, and

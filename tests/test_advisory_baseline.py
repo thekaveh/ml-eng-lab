@@ -249,6 +249,8 @@ def test_real_baseline_contains_current_issue62_reviewed_identities() -> None:
     baseline = load_baseline(REPO_ROOT / "security/accepted-advisories.json")
 
     assert {(item.package, item.advisory_id, item.accepted_version) for item in baseline.accepted_advisories} == {
+        ("nltk", "PYSEC-2026-3740", "3.10.3"),
+        ("pytorch-lightning", "PYSEC-2026-3967", "2.6.1"),
         ("setuptools", "PYSEC-2026-3447", "81.0.0"),
         ("torch", "PYSEC-2025-194", "2.11.0"),
     }
@@ -261,6 +263,8 @@ def test_real_baseline_contains_exact_reviewed_policy_quadruples() -> None:
         (item.package, item.advisory_id, item.accepted_version, item.surfaces)
         for item in baseline.accepted_advisories
     } == {
+        ("nltk", "PYSEC-2026-3740", "3.10.3", ("combined-runtime", "atlas-contract")),
+        ("pytorch-lightning", "PYSEC-2026-3967", "2.6.1", ("combined-runtime", "torch")),
         ("setuptools", "PYSEC-2026-3447", "81.0.0", SURFACE_ORDER),
         ("torch", "PYSEC-2025-194", "2.11.0", ("combined-runtime", "torch")),
     }
