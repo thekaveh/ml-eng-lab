@@ -1919,7 +1919,10 @@ def test_dependency_ledger_couples_advisory_identity_version_and_surfaces_to_pol
     repo = _issue62_ledger_repo(tmp_path)
     policy = repo / "security/accepted-advisories.json"
     document = json.loads(policy.read_text(encoding="utf-8"))
-    item = document["accepted_advisories"][0]
+    item = next(
+        entry for entry in document["accepted_advisories"]
+        if entry["package"] == "setuptools"
+    )
     replacements = {
         "package": "different-package",
         "advisory_id": "CVE-2099-0000",
@@ -2204,7 +2207,11 @@ def test_docs_d10_dependency_advisory_baseline_flags_invalid_current_heading(
 def test_docs_d10_flags_baseline_advisory_id_drift_dependency_advisory_baseline(tmp_path):
     repo = _advisory_baseline_repo(tmp_path)
     document = json.loads((repo / "security/accepted-advisories.json").read_text())
-    document["accepted_advisories"][0]["advisory_id"] = "PYSEC-2099-1"
+    item = next(
+        entry for entry in document["accepted_advisories"]
+        if entry["package"] == "setuptools"
+    )
+    item["advisory_id"] = "PYSEC-2099-1"
     _write_canonical_baseline(repo, document)
 
     assert [finding.message for finding in _d10_advisory_baseline_findings(repo)] == [
@@ -2220,7 +2227,16 @@ def test_docs_d10_flags_baseline_advisory_id_drift_dependency_advisory_baseline(
 def test_docs_d10_flags_baseline_package_drift_dependency_advisory_baseline(tmp_path):
     repo = _advisory_baseline_repo(tmp_path)
     document = json.loads((repo / "security/accepted-advisories.json").read_text())
-    document["accepted_advisories"][0]["package"] = "lightning"
+    item = next(
+        entry for entry in document["accepted_advisories"]
+        if entry["package"] == "setuptools"
+    )
+    item["package"] = "lightning"
+    document["accepted_advisories"].sort(
+        key=lambda entry: (
+            entry["package"], entry["accepted_version"], entry["advisory_id"]
+        )
+    )
     _write_canonical_baseline(repo, document)
 
     assert any(
@@ -2233,7 +2249,11 @@ def test_docs_d10_flags_baseline_package_drift_dependency_advisory_baseline(tmp_
 def test_docs_d10_flags_baseline_accepted_version_drift_dependency_advisory_baseline(tmp_path):
     repo = _advisory_baseline_repo(tmp_path)
     document = json.loads((repo / "security/accepted-advisories.json").read_text())
-    document["accepted_advisories"][0]["accepted_version"] = "9.9.9"
+    item = next(
+        entry for entry in document["accepted_advisories"]
+        if entry["package"] == "setuptools"
+    )
+    item["accepted_version"] = "9.9.9"
     _write_canonical_baseline(repo, document)
 
     assert any(
@@ -2246,7 +2266,11 @@ def test_docs_d10_flags_baseline_accepted_version_drift_dependency_advisory_base
 def test_docs_d10_flags_baseline_surface_drift_dependency_advisory_baseline(tmp_path):
     repo = _advisory_baseline_repo(tmp_path)
     document = json.loads((repo / "security/accepted-advisories.json").read_text())
-    document["accepted_advisories"][0]["surfaces"] = ["torch"]
+    item = next(
+        entry for entry in document["accepted_advisories"]
+        if entry["package"] == "setuptools"
+    )
+    item["surfaces"] = ["torch"]
     _write_canonical_baseline(repo, document)
 
     assert any(
@@ -2331,7 +2355,7 @@ def test_docs_d10_dependency_advisory_baseline_reports_markdown_only_identity(tm
     ledger = repo / "docs/dependency-contracts.md"
     line = (
         "| `torch` | `PYSEC-2099-1` | 1 | None listed | `2.11.0` | None listed | "
-        "Combined runtime; Torch |\n"
+        "Combined runtime; Torch |"
     )
     final_row = (
         "| `torch` | `PYSEC-2025-194` | 1 | `2.13.0` | `2.11.0` | "

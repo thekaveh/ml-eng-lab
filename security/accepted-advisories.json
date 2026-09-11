@@ -8,6 +8,24 @@
   ],
   "accepted_advisories": [
     {
+      "advisory_id": "PYSEC-2026-3740",
+      "package": "nltk",
+      "accepted_version": "3.10.3",
+      "surfaces": [
+        "combined-runtime",
+        "atlas-contract"
+      ]
+    },
+    {
+      "advisory_id": "PYSEC-2026-3967",
+      "package": "pytorch-lightning",
+      "accepted_version": "2.6.1",
+      "surfaces": [
+        "combined-runtime",
+        "torch"
+      ]
+    },
+    {
       "advisory_id": "PYSEC-2026-3447",
       "package": "setuptools",
       "accepted_version": "81.0.0",
