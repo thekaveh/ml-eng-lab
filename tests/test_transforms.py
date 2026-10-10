@@ -124,7 +124,36 @@ def test_real_manifest_maps_root_security_and_rewrites_policy_links():
     assert "](jupyterhub-integration.md)" in site_policy
 
     wiki_policy = rewrite_for_surface(policy, "wiki", wiki_map)
-    assert "](5-Repository-conventions.md)" in wiki_policy
-    assert "](6-1-Dependency-ledger.md)" in wiki_policy
-    assert "](6-2-Atlas-pin-bump-and-service-admission-runbook.md)" in wiki_policy
-    assert "](4-2-JupyterHub-integration.md)" in wiki_policy
+    assert "](5-Repository-conventions)" in wiki_policy
+    assert "](6-1-Dependency-ledger)" in wiki_policy
+    assert "](6-2-Atlas-pin-bump-and-service-admission-runbook)" in wiki_policy
+    assert "](4-2-JupyterHub-integration)" in wiki_policy
+
+
+def test_source_relative_links_and_fragments_resolve_on_each_surface():
+    sm = {'docs/index.md': 'index.md', 'docs/architecture.md': 'architecture.md',
+          'docs/conventions.md': 'conventions.md', 'docs/notebooks/task.md': 'notebooks/task.md'}
+    text = '[Architecture](architecture.md) [Policy](conventions.md#524-notebook-output-freshness)'
+    assert rewrite_for_surface(text, 'site', sm, source_path='docs/index.md') == text
+    wiki = {'docs/index.md': 'Home.md', 'docs/architecture.md': '2-Architecture.md',
+            'docs/conventions.md': '5-Repository-conventions.md'}
+    result = rewrite_for_surface(text, 'wiki', wiki, source_path='docs/index.md')
+    assert '[Architecture](2-Architecture)' in result
+    assert '[Policy](5-Repository-conventions#524-notebook-output-freshness)' in result
+    nested = rewrite_for_surface('[Home](../index.md) [Policy](../conventions.md#section)',
+                                 'site', sm, source_path='docs/notebooks/task.md')
+    assert nested == '[Home](../index.md) [Policy](../conventions.md#section)'
+
+
+def test_real_home_recommended_routes_remain_clickable():
+    manifest = load_manifest(REPO_ROOT / 'docs/manifest.yaml', REPO_ROOT)
+    home = (REPO_ROOT / 'docs/index.md').read_text()
+    for surface in ('site', 'wiki'):
+        source_map = build_source_map(manifest, surface)
+        result = rewrite_for_surface(home, surface, source_map, source_path='docs/index.md')
+        for source in ('docs/architecture.md','docs/atlas-pin-bump-runbook.md',
+                       'docs/notebooks/tabular_classification-iris-mlp-pytorch.md'):
+            target = source_map[source]
+            if surface == 'wiki':
+                target = target.removesuffix('.md')
+            assert f']({target})' in result

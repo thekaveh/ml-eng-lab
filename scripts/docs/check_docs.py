@@ -126,11 +126,6 @@ _PROJECT_SUMMARY_RE = re.compile(
     re.DOTALL,
 )
 PROJECT_TAGLINE = "Local notebooks. Remote Atlas execution. Explicit infrastructure contracts."
-PROJECT_SUMMARY_OPENING = (
-    "ml-eng-lab is a portfolio of self-contained machine-learning notebook experiments built "
-    "for local editing in VS Code and recommended remote execution through JupyterHub on Atlas's "
-    "ML Engineering track."
-)
 _PROJECT_POSTER_MARKUP = {
     "README.md": (
         '<p align="center">\n'
@@ -548,13 +543,6 @@ def _normalize_prose(text: str) -> str:
     return " ".join(text.split())
 
 
-def _normalize_summary_structure(text: str) -> str:
-    return "\n\n".join(
-        _normalize_prose(paragraph)
-        for paragraph in re.split(r"\n\s*\n", text.strip())
-    )
-
-
 def _badge_rows(asset_prefix: str) -> str:
     rows: list[str] = []
     for label, badges in PROJECT_BADGE_GROUPS:
@@ -571,17 +559,8 @@ def _badge_rows(asset_prefix: str) -> str:
     return "\n\n".join(rows)
 
 
-def _normalize_opener_structure(opener: str) -> str:
-    return opener.replace("docs/assets/", "assets/").replace(
-        '<h1 align="center">1 · ML ENG LAB</h1>',
-        '<h1 align="center">ML ENG LAB</h1>',
-    )
-
-
 def check_project_opening(repo_root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    summaries: dict[str, str] = {}
-    opener_structures: dict[str, str] = {}
     expected_tagline = (
         f'<p align="center"><strong>{PROJECT_TAGLINE}</strong></p>'
     )
@@ -680,48 +659,16 @@ def check_project_opening(repo_root: Path) -> list[Finding]:
                             f"project badge asset missing: {resolved_source}",
                         )
                     )
-        if len(re.split(r"\n\s*\n", matches[0].strip())) != 2:
-            findings.append(
-                Finding(
-                    "error",
-                    f"project summary in {relative_path} must contain exactly two paragraphs",
-                )
-            )
         summary = _normalize_prose(matches[0])
-        summaries[relative_path] = _normalize_summary_structure(matches[0])
-        normalized_opener = (
-            opener[: summary_match.start(1)]
-            + _normalize_summary_structure(summary_match.group(1))
-            + opener[summary_match.end(1) :]
-        )
-        opener_structures[relative_path] = _normalize_opener_structure(
-            normalized_opener
-        )
-        if not summary.startswith(PROJECT_SUMMARY_OPENING):
-            findings.append(
-                Finding("error", f"canonical project summary opening missing from {relative_path}")
-            )
-        word_count = len(re.findall(r"\b[\w'-]+\b", summary))
-        if not 100 <= word_count <= 150:
-            findings.append(
-                Finding(
-                    "error",
-                    f"project summary in {relative_path} must contain 100-150 words; found {word_count}",
-                )
-            )
+        for pattern, label in (
+            (r"\bml-eng-lab\b", "project identity"),
+            (r"\bnotebook", "notebook purpose"),
+            (r"\b(?:21|twenty-one)\s+active task (?:folders|directories)", "active task inventory"),
+            (r"\b(?:29|twenty-nine)\s+(?:active )?notebooks", "active notebook inventory"),
+        ):
+            if not re.search(pattern, summary, re.IGNORECASE):
+                findings.append(Finding("error", f"project summary missing {label} in {relative_path}"))
 
-    if len(summaries) == len(_PROJECT_POSTER_MARKUP) and len(set(summaries.values())) != 1:
-        findings.append(Finding("error", "project summary differs between README.md and docs/index.md"))
-    if (
-        len(opener_structures) == len(_PROJECT_POSTER_MARKUP)
-        and len(set(opener_structures.values())) != 1
-    ):
-        findings.append(
-            Finding(
-                "error",
-                "project opener order or structure differs between README.md and docs/index.md",
-            )
-        )
     return findings
 
 

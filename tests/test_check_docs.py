@@ -141,7 +141,8 @@ PROJECT_SUMMARY = (
     "environment, Docker, or GitHub Codespaces when Atlas is not the right fit. Host-native Ollama is "
     "the only approved Ollama source whenever a future task needs it; containerized Ollama is "
     "intentionally excluded. This makes the lab both a practical portfolio and a controlled environment "
-    "for growing machine-learning systems without hiding operational assumptions inside notebooks."
+    "for growing machine-learning systems without hiding operational assumptions inside notebooks. "
+    "The collection has 21 active task folders and 29 active notebooks."
 )
 
 
@@ -569,7 +570,7 @@ def test_real_user_docs_publish_advisory_baseline_contract():
     }
     ledger = " ".join(docs["docs/dependency-contracts.md"].split())
 
-    assert "security/                                  (accepted-advisory policy)" in docs["README.md"]
+    assert "security/                                  (accepted-advisory policy)" in docs["docs/conventions.md"]
     assert "`make audit-advisories`" in docs["CONTRIBUTING.md"]
     assert "`dependency-audit`" in docs["CONTRIBUTING.md"]
     assert "does not claim an automated vulnerability-baseline gate" not in docs["SECURITY.md"]
@@ -592,7 +593,7 @@ def test_real_user_docs_publish_advisory_baseline_contract():
         docs["docs/conventions.md"].split()
     )
     assert "selected platform lock rather than an audit projection" in ledger
-    assert "pyg-extension-audit-requirements.txt" in docs["README.md"]
+    assert "pyg-extension-audit-requirements.txt" in docs["docs/conventions.md"]
     assert "isolated `dependency-audit` signal" in docs["docs/architecture.md"]
     assert "| OM-047 |" in docs["docs/maintenance/overnight-2026-07-04.md"]
     assert "| Fixed | Issue #60 added the reviewed JSON policy" in docs[
@@ -833,20 +834,20 @@ def _write_project_opening(
     )
 
 
-def test_project_opening_rejects_tagline_and_summary_drift(tmp_path):
+def test_project_opening_rejects_tagline_and_inventory_drift(tmp_path):
     _write_project_opening(
         tmp_path,
         landing_tagline="A different tagline.",
-        landing_summary=f"{PROJECT_SUMMARY} changed",
+        landing_summary=PROJECT_SUMMARY.replace("21 active", "20 active"),
     )
 
     messages = [finding.message for finding in check_project_opening(tmp_path)]
 
     assert any("tagline" in message for message in messages)
-    assert any("summary" in message and "differ" in message for message in messages)
+    assert any("active task inventory" in message for message in messages)
 
 
-def test_project_opening_rejects_missing_poster_and_summary_outside_word_range(tmp_path):
+def test_project_opening_rejects_missing_poster_and_inventory(tmp_path):
     short_summary = f"ml-eng-lab {' '.join(['short'] * 20)}"
     _write_project_opening(
         tmp_path,
@@ -866,7 +867,7 @@ def test_project_opening_rejects_missing_poster_and_summary_outside_word_range(t
     messages = [finding.message for finding in check_project_opening(tmp_path)]
 
     assert any("poster" in message for message in messages)
-    assert any("100-150 words" in message for message in messages)
+    assert any("inventory" in message for message in messages)
 
 
 def test_project_opening_rejects_missing_project_title(tmp_path):
@@ -966,7 +967,7 @@ def test_project_opening_rejects_missing_poster_asset(tmp_path):
     )
 
 
-def test_project_opening_rejects_single_paragraph_summary(tmp_path):
+def test_project_opening_allows_single_paragraph_summary(tmp_path):
     _write_project_opening(tmp_path)
     landing = tmp_path / "docs/index.md"
     landing.write_text(
@@ -974,10 +975,7 @@ def test_project_opening_rejects_single_paragraph_summary(tmp_path):
         encoding="utf-8",
     )
 
-    assert any(
-        "two paragraphs" in finding.message
-        for finding in check_project_opening(tmp_path)
-    )
+    assert check_project_opening(tmp_path) == []
 
 
 def test_project_opening_rejects_runtime_flow_in_summary_tail(tmp_path):
@@ -1029,7 +1027,7 @@ def test_project_opening_allows_summary_line_reflow(tmp_path):
     assert check_project_opening(tmp_path) == []
 
 
-def test_project_opening_rejects_moved_summary_paragraph_boundary(tmp_path):
+def test_project_opening_allows_moved_summary_paragraph_boundary(tmp_path):
     _write_project_opening(
         tmp_path,
         landing_summary=PROJECT_SUMMARY.replace(
@@ -1038,10 +1036,7 @@ def test_project_opening_rejects_moved_summary_paragraph_boundary(tmp_path):
         ),
     )
 
-    messages = [finding.message for finding in check_project_opening(tmp_path)]
-
-    assert any("summary differs" in message for message in messages)
-    assert not any("exactly two paragraphs" in message for message in messages)
+    assert check_project_opening(tmp_path) == []
 
 
 def test_project_opening_ignores_summary_tail_whitespace_drift(tmp_path):
@@ -1421,7 +1416,6 @@ def test_issue62_platform_contract_rejects_restored_pending_claim() -> None:
 
 
 def test_issue66_quantization_guidance_uses_tier_b_contract() -> None:
-    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     contributing = (REPO_ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     nnx_overview = (REPO_ROOT / "docs/nnx-library.md").read_text(encoding="utf-8")
     design = (
@@ -1438,7 +1432,9 @@ def test_issue66_quantization_guidance_uses_tier_b_contract() -> None:
         REPO_ROOT / "notebooks/quantization-mnist-ffnn-pytorch/README.md"
     ).read_text(encoding="utf-8")
     surfaces = {
-        "README.md": _between(readme, "**How to use**:\n", "See [`.devcontainer"),
+        "docs/env-setup.md": _between(
+            (REPO_ROOT / "docs/env-setup.md").read_text(), "**How to use**:\n", "See `.devcontainer"
+        ),
         "CONTRIBUTING.md": _same_level_section(contributing, "4. Modifying shared code"),
         "notebooks/quantization-mnist-ffnn-pytorch/README.md": _same_level_section(
             task_readme, "4. How to run"
@@ -1453,12 +1449,12 @@ def test_issue66_quantization_guidance_uses_tier_b_contract() -> None:
         ), path
         assert "manual-only" not in current.lower(), path
         assert "outside Tier A/B/C" not in current, path
-    assert "make smoke-tier-b" in surfaces["README.md"]
+    assert "make smoke-tier-b" in surfaces["docs/env-setup.md"]
     assert "make install-torch-stack" in surfaces[
         "notebooks/quantization-mnist-ffnn-pytorch/README.md"
     ]
     unsupported = _between(
-        readme, "**Scenarios this does NOT support**:\n", "**How to use**:\n"
+        (REPO_ROOT / "docs/env-setup.md").read_text(), "**Scenarios this does NOT support**:\n", "**How to use**:\n"
     )
     assert "quantization-mnist-ffnn-pytorch" not in unsupported
     extending_nnx = _same_level_section(nnx_overview, "7.4 Extending NNx")
@@ -1649,7 +1645,7 @@ def _assert_nnx_retain_decision_docs(documents: dict[str, str]) -> None:
 
     for fact in _NNX_RETAINED_TRIAL_FACTS:
         assert fact in ledger or fact in overview or fact in current_changelog
-    assert "retained 0.2.0" in readme
+    assert "thekaveh-nnx[lm]==0.2.0" in readme
     assert "Atlas JupyterHub" in readme
     assert (
         "Tier B and Tier C completed on Darwin arm64 with `torch_sparse==0.6.18` imported"
@@ -1706,7 +1702,7 @@ def test_nnx_current_docs_record_completed_trial_and_retained_default_runtime():
 @pytest.mark.parametrize(
     ("path", "old", "new"),
     (
-        ("README.md", "retained 0.2.0", "adopted 0.2.2"),
+        ("README.md", "thekaveh-nnx[lm]==0.2.0", "thekaveh-nnx[lm]==0.2.2"),
         ("docs/dependency-contracts.md", "Tier C `4/4`", "Tier C pending"),
         ("docs/dependency-contracts.md", "Torch 2.11.0", "Torch >=2.5"),
         (
@@ -2419,3 +2415,12 @@ def test_issue71_current_docs_publish_notebook_freshness_hash_contract() -> None
     changelog = documents["CHANGELOG.md"].split("## [0.1.0]", 1)[0]
     assert "Issue #71" in changelog
     assert "every cell's `metadata.source_hash`" in changelog
+
+
+def test_project_opening_allows_concise_semantically_equivalent_summaries(tmp_path):
+    _write_project_opening(
+        tmp_path,
+        readme_summary="ml-eng-lab has 21 active task folders and 29 notebooks for machine learning.",
+        landing_summary="Explore ml-eng-lab notebooks. The collection includes 21 active task directories and 29 active notebooks.",
+    )
+    assert check_project_opening(tmp_path) == []

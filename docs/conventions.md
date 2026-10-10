@@ -374,3 +374,45 @@ The documentation gate (§5.3) enforces self-containment (every generated page
 must resolve its assets without leaving the site), completeness (manifest ↔
 source agreement), and the absence of placeholder text — so the three-surface
 pipeline stays in sync without manual reconciliation.
+
+## 5.6 Repository layout
+
+```
+ml-eng-lab/
+├── README.md                                  (project entry point)
+├── CONTRIBUTING.md                            (workflow + conventions)
+├── SECURITY.md                                (private reporting + support policy)
+├── CHANGELOG.md                               (release notes)
+├── Makefile                                   (papermill tier targets)
+├── security/                                  (accepted-advisory policy)
+├── docs/                                      (env/runtime docs, dependency contracts, findings, maintenance log)
+├── requirements.txt + torch-*.txt + pyg-extension-audit-requirements.txt (runtime pins plus audit projections; thekaveh-nnx[lm]==0.2.0)
+├── infra/                                     (Atlas git submodule; pinned infrastructure)
+├── atlas.consumer.yml                         (ml-eng Atlas consumer contract)
+├── compose/                                   (parent-owned Atlas compose overlays)
+├── scripts/                                   (Atlas lifecycle, verifier, notebook edit/import helpers)
+├── tests/                                     (pytest: nnx_surface contract + verifier + helpers)
+└── notebooks/                                 (21 active task folders plus notebooks/archive/)
+```
+
+See [Changelog](../CHANGELOG.md) for release history; per-task folders are linked from the root README active catalog, and secondary docs are linked from the documentation navigation.
+
+
+## 5.7 Roadmap
+
+The `tabular_classification-iris-mlp-pytorch` task added in 2026-05-28 seeds the `tabular_classification-titanic-xgboost-sklearn` roadmap entry below.
+
+Future tasks planned (each will become a new `notebooks/<task>/` directory):
+
+- [ ] `image_classification-cifar10-resnet-pytorch`
+- [ ] `tabular_classification-titanic-xgboost-sklearn`
+- [ ] `text_classification-imdb-distilbert-hf` — distinct from the shipped `notebooks/text_classification-agnews-spacy-mlp-pytorch/` (pre-transformer baseline); this entry is specifically the DistilBERT fine-tune / PEFT continuation.
+- [ ] `link_prediction-citation-graphsage-pyg` — distinct from the shipped `notebooks/link_prediction-karate-graphsage-pyg/` (small-graph smoke); this entry is on a real citation network.
+- [ ] `time_series_forecasting-electricity-tft-pytorch`
+- [ ] `anomaly_detection-creditcard-autoencoder-pytorch`
+- [ ] `recommendation-movielens-mf-pytorch`
+- [ ] `generative-mnist-vae-pytorch` — distinct from the shipped `notebooks/diffusion-mnist-ddpm-pytorch/`; VAEs and diffusion are different generative families.
+- [ ] `reinforcement_learning-cartpole-dqn-pytorch`
+- [x] `diffusion-mnist-ddpm-pytorch` — shipped 2026-05-29 in PR #4.
+
+Adding a new task: see the "Adding a new task folder" section in [CONTRIBUTING.md](../CONTRIBUTING.md).

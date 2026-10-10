@@ -50,7 +50,8 @@ references are rewritten to the surface-appropriate asset format, and any link t
 a surface boundary (a site page linking to a GitHub source view, for example) is stripped to
 bare text.
 
-The root `README.md` opener is hand-authored and parity-guarded against `docs/index.md`;
+The root `README.md` and `docs/index.md` openings are hand-authored. Their project
+identity, active inventory and brand assets are checked without requiring equal prose;
 it is not a manifest-generated page. The repository renders both that opener and the canonical
 manifest sources directly, while the site and wiki contain only manifest-projected pages.
 
