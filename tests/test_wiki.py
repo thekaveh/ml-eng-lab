@@ -84,7 +84,7 @@ def test_real_manifest_renders_numbered_security_page_and_sidebar_entry(tmp_path
     policy = (out / "13-Security-policy.md").read_text(encoding="utf-8")
     sidebar = (out / "_Sidebar.md").read_text(encoding="utf-8")
 
-    assert "](6-1-Dependency-ledger.md)" in policy
+    assert "](6-1-Dependency-ledger)" in policy
     assert "[13. Security policy](13-Security-policy)" in sidebar
 
 

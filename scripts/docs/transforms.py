@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import re
+import posixpath
+from urllib.parse import urlsplit, unquote
 
 from scripts.docs.links import is_forbidden
 from scripts.docs.manifest import Manifest, NotebookEntry
@@ -48,18 +50,29 @@ def build_source_map(manifest: Manifest, surface: str) -> dict[str, str]:
     return sm
 
 
-def rewrite_for_surface(md: str, surface: str, source_map: dict[str, str]) -> str:
+def rewrite_for_surface(
+    md: str, surface: str, source_map: dict[str, str], *, source_path: str = ""
+) -> str:
+    """Resolve links at their canonical page, then relative to the rendered page."""
     def repl(m: re.Match[str]) -> str:
         text, target = m.group(1), m.group(2).strip()
         if is_forbidden(target, surface):
-            return text  # strip the link, keep the bare text
-        if target.endswith(".ipynb"):
-            return text  # notebooks have no page in the surface; drop to bare text
-        if target in source_map:
-            return f"[{text}]({source_map[target]})"
-        # Relative .md link to a doc NOT in the manifest (e.g. docs/env-setup.md, a notebook
-        # README): valid in the in-repo surface but absent from the generated site/wiki → bare text.
-        if target.endswith(".md") and not target.startswith(("#", "mailto:", "http://", "https://")):
+            return text
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            return m.group(0)
+        path = unquote(parsed.path)
+        source_relative = posixpath.normpath(posixpath.join(posixpath.dirname(source_path), path))
+        key = next((candidate for candidate in (source_relative, path) if candidate in source_map), None)
+        if key is not None:
+            destination = source_map[key]
+            if surface == "wiki":
+                destination = destination.removesuffix(".md")
+            elif source_path in source_map:
+                destination = posixpath.relpath(destination, posixpath.dirname(source_map[source_path]) or ".")
+            suffix = ("?" + parsed.query if parsed.query else "") + ("#" + parsed.fragment if parsed.fragment else "")
+            return f"[{text}]({destination}{suffix})"
+        if path.endswith((".md", ".ipynb")):
             return text
         return m.group(0)
 
