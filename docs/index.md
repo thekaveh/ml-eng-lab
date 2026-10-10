@@ -27,66 +27,33 @@
 </p>
 
 <!-- project-summary:start -->
-ml-eng-lab is a portfolio of self-contained machine-learning notebook experiments built for
-local editing in VS Code and recommended remote execution through JupyterHub on Atlas's ML
-Engineering track. Unlike a loose notebook collection, each task declares its runtime needs in a
-checked infrastructure contract, keeping notebook dependencies explicit as the lab expands beyond
-JupyterHub. Narrative experiments, reproducible execution tiers, exact dependency pins, validation
-gates, and the reusable thekaveh-nnx toolkit evolve together.
+ml-eng-lab is a portfolio of machine-learning notebook experiments. Explore
+classification, graphs, language models and other techniques through narrative
+notebooks with committed results. The collection contains 21 active task folders
+and 29 active notebooks; older experiments are kept separately in a read-only archive.
 
-Contributors can use Browser
-JupyterLab for mounted-workspace tasks or choose a local virtual environment, Docker, or GitHub
-Codespaces when Atlas is not the right fit. Host-native Ollama is the only approved Ollama source
-whenever a future task needs it; containerized Ollama is intentionally excluded. This makes the
-lab both a practical portfolio and a controlled environment for growing machine-learning systems
-without hiding operational assumptions inside notebooks.
+Use Atlas JupyterHub with local VS Code, or choose a supported local environment.
+Each task declares its runtime requirements. Start with the small Iris
+classification notebook, then use the task catalog and deeper guides below.
 <!-- project-summary:end -->
 
-## 1.1 Repository map
+## 1.1 Start with a notebook
 
-- `notebooks/` contains twenty-one active task directories and twenty-nine active notebooks.
-- `notebooks/archive/` contains preserved Aug-2023 CodeXGLUE summarization experiments.
-- `scripts/verify_repo.py` is the fast structural, documentation, and notebook-surface verifier.
-- `scripts/docs/` owns the three-surface documentation pipeline (manifest, transforms,
-  renderers, checker).
-- `Makefile` owns notebook execution tiers and local validation targets.
-- `infra/` pins Atlas; its `ml-eng` JupyterHub runtime is the default remote notebook kernel.
-- `docs/` holds the documentation-tree portion of the manifest-declared canonical source set;
-  root governance Markdown such as `SECURITY.md` completes that set.
-- `.github/workflows/` contains CI and documentation publishing workflows.
+Choose a runtime in [Environment setup](env-setup.md), including its tools,
+platform and resource requirements. Use the
+[Iris classification walkthrough](notebooks/tabular_classification-iris-mlp-pytorch.md)
+as the first small CPU example. Open its notebook in your configured environment,
+select the kernel and run cells from top to bottom. Compare the metrics,
+confusion matrices and final verdict under **Evaluation & Results**.
 
-The root `README.md` is the day-to-day entry point for contributors — it carries the task index,
-quick-start paths, and the standard make targets. Its opener is hand-authored and parity-guarded
-against this landing page; it is not a manifest-generated page. This documentation collection is
-the focused reference surface that complements the README.
+A rerun trains models and can replace displayed results when saved. Preserve
+committed outputs in a working copy if needed. Read the
+[notebook output policy](conventions.md#524-notebook-output-freshness) before
+updating committed artifacts. The active deep-dives appear in section 8.
 
-## 1.2 Documentation surfaces
+## 1.2 Deeper guides
 
-The lab maintains three synchronized documentation surfaces from a manifest-declared canonical
-source set so the three never drift. That set includes Markdown under `docs/` and direct-root
-governance Markdown such as `SECURITY.md`:
-
-| Surface | Source | Rendered by | Audience |
-|---|---|---|---|
-| **Repository** | Manifest sources under `docs/` plus root governance Markdown | GitHub markdown rendering | Contributors browsing the repo |
-| **Site** | `generated/site/` | MkDocs Material (`mkdocs build`) | Public readers of the published site |
-| **Wiki** | `generated/wiki/` | GitHub wiki rendering | Readers who prefer the wiki navigation |
-
-The manifest at `docs/manifest.yaml` is the single source of truth for the hierarchy, numbering,
-and page set. `scripts/docs/build_docs.py` consumes the manifest and emits both generated
-surfaces; `scripts/docs/check_docs.py` gates CI on self-containment, completeness, placeholders,
-and determinism. Each manifest page is written once; the site and wiki are transforms of that
-source, while the repository renders the source directly.
-
-## 1.3 Recommended reading path
-
-- [System & context view](architecture.md) for the repository context, the system diagram,
-  and the three-surface pipeline.
-- [Atlas pin-bump and service-admission runbook](atlas-pin-bump-runbook.md) for the infrastructure
-  ownership boundary, native Ollama rule, and future service workflow.
-- [Tabular classification — Iris MLP](notebooks/tabular_classification-iris-mlp-pytorch.md)
-  for the exemplar comprehensive deep-dive — the canonical walk-through of one notebook end to
-  end (problem, math, architecture, code, results, pitfalls, extensions).
-
-All twenty-one active task deep-dives are available under section 8. The three links above are a
-recommended starting path through that complete catalog.
+- [System & context view](architecture.md): runtime and repository architecture.
+- [Atlas pin-bump and service-admission runbook](atlas-pin-bump-runbook.md): infrastructure ownership, native Ollama and future service admission.
+- [NNx library](nnx-library.md): current package contract and upstream development.
+- [Repository conventions](conventions.md): contributions, execution tiers, repository map and planned work.

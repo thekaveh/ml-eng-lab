@@ -27,22 +27,17 @@
 </p>
 
 <!-- project-summary:start -->
-ml-eng-lab is a portfolio of self-contained machine-learning notebook experiments built for
-local editing in VS Code and recommended remote execution through JupyterHub on Atlas's ML
-Engineering track. Unlike a loose notebook collection, each task declares its runtime needs in a
-checked infrastructure contract, keeping notebook dependencies explicit as the lab expands beyond
-JupyterHub. Narrative experiments, reproducible execution tiers, exact dependency pins, validation
-gates, and the reusable thekaveh-nnx toolkit evolve together.
+ml-eng-lab is a portfolio of machine-learning notebook experiments. Explore
+classification, graphs, language models and other techniques through narrative
+notebooks with committed results. The collection contains 21 active task folders
+and 29 active notebooks; older experiments are kept separately in a read-only archive.
 
-Contributors can use Browser
-JupyterLab for mounted-workspace tasks or choose a local virtual environment, Docker, or GitHub
-Codespaces when Atlas is not the right fit. Host-native Ollama is the only approved Ollama source
-whenever a future task needs it; containerized Ollama is intentionally excluded. This makes the
-lab both a practical portfolio and a controlled environment for growing machine-learning systems
-without hiding operational assumptions inside notebooks.
+Use Atlas JupyterHub with local VS Code, or choose a supported local environment.
+Each task declares its runtime requirements. Start with the small Iris
+classification notebook, then use the task catalog and deeper guides below.
 <!-- project-summary:end -->
 
-## 1. Overview
+## 1. Capabilities
 
 This repo serves three overlapping purposes:
 
@@ -54,27 +49,23 @@ This repo serves three overlapping purposes:
 
 A shared PyTorch toolkit (`nnx`, [`thekaveh-nnx`](https://pypi.org/project/thekaveh-nnx/) on PyPI) provides reusable training-loop, dataset, and visualization primitives that the notebooks consume. Library and tasks co-evolve: each new task lands its required `nnx` additions upstream first ([`thekaveh/NNx`](https://github.com/thekaveh/NNx)), then ml-eng-lab bumps the pinned version here. YAGNI applies — no speculative abstractions in `nnx`.
 
-## 2. Repository layout
+## 2. Requirements and checkout
 
-```
-ml-eng-lab/
-├── README.md                                  (this file)
-├── CONTRIBUTING.md                            (workflow + conventions)
-├── SECURITY.md                                (private reporting + support policy)
-├── CHANGELOG.md                               (release notes)
-├── Makefile                                   (papermill tier targets)
-├── security/                                  (accepted-advisory policy)
-├── docs/                                      (env/runtime docs, dependency contracts, findings, maintenance log)
-├── requirements.txt + torch-*.txt + pyg-extension-audit-requirements.txt (runtime pins plus audit projections; thekaveh-nnx[lm]==0.2.0)
-├── infra/                                     (Atlas git submodule; pinned infrastructure)
-├── atlas.consumer.yml                         (ml-eng Atlas consumer contract)
-├── compose/                                   (parent-owned Atlas compose overlays)
-├── scripts/                                   (Atlas lifecycle, verifier, notebook edit/import helpers)
-├── tests/                                     (pytest: nnx_surface contract + verifier + helpers)
-└── notebooks/                                 (21 active task folders plus notebooks/archive/)
+Choose an environment before running its commands:
+
+- All local paths require Git, Make and Bash. Clone the repository and run commands from its root.
+- Atlas and local Docker require a running Docker Engine with Compose v2. Atlas also requires host-native Ollama answering on loopback; do not substitute an Ollama container.
+- The qualified local venv uses Python 3.11.15 on Darwin arm64, Linux x86_64 or Linux aarch64. Native Windows is not a qualified lock target; use a supported Linux environment instead.
+- Codespaces requires a GitHub account with available capacity. Download/build time, RAM and disk requirements vary by task.
+
+```bash
+git clone https://github.com/thekaveh/ml-eng-lab.git
+cd ml-eng-lab
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for release history; per-task folders are linked from [§4.1 Active](#41-active), and secondary docs are linked from [§10 Other documentation](#10-other-documentation).
+See [environment setup](docs/env-setup.md) for platform, GPU and resource details
+before selecting a path. These commands can download packages, images and data;
+starting Atlas changes your local runtime state.
 
 ## 3. Quick start
 
@@ -143,7 +134,9 @@ jupyter lab
 `make install-torch-stack` selects the exact Darwin arm64, Linux x86_64, or Linux aarch64
 hash-required lock declared by `requirements/lock-policy.toml`; it does not resolve the human input
 manifests at install time. The result is reproducible for the qualified platform lock, not one
-cross-platform binary environment. Use `make verify-dependency-locks` for the offline
+cross-platform binary environment.
+
+For dependency maintenance, use `make verify-dependency-locks` for the offline
 policy/input/lock check, `make lock-check` for networked byte regeneration, and
 `make image-lock-check` for registry-backed image digest verification. Lock regeneration uses the
 exact resolver cutoff in `requirements/lock-policy.toml`; advancing it is a reviewed dependency
@@ -162,36 +155,30 @@ preferred pyg-lib sampling and the forced torch-sparse fallback.
 
 See [docs/env-setup.md](docs/env-setup.md) for environment details.
 
-### 3.4. GitHub Codespaces (zero-click cloud dev)
+### 3.4. GitHub Codespaces
 
-Click **Code → Codespaces → Create codespace on main** on [github.com/thekaveh/ml-eng-lab](https://github.com/thekaveh/ml-eng-lab). After the one-time dependency installation completes, you have browser-based VS Code (or JupyterLab — see below) with the 21 active task folders available and all 29 active notebooks runnable under the pinned environment. Setup time varies with image-cache and network state.
+On the repository page, select **Code → Codespaces → Create codespace on main**.
+Wait for dependency setup, then open a notebook in browser VS Code or JupyterLab.
+Setup time varies with image-cache and network state.
+The environment is CPU-only. Files under `data/` and `runs/` are lost when the
+Codespace is deleted; preserve results you need before deletion.
 
-**Why this path was added.** The §3.1 / §3.2 / §3.3 paths each require local services or
-dependency setup. Codespaces avoids that setup: the `.devcontainer/devcontainer.json`
-declaratively bakes the install recipe (so the dep set is synchronized to `requirements.txt`,
-`requirements/lock-policy.toml`, and the committed Linux lock set during Codespace creation via
-`postCreateCommand`), and the repo is auto-cloned into `/workspaces/ml-eng-lab` inside the
-container. Its base image is pinned as an exact tag plus multi-platform index digest.
+See [Codespaces usage and limits](docs/env-setup.md#414-github-codespaces) for
+setup, machine sizing and supported scenarios.
 
-**Scenarios this supports**:
-- Onboarding a new contributor — they click "Create codespace" and receive a working environment after the one-time dependency install, with no local installation.
-- Running a notebook on a larger host without local install (the smallest Codespace machine is 2-core / 8 GB RAM — comparable to a low-end laptop, sufficient for every Tier-A notebook; bump to 4-core / 16 GB if any Tier-B sweep feels slow).
-- Short exploratory run without polluting the local Python env.
-- The `notebooks/image_classification-mnist-ffnn-numpy/notebook.ipynb` edge case (it imports sibling `.py` modules from its own folder) works natively because Codespaces clones the repo into `/workspaces/ml-eng-lab`.
-- The `quantization-mnist-ffnn-pytorch` notebook is Tier B. Its one-epoch smoke proves PTQ, QAT conversion, exact QAT checkpoint reconstruction, and a machine-readable output contract; its full path retains three epochs.
+### 3.5. Run your first notebook
 
-**Scenarios this does NOT support**:
-- GPU workloads — GitHub deprecated GPU Codespaces 2025-08-29 (Azure NCv3 retirement). The few GPU-benefiting notebooks (heaviest is `self_supervised-fmnist-jepa-pytorch`) still run on CPU here, just slowly; for real GPU you want a separate path (Modal `function.spawn`, a self-hosted GPU box behind Jupyter Enterprise Gateway, or Vertex AI Workbench / Colab Enterprise).
-- Data persistence across Codespace deletions — anything written to `./data/` or `./runs/` is gone when the Codespace is deleted (Codespaces are intended to be cheap and disposable). Commit any results you want to keep, or use Codespaces' "prebuild" feature if dep install time becomes a bottleneck.
-**How to use**:
+After your chosen runtime is ready, open
+`notebooks/tabular_classification-iris-mlp-pytorch/notebook.ipynb` and select
+its Python kernel. Run the cells from top to bottom. This small CPU example
+uses scikit-learn's bundled Iris data, so it does not require a dataset download.
 
-1. On [github.com/thekaveh/ml-eng-lab](https://github.com/thekaveh/ml-eng-lab) → green **Code** button → **Codespaces** tab → **Create codespace on main**.
-2. Wait for `postCreateCommand` to run `make codespace-setup` (= Torch-first dependency install + `make nlp-assets`). Progress is visible in the terminal panel.
-3. Open any notebook. You can either:
-   - **Stay in VS Code (browser)** — the Jupyter / Python extensions are preinstalled per the devcontainer config and work for all 29 active notebooks. Use `make smoke-tier-b` for the bounded quantization execution contract.
-   - **Switch to JupyterLab** — click the dropdown next to "Open" on github.com → choose JupyterLab. To make JupyterLab the single-click default for all your codespaces, go to [github.com/settings/codespaces → Editor preference → JupyterLab](https://github.com/settings/codespaces).
-
-See [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) for the exact image + extension set, and [`Makefile`](Makefile) `codespace-setup` target for the Codespaces/venv install recipe. The §3.2 Docker path bakes the same Torch-first dependency order into [`Dockerfile`](Dockerfile). GitHub currently includes 120 Codespaces compute hours per month for Free accounts and 180 for Pro; on the default two-core machine, that corresponds to 60 or 90 machine-hours.
+Inspect **Evaluation & Results**: compare the candidate metrics and confusion
+matrices, then read the final verdict. The notebook trains models and writes
+artifacts; a full rerun replaces the notebook's displayed results when saved.
+Use a working copy if you want to preserve committed outputs. The
+[Iris walkthrough](docs/notebooks/tabular_classification-iris-mlp-pytorch.md)
+explains the model comparison. Consult each task's recorded execution conditions.
 
 ## 4. Tasks
 
@@ -231,7 +218,7 @@ See [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) for the
 
 ### 4.3. Planned
 
-See [§8 Roadmap](#8-roadmap).
+See [§8 Planned work](#8-planned-work).
 
 ## 5. Notebook re-execution policy
 
@@ -257,19 +244,20 @@ See [docs/env-setup.md](docs/env-setup.md) for the tier mapping.
 
 Throughout this README, `NNx` refers to the [GitHub project](https://github.com/thekaveh/NNx); the importable Python package is lowercase `nnx`; the PyPI distribution is [`thekaveh-nnx`](https://pypi.org/project/thekaveh-nnx/).
 
-The library is consumed via PyPI — `thekaveh-nnx[lm]==0.2.0` is pinned in `requirements.txt` (since 2026-06-14, replacing the prior git-submodule editable install). Issue #61 completed a clean released-wheel review of 0.2.2 but retained 0.2.0 because the recommended Atlas JupyterHub runtime is independently pinned to 0.2.0 and cannot execute 0.2.2-only notebook calls. The `[lm]` extra pulls the BPE tokenizer + datasets backbone for the two notebooks that call `train_bpe`/`NNTokenizerParams` (`notebooks/text_generation-tinyshakespeare-transformer-pytorch/notebook.ipynb` and `notebooks/preference_alignment-toy-dpo-pytorch/notebook.ipynb`); without it both `ImportError` (issue #12). Notebooks import supported symbols through the public facade, for example `from nnx import NNModel, NNParams`; do not teach deep `nnx.nn`, `nnx.utils`, `nnx.vis_utils`, or `nnx.seeding` paths when a top-level export exists.
+The current contract installs `thekaveh-nnx[lm]==0.2.0` from PyPI. The
+recommended Atlas runtime also pins 0.2.0. The `[lm]` extra supplies tokenizer
+and dataset support required by the two language-model notebooks.
 
-Released-wheel evidence is defined by the [canonical dependency contract](docs/dependency-contracts.md)
-and checked locally with `make verify-nnx-install`. For intentional upstream development, install
-the external NNx checkout editable and run
-`NNX_ALLOW_EDITABLE=1 make test-nnx-surface`; that result is development-surface evidence, not
-released-wheel evidence.
+Import supported symbols through the public facade, such as
+`from nnx import NNModel, NNParams`. Do not use deep module paths when a
+public export exists. Verify the released-wheel installation with
+`make verify-nnx-install`.
 
-To extend `nnx` for a new task:
-
-1. Open a PR against [`thekaveh/NNx`](https://github.com/thekaveh/NNx) with the new feature + a smoke test.
-2. After merge, wait for the next NNx release cut (or, for editable iteration during the design phase: clone `thekaveh/NNx` outside the ml-eng-lab tree, `pip install -e <path-to-clone>[lm]` into your venv, then run `NNX_ALLOW_EDITABLE=1 make test-nnx-surface`).
-3. After the release exists, update the exact pin in `requirements.txt` and open a PR. Tier-A papermill CI re-runs the Tier-A list against the new version; run `make smoke-tier-b` and `make smoke-tier-c` for the remaining execution surfaces — same validation discipline as the prior submodule-pointer-bump workflow.
+For intentional upstream development, install a separate NNx checkout editable
+and run `NNX_ALLOW_EDITABLE=1 make test-nnx-surface`. This is development
+validation, not released-wheel evidence. The [NNx guide](docs/nnx-library.md)
+and [canonical dependency contract](docs/dependency-contracts.md) preserve extension
+procedures, the completed 0.2.2 review and the reason for retaining 0.2.0.
 
 ## 7. Repository conventions
 
@@ -282,24 +270,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow. Key points:
 - Tier-C notebooks have their Aug-2023 outputs preserved; never re-execute them in place.
 - `notebooks/archive/` is read-only.
 
-## 8. Roadmap
+## 8. Planned work
 
-The `tabular_classification-iris-mlp-pytorch` task added in 2026-05-28 seeds the `tabular_classification-titanic-xgboost-sklearn` roadmap entry below.
-
-Future tasks planned (each will become a new `notebooks/<task>/` directory):
-
-- [ ] `image_classification-cifar10-resnet-pytorch`
-- [ ] `tabular_classification-titanic-xgboost-sklearn`
-- [ ] `text_classification-imdb-distilbert-hf` — distinct from the shipped `notebooks/text_classification-agnews-spacy-mlp-pytorch/` (pre-transformer baseline); this entry is specifically the DistilBERT fine-tune / PEFT continuation.
-- [ ] `link_prediction-citation-graphsage-pyg` — distinct from the shipped `notebooks/link_prediction-karate-graphsage-pyg/` (small-graph smoke); this entry is on a real citation network.
-- [ ] `time_series_forecasting-electricity-tft-pytorch`
-- [ ] `anomaly_detection-creditcard-autoencoder-pytorch`
-- [ ] `recommendation-movielens-mf-pytorch`
-- [ ] `generative-mnist-vae-pytorch` — distinct from the shipped `notebooks/diffusion-mnist-ddpm-pytorch/`; VAEs and diffusion are different generative families.
-- [ ] `reinforcement_learning-cartpole-dqn-pytorch`
-- [x] `diffusion-mnist-ddpm-pytorch` — shipped 2026-05-29 in PR #4.
-
-Adding a new task: see the "Adding a new task folder" section in [CONTRIBUTING.md](CONTRIBUTING.md).
+See the [roadmap](docs/conventions.md#57-roadmap) for proposed tasks and
+[Contributing](CONTRIBUTING.md) for the task-admission workflow. Planned tasks
+are separate from the active catalog above.
 
 ## 9. License
 

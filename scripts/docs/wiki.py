@@ -35,7 +35,7 @@ def render_wiki(
 
     def emit(src_rel: str) -> Path:
         text = (repo_root / src_rel).read_text(encoding="utf-8")
-        text = rewrite_for_surface(text, "wiki", source_map)
+        text = rewrite_for_surface(text, "wiki", source_map, source_path=src_rel)
         text = _rewrite_images_wiki(text)
         dest = out_dir / source_map[src_rel]
         dest.parent.mkdir(parents=True, exist_ok=True)
